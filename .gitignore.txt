@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+dataset/
+*.wav
+
+# Arduino build artifacts
+build/
+*.elf
+*.bin
+*.hex
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.code-workspace
+
+# Private docs — never push these
+ARIA_Full_Project_Record*
+ARIA_Action_Tracker*
+aria_provisional_patent*
+github_setup*
+system-flow*
+aria_youtube*
