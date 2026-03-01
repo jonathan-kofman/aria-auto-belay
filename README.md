@@ -135,7 +135,7 @@ IDLE → CLIMBING → CLIPPING (auto) → CLIMBING
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/aria-auto-belay
+git clone https://github.com/jonathan-kofman/aria-auto-belay
 cd aria-auto-belay
 
 # Run the simulator
