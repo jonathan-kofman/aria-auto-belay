@@ -1,0 +1,14 @@
+node_modules/
+.env
+.expo/
+google-services.json
+android/
+ios/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+*.tsbuildinfo

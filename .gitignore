@@ -1,5 +1,8 @@
 # Python
 __pycache__/
+.python/
+get-pip.py
+python-embed.zip
 *.pyc
 *.pyo
 .env

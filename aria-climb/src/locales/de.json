@@ -1,0 +1,8 @@
+{
+  "common": { "loading": "", "error": "", "retry": "", "offline": "", "save": "", "cancel": "", "confirm": "" },
+  "auth": { "login": "", "signup": "", "email": "", "password": "", "logout": "" },
+  "device": { "states": { "IDLE": "", "CLIMBING": "", "CLIPPING": "", "TAKE": "", "REST": "", "LOWER": "", "WATCH_ME": "", "CLIMBING_PAUSED": "" }, "tension": "", "height": "", "connected": "", "disconnected": "" },
+  "alerts": { "zone_intrusion": "", "device_offline": "", "fall_detected": "", "motor_paused": "", "zone_cleared": "", "say_to_resume": "" },
+  "gym": { "dashboard": "", "sessions": "", "routes": "", "settings": "", "alerts": "" },
+  "climber": { "home": "", "my_sessions": "", "leaderboard": "", "profile": "", "book_wall": "", "personal_bests": "", "max_height": "", "total_clips": "", "total_falls": "" }
+}

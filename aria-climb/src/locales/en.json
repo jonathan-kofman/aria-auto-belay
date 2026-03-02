@@ -1,0 +1,60 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "offline": "Offline — changes will sync when connected",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "auth": {
+    "login": "Log in",
+    "signup": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "logout": "Log out"
+  },
+  "device": {
+    "states": {
+      "IDLE": "Idle",
+      "CLIMBING": "Climbing",
+      "CLIPPING": "Clipping",
+      "TAKE": "Take",
+      "REST": "Resting",
+      "LOWER": "Lowering",
+      "WATCH_ME": "Watch Me",
+      "CLIMBING_PAUSED": "Paused"
+    },
+    "tension": "Tension",
+    "height": "Height",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
+  },
+  "alerts": {
+    "zone_intrusion": "Fall zone occupied",
+    "device_offline": "Device offline",
+    "fall_detected": "Fall detected",
+    "motor_paused": "Motor paused",
+    "zone_cleared": "Zone cleared — resuming",
+    "say_to_resume": "Say \"climbing\" to resume"
+  },
+  "gym": {
+    "dashboard": "Dashboard",
+    "sessions": "Sessions",
+    "routes": "Routes",
+    "settings": "Settings",
+    "alerts": "Alerts"
+  },
+  "climber": {
+    "home": "Home",
+    "my_sessions": "My Sessions",
+    "leaderboard": "Leaderboard",
+    "profile": "Profile",
+    "book_wall": "Book Wall",
+    "personal_bests": "Personal Bests",
+    "max_height": "Max Height",
+    "total_clips": "Total Clips",
+    "total_falls": "Total Falls"
+  }
+}
