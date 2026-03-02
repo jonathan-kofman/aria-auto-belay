@@ -2,8 +2,7 @@
 
 **A hybrid mechanical + AI-assisted lead climbing auto belay device**
 
-[![Status](https://img.shields.io/badge/status-building-yellow)](https://github.com)
-[![Phase](https://img.shields.io/badge/phase-2%20software%20complete-blue)](https://github.com)
+[![Status](https://img.shields.io/badge/status-pre--purchase%20%7C%20firmware%20dev-yellow)](https://github.com/jonathan-kofman/aria-auto-belay)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 > **What is this?** There is no commercially available lead auto belay device in the United States. ARIA is an attempt to build one — starting from the Lead Solo mechanical design and adding an intelligent motor-assisted slack management system on top.
@@ -59,19 +58,19 @@ Two completely independent layers. The safety layer operates with zero dependenc
                            │
 ┌─────────────────────────────────────────────────────────┐
 │              STM32F411 — SAFETY LAYER                    │
-│  SimpleFOC motor FOC  │  HX711 tension  │  AS5048A encoder│
-│  ARIA state machine   │  IWDG watchdog  │  Fault recovery  │
-│  UART ← commands      │  UART → state   │                  │
+│  Brake GPIO + E-stop  │  HX711 tension  │  AS5048A encoder│
+│  ARIA state machine   │  VESC UART      │  Fault recovery  │
+│  UART ← ESP32         │  UART → VESC    │                  │
 └─────────────────────────────────────────────────────────┘
-                           │ UART
-┌─────────────────────────────────────────────────────────┐
-│           XIAO ESP32-S3 Sense — INTELLIGENCE LAYER       │
-│  Edge Impulse wake words  │  OV2640 clip detection       │
-│  FreeRTOS: voice task     │  CV task  │  UART task        │
-└─────────────────────────────────────────────────────────┘
+           │ UART                    │ UART
+           ▼                         ▼
+┌──────────────────────┐   ┌─────────────────────────────┐
+│  VESC MINI 6.7       │   │  XIAO ESP32-S3 Sense         │
+│  FOC motor control   │   │  Voice + CV + BLE + UART     │
+└──────────────────────┘   └─────────────────────────────┘
 ```
 
-**Fail-safe principle:** If the ESP32 crashes → STM32 holds safe tension independently. If the STM32 motor faults → centrifugal clutch catches falls mechanically. If power cuts → clutch locks.
+**Fail-safe principle:** If the ESP32 crashes → STM32 holds safe tension independently. If the STM32 or VESC faults → brake engages; centrifugal clutch catches falls mechanically. If power cuts → power-off brake in gearmotor engages; clutch controls descent.
 
 ---
 
@@ -81,21 +80,24 @@ Two completely independent layers. The safety layer operates with zero dependenc
 IDLE → CLIMBING → CLIPPING (auto) → CLIMBING
               ↓ voice
            TAKE / REST / LOWER / WATCH ME / UP
-              ↓ any fault
-           ESTOP (latch, power cycle to clear)
+              ↓ zone intrusion (10s)
+           CLIMBING_PAUSED (brake on, alert)
+              ↓ any fault / E-stop
+           EMERGENCY_STOP (brake on, power cycle to clear)
 ```
 
-| State | Entry | Motor | Exit |
-|-------|-------|-------|------|
-| IDLE | No climber | Off | CV detects climber + tension > 15N |
-| CLIMBING | Climber on wall | PID: 40N tension | Voice or clip detected |
-| CLIPPING | CV: clip gesture | Fast payout 0.65m | Auto after clip duration |
+| State | Entry | Motor / Brake | Exit |
+|-------|-------|----------------|------|
+| IDLE | No climber | Brake on | CV detects climber + tension > 15N |
+| CLIMBING | Climber on wall | Motor: tension control | Voice or clip detected |
+| CLIPPING | CV: clip gesture | Motor: pre-pay slack | Auto after clip duration |
 | TAKE | Voice + load cell | Lock spool | "climbing" voice or upward movement |
-| REST | Voice "rest" | Hold position | "climbing" voice or 10min timeout |
-| LOWER | Voice "lower" | 0.5 m/s descent | Tension drops < 15N |
-| WATCH ME | Voice "watch me" | PID: 25N (tighter) | "climbing" voice or 3min timeout |
+| REST | Voice "rest" | Hold position | "climbing" voice or timeout |
+| LOWER | Voice "lower" | Controlled payout | Tension drops < 15N |
+| WATCH ME | Voice "watch me" | Tighter tension | "climbing" voice or timeout |
 | UP | Voice "up" | Near-zero tension | "climbing" voice |
-| ESTOP | Button or fault | Motor disabled | Power cycle |
+| CLIMBING_PAUSED | Zone intrusion 10s | Brake on, motor hold | Zone cleared or "climbing" voice |
+| EMERGENCY_STOP | E-stop button or VESC fault | Brake on | Power cycle |
 
 ---
 
@@ -103,30 +105,41 @@ IDLE → CLIMBING → CLIPPING (auto) → CLIMBING
 
 | Component | Purpose | Cost |
 |-----------|---------|------|
-| STM32F411 Black Pill | Safety/motor MCU | ~$8 |
-| ST-Link V2 | Flash STM32 | ~$10 |
-| Seeed XIAO ESP32-S3 Sense | Voice + CV (camera+mic built in) | ~$20 |
-| HX711 + 50kg load cell | Rope tension sensing | ~$10 |
-| AS5048A magnetic encoder | Spool speed/position | ~$12 |
-| T-Motor GB54-2 BLDC + 30:1 gearbox | Slack management | ~$160 |
+| STM32F411 Black Pill | Safety layer (state machine, sensors, brake GPIO, E-stop) | ~$5 |
+| Makerbase VESC MINI 6.7 | FOC motor driver (UART from STM32) | ~$45–55 |
+| 57mm BLDC planetary gearmotor | Slack management, 24V, power-off brake | ~$85–120 |
+| Seeed XIAO ESP32-S3 Sense | Voice + CV + BLE (camera+mic built in) | ~$15 |
+| HX711 + 50kg load cell | Rope tension via sheave reaction force | ~$8 |
+| AS5048A magnetic encoder | Spool position / payout | ~$12 |
+| E-stop button (40mm, NC, twist-release) | Physical emergency stop | ~$10–12 |
+| Wearable voice unit (nRF52 + PDM mic) | Harness BLE mic for climber commands | ~$8–15 |
 | Lead Solo mechanical design | Centrifugal clutch catch | Machined |
 
-**Mechanical base:** [Lead Solo](https://fitdesignawards.com/winners/fit/2024/257/0/) by Tom McNeill — 200mm brake drum, 600mm rope spool, 6061 aluminium housing. Published 2024, not commercially available.
+**Total BOM:** ~$246–309 (hardware not yet purchased). **Mechanical base:** [Lead Solo](https://fitdesignawards.com/winners/fit/2024/257/0/) by Tom McNeill — 200mm brake drum, 600mm rope spool, 6061-T6 housing. Full BOM and wiring: [`docs/ARIA_SETUP.md`](docs/ARIA_SETUP.md).
 
 ---
 
 ## Software
 
-| File | What it does |
-|------|-------------|
-| `firmware/stm32/aria_main.cpp` | STM32 state machine + SimpleFOC motor control |
-| `firmware/stm32/safety.cpp` | Hardware watchdog + 5-fault recovery system |
-| `firmware/stm32/calibration.cpp` | HX711 multi-point calibration + motor alignment |
-| `firmware/esp32/aria_esp32_firmware.ino` | Voice + CV + UART intelligence layer |
-| `tools/aria_simulator.py` | Full state machine simulator — **run this first** |
-| `tools/aria_monitor.py` | Real-time serial dashboard for STM32 |
-| `tools/aria_test_harness.py` | Automated state transition test suite |
-| `tools/aria_pid_tuner.py` | Auto-tune PID gains via step response |
+| Path | What it does |
+|------|--------------|
+| **Dashboard & models** | |
+| `aria_dashboard.py` | Streamlit virtual testing (static, dynamic drop, state machine) + design suggestions |
+| `aria_models/` | Physics and state machine (static tests, drop sim, false-trip check) |
+| `START_DASHBOARD.bat` | One-click dashboard on Windows (sets up local Python if needed) |
+| **App** | |
+| `aria-climb/` | React Native app — Gym Mode (iPad) + Climber Mode (phone), Firebase + BLE |
+| **Firmware** | |
+| `firmware/stm32/aria_main.cpp` | STM32 state machine, brake GPIO, VESC UART (no FOC on STM32) |
+| `firmware/stm32/safety.cpp` | Watchdog + fault recovery |
+| `firmware/stm32/calibration.cpp` | HX711 calibration + motor alignment |
+| `firmware/esp32/aria_esp32_firmware.ino` | Voice + CV + BLE + UART intelligence layer |
+| `firmware/esp32/aria_wearable/` | Wearable BLE mic firmware |
+| **Tools** | |
+| `tools/aria_simulator.py` | Headless state machine simulator |
+| `tools/aria_monitor.py` | Real-time serial monitor for STM32 |
+| `tools/aria_test_harness.py` | Automated STM32 test suite |
+| `tools/aria_pid_tuner.py` | Motor PID tuning |
 | `tools/aria_collect_audio.py` | Edge Impulse wake word dataset recorder |
 
 ---
@@ -137,49 +150,37 @@ IDLE → CLIMBING → CLIPPING (auto) → CLIMBING
 # Clone
 git clone https://github.com/jonathan-kofman/aria-auto-belay
 cd aria-auto-belay
-
-# Run the simulator
-python3 tools/aria_simulator.py
-
-# Try scenarios
-ARIA> scenario climb
-ARIA> scenario fall
-ARIA> scenario watch_me
-
-# Or inject manually
-ARIA> voice take
-ARIA> sensor load_cell_n=680
-ARIA> status
 ```
+
+**Virtual testing (dashboard)** — Windows: double‑click `START_DASHBOARD.bat` (or run `run_dashboard.bat`). It sets up local Python and launches the Streamlit dashboard for static, dynamic drop, and state-machine tests. See [`CURSOR_GUIDE.md`](CURSOR_GUIDE.md) for details.
+
+**Simulator (CLI)** — `python tools/aria_simulator.py` then e.g. `scenario climb`, `voice take`, `status`.
+
+**ARIA Climb app** — `cd aria-climb`, `npm install --legacy-peer-deps`, add Firebase `google-services.json`, then `npx expo run:android`. See [`aria-climb/README.md`](aria-climb/README.md) and [`aria-climb/RUN_APP_TONIGHT.md`](aria-climb/RUN_APP_TONIGHT.md).
 
 ---
 
 ## Build Phases
 
-- [x] **Phase 1 — Software** (complete): Full firmware stack, simulator, test suite
-- [ ] **Phase 2 — Mechanical**: Lead Solo centrifugal clutch prototype at Northeastern
-- [ ] **Phase 3 — Motor**: BLDC + gearbox + STM32 PID tension control
-- [ ] **Phase 4 — Voice**: Edge Impulse wake words on ESP32
-- [ ] **Phase 5 — Vision**: Clipping gesture detection via OV2640
-- [ ] **Phase 6 — Integration**: Full system on real wall
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Mechanical — Lead Solo design, housing CAD, sheave, mount | Not started |
+| 2 | Motor + VESC + brake — slack management firmware | In progress |
+| 3 | Voice — Edge Impulse wake words + wearable BLE | In progress |
+| 4 | Camera safety monitoring — zone intrusion, session detection | Planned |
+| 5 | Full fusion — BLE app, climber ID, bolt map UI, rope tracking | Planned |
+
+Dashboard, simulator, test harness, PID tuner, and audio collector exist. Full status: [`docs/ARIA_SETUP.md`](docs/ARIA_SETUP.md).
 
 ---
 
 ## Flashing the STM32
 
-**Prerequisites:**
-- Arduino IDE 2.x with STM32 board package
-- SimpleFOC library (Library Manager: "Simple Field Oriented Control")
-- ST-Link V2 connected to Black Pill (SWDIO→PA13, SWCLK→PA14, GND, 3.3V)
+**Prerequisites:** Arduino IDE 2.x (or platformio) with STM32 board package, ST-Link V2 (SWDIO→PA13, SWCLK→PA14, GND, 3.3V).
 
-**Board settings:**
-- Board: Generic STM32F4 Series → STM32F411CEUx
-- Upload method: STLink
+**Board:** Generic STM32F4 Series → STM32F411CEUx, upload method: STLink.
 
-**First boot:**
-1. Open serial monitor at 115200
-2. Type `cal` within 3 seconds for HX711 calibration
-3. Motor alignment runs automatically (saves to EEPROM, skips next boot)
+**First boot:** Serial at 115200; type `cal` within 3 seconds for HX711 calibration. Motor alignment runs once and saves to EEPROM. STM32 talks to VESC over UART (no FOC on STM32). See [`docs/ARIA_SETUP.md`](docs/ARIA_SETUP.md) for full setup.
 
 ---
 
@@ -194,30 +195,7 @@ ARIA> status
 
 ## Wiring
 
-```
-STM32 Black Pill ←→ AS5048A Encoder
-  PA4 (SPI CS)   →  CS
-  PA5 (SCK)      →  CLK  
-  PA6 (MISO)     →  MISO
-  PA7 (MOSI)     →  MOSI
-
-STM32 Black Pill ←→ HX711
-  PB0            →  DOUT
-  PB1            →  SCK
-
-STM32 Black Pill ←→ Motor Driver
-  PA8            →  Phase A PWM
-  PA9            →  Phase B PWM
-  PA10           →  Phase C PWM
-  PB10           →  Enable
-
-STM32 Black Pill ←→ ESP32-S3
-  PA2 (UART TX)  →  GPIO44 (RX)
-  PA3 (UART RX)  →  GPIO43 (TX)
-  GND            →  GND
-```
-
-Full wiring guide: [`docs/ARIA_SETUP.md`](docs/ARIA_SETUP.md)
+STM32 connects to AS5048A (SPI), HX711 (GPIO), VESC MINI (UART2), and ESP32-S3 (UART). Brake coil via MOSFET; E-stop NC in series with brake circuit. Full wiring and power architecture: **[`docs/ARIA_SETUP.md`](docs/ARIA_SETUP.md)**.
 
 ---
 
