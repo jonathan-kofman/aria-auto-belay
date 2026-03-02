@@ -3,38 +3,81 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
-import * as authService from '../../services/firebase/auth';
+import type { User } from '../../types/user';
 
 export function LoginScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const setUser = useAuthStore((s) => s.setUser);
-  const setLoading = useAuthStore((s) => s.setLoading);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [roleOverride, setRoleOverride] = useState<'climber' | 'owner'>('climber');
+  const [error] = useState('');
 
-  async function handleLogin() {
-    setError('');
-    if (!email.trim() || !password) {
-      setError(t('common.error'));
-      return;
-    }
-    setLoading(true);
-    try {
-      const user = await authService.signIn(email.trim(), password);
-      setUser(user ?? null);
-    } catch (e: any) {
-      setError(e?.message ?? t('common.error'));
-    } finally {
-      setLoading(false);
-    }
+  function handleLogin() {
+    const trimmedEmail = email.trim();
+    const role: User['role'] = __DEV__ ? roleOverride : 'climber';
+
+    const demoUser: User = {
+      uid: 'demo',
+      displayName: trimmedEmail || (role === 'owner' ? 'Gym manager' : 'Demo climber'),
+      email: trimmedEmail || (role === 'owner' ? 'gym@example.com' : 'demo@example.com'),
+      role,
+      homeGymId: 'demo-gym',
+      certifiedLead: false,
+      preferences: {
+        tensionSensitivity: 5,
+        slackAggressiveness: 'balanced',
+      },
+    };
+    setUser(demoUser);
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('auth.login')}</Text>
+      {__DEV__ && (
+        <View style={styles.devRoleBlock}>
+          <Text style={styles.devLabel}>Dev role override</Text>
+          <View style={styles.devChipRow}>
+            <TouchableOpacity
+              style={[
+                styles.devChip,
+                roleOverride === 'climber' && styles.devChipActive,
+              ]}
+              onPress={() => setRoleOverride('climber')}
+            >
+              <Text
+                style={
+                  roleOverride === 'climber'
+                    ? styles.devChipTextActive
+                    : styles.devChipText
+                }
+              >
+                Climber
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.devChip,
+                roleOverride === 'owner' && styles.devChipActive,
+              ]}
+              onPress={() => setRoleOverride('owner')}
+            >
+              <Text
+                style={
+                  roleOverride === 'owner'
+                    ? styles.devChipTextActive
+                    : styles.devChipText
+                }
+              >
+                Gym manager
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
       <TextInput
         style={styles.input}
         placeholder={t('auth.email')}
@@ -64,6 +107,26 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: 'center' },
   title: { fontSize: 24, marginBottom: 16 },
+  devRoleBlock: { marginBottom: 12 },
+  devLabel: { fontSize: 12, color: '#888', marginBottom: 4 },
+  devChipRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  devChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderColor: '#ccc',
+    marginRight: 8,
+  },
+  devChipActive: {
+    backgroundColor: '#1a1a2e',
+    borderColor: '#1a1a2e',
+  },
+  devChipText: { color: '#333', fontSize: 12 },
+  devChipTextActive: { color: '#fff', fontSize: 12, fontWeight: '600' },
   input: { borderWidth: 1, padding: 12, marginBottom: 12, borderRadius: 8 },
   error: { color: 'red', marginBottom: 8 },
   button: { backgroundColor: '#1a1a2e', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },

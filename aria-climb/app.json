@@ -10,7 +10,10 @@
       "backgroundColor": "#1a1a2e"
     },
     "plugins": [
-      ["@react-native-firebase/app", { "android": { "googleServicesFile": "./google-services.json" } }],
+      [
+        "@react-native-firebase/app",
+        { "android": { "googleServicesFile": "./google-services.json" } }
+      ],
       "./plugins/withGoogleServicesGradle.js"
     ],
     "ios": {
@@ -18,7 +21,9 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.ariaclimb.app"
+      "package": "com.ariaclimb.app",
+      "googleServicesFile": "./google-services.json"
     }
   }
 }
+
