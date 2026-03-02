@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "ARIA Climb",
+    "slug": "aria-climb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "plugins": [
+      ["@react-native-firebase/app", { "android": { "googleServicesFile": "./google-services.json" } }],
+      "./plugins/withGoogleServicesGradle.js"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.ariaclimb.app",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.ariaclimb.app"
+    }
+  }
+}
