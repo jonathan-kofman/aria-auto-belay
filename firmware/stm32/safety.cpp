@@ -49,7 +49,8 @@ enum class FaultType : uint8_t {
     ENCODER_DROPOUT       = 2,
     HX711_DROPOUT         = 3,
     ESP32_UART_TIMEOUT    = 4,
-    IWDG_PREV_BOOT        = 5
+    IWDG_PREV_BOOT        = 5,
+    BOOT_SEQUENCE_FAIL    = 6,
 };
 
 static const char* FaultName(FaultType f) {
@@ -60,6 +61,7 @@ static const char* FaultName(FaultType f) {
         case FaultType::HX711_DROPOUT:         return "HX711_DROPOUT";
         case FaultType::ESP32_UART_TIMEOUT:    return "ESP32_UART_TIMEOUT";
         case FaultType::IWDG_PREV_BOOT:        return "IWDG_PREV_BOOT";
+        case FaultType::BOOT_SEQUENCE_FAIL:    return "BOOT_SEQUENCE_FAIL";
         default:                               return "UNKNOWN";
     }
 }
@@ -101,6 +103,19 @@ struct FaultRuntime {
 };
 
 static FaultRuntime g_rt;
+
+// Boot sequencing flags — set from aria_main.cpp via Safety_BootMark*.
+static bool g_bootHX711Ok   = false;
+static bool g_bootEncoderOk = false;
+static bool g_bootUartOk    = false;
+static bool g_bootMotorOk   = false;
+static bool g_bootComplete  = false;
+
+// Brake GPIO — mechanical brake is held *engaged* (HIGH) during boot.
+// If your board uses a different pin, override PIN_BRAKE at compile time.
+#ifndef PIN_BRAKE
+#define PIN_BRAKE PB13
+#endif
 
 
 // ─────────────────────────────────────────────
@@ -290,6 +305,45 @@ static void HandleFault(FaultType f, uint32_t now) {
             Serial.println("[RECOVER] Failed — ESTOP");
             EnterEstop(f);
         }
+    }
+}
+
+
+// ─────────────────────────────────────────────
+// BOOT SEQUENCE API
+// ─────────────────────────────────────────────
+
+void Safety_BootBegin() {
+    // Step 1: engage brake before any other initialization.
+    pinMode(PIN_BRAKE, OUTPUT);
+    digitalWrite(PIN_BRAKE, HIGH);  // HIGH = brake engaged
+    Serial.println("[BOOT] Brake engaged (PIN_BRAKE HIGH)");
+
+    g_bootHX711Ok   = false;
+    g_bootEncoderOk = false;
+    g_bootUartOk    = false;
+    g_bootMotorOk   = false;
+    g_bootComplete  = false;
+}
+
+void Safety_BootMarkHX711Ok()   { g_bootHX711Ok   = true; }
+void Safety_BootMarkEncoderOk() { g_bootEncoderOk = true; }
+void Safety_BootMarkUartOk()    { g_bootUartOk    = true; }
+void Safety_BootMarkMotorOk()   { g_bootMotorOk   = true; }
+
+void Safety_BootComplete() {
+    // Sequence documented in safety.h:
+    // brake on → HX711 → encoder → UART → motor → first heartbeat (from main) → brake off.
+    if (g_bootHX711Ok && g_bootEncoderOk && g_bootUartOk && g_bootMotorOk) {
+        digitalWrite(PIN_BRAKE, LOW);  // release brake
+        g_bootComplete = true;
+        Serial.println("[BOOT] All init OK — brake released");
+    } else {
+        // Missing one or more boot flags — stay in FAULT with brake engaged.
+        g_bootComplete = false;
+        EnterEstop(FaultType::BOOT_SEQUENCE_FAIL);
+        digitalWrite(PIN_BRAKE, HIGH);
+        Serial.println("[BOOT] Sequence incomplete — staying in ESTOP with brake engaged");
     }
 }
 

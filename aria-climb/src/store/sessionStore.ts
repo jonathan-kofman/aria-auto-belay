@@ -1,13 +1,14 @@
 // TODO: Phase 3
 import { create } from 'zustand';
 import type { Session, TensionSample, HeightSample, SessionEvent } from '../types/session';
+import * as sessionService from '../services/firebase/sessions';
 
 interface SessionState {
   currentSession: Partial<Session> | null;
   tensionBuffer: TensionSample[];
   heightBuffer: HeightSample[];
   eventBuffer: SessionEvent[];
-  startSession: (deviceId: string, climberId: string) => void;
+  startSession: (deviceId: string, routeName?: string) => Promise<string | null>;
   endSession: () => Promise<void>;
   addTensionSample: (sample: TensionSample) => void;
   addEvent: (event: SessionEvent) => void;
@@ -18,20 +19,23 @@ export const useSessionStore = create<SessionState>((set) => ({
   tensionBuffer: [],
   heightBuffer: [],
   eventBuffer: [],
-  startSession: (deviceId, climberId) =>
-    set({
-      currentSession: { deviceId, climberId },
-      tensionBuffer: [],
-      heightBuffer: [],
-      eventBuffer: [],
-    }),
-  endSession: async () =>
+  startSession: async (deviceId, routeName) => {
+    try {
+      const id = await sessionService.startSession(deviceId, routeName);
+      return id;
+    } catch {
+      return null;
+    }
+  },
+  endSession: async () => {
+    await sessionService.endSession();
     set({
       currentSession: null,
       tensionBuffer: [],
       heightBuffer: [],
       eventBuffer: [],
-    }),
+    });
+  },
   addTensionSample: (sample) =>
     set((s) => ({ tensionBuffer: [...s.tensionBuffer, sample] })),
   addEvent: (event) =>

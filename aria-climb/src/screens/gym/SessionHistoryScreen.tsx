@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../store/authStore';
+import { subscribeToSessions } from '../../services/firebase/sessions';
+import type { Session } from '../../types/aria';
 
 const SESSIONS = [
   {
@@ -25,28 +28,65 @@ const SESSIONS = [
 
 export function SessionHistoryScreen() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const gymId = user?.homeGymId || 'demo-gym';
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!gymId) return;
+    const unsub = subscribeToSessions(
+      gymId,
+      (list) => {
+        setSessions(list);
+        setLoading(false);
+      },
+      () => {
+        setLoading(false);
+      }
+    );
+
+    return unsub;
+  }, [gymId]);
+
+  const rows =
+    sessions.length > 0
+      ? sessions.map((s) => ({
+          id: s.sessionId,
+          deviceId: s.deviceId,
+          climber: s.climberDisplayName,
+          date: s.startTime.toLocaleDateString(),
+          wall: s.wallId,
+          route: s.routeName ?? 'Unknown route',
+          falls: s.fallCount,
+        }))
+      : SESSIONS;
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('gym.sessions')}</Text>
-      <FlatList
-        data={SESSIONS}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.device}>{item.deviceId}</Text>
-            <View style={styles.info}>
-              <Text style={styles.route}>{item.route}</Text>
-              <Text style={styles.line}>
-                {item.wall} · {item.date}
-              </Text>
-              <Text style={styles.line}>
-                Climber: {item.climber} · Falls: {item.falls}
-              </Text>
+      {loading && !sessions.length ? (
+        <Text>Loading sessions…</Text>
+      ) : (
+        <FlatList
+          data={rows}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.row}>
+              <Text style={styles.device}>{item.deviceId}</Text>
+              <View style={styles.info}>
+                <Text style={styles.route}>{item.route}</Text>
+                <Text style={styles.line}>
+                  {item.wall} · {item.date}
+                </Text>
+                <Text style={styles.line}>
+                  Climber: {item.climber} · Falls: {item.falls}
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </View>
   );
 }
