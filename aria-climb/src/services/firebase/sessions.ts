@@ -2,7 +2,8 @@ import firestore from '@react-native-firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '../../store/sessionStore';
 import { useAuthStore } from '../../store/authStore';
-import type { Session, TensionSample, SessionEvent } from '../../types/session';
+import type { Session as StoreSession, TensionSample, SessionEvent } from '../../types/session';
+import { COLLECTIONS, type SessionDoc, type Session as FirestoreSession } from '../../types/aria';
 
 type FirestoreSessionDoc = {
   deviceId: string;
@@ -27,7 +28,7 @@ function sessionsCol(gymId: string) {
   return firestore().collection(`gyms/${gymId}/sessions`);
 }
 
-function fromDoc(id: string, d: FirestoreSessionDoc): Session {
+function fromDoc(id: string, d: FirestoreSessionDoc): StoreSession {
   return {
     id,
     gymId: d.gymId,
@@ -49,14 +50,14 @@ function fromDoc(id: string, d: FirestoreSessionDoc): Session {
 
 export function subscribeToActiveSessions(
   gymId: string,
-  onUpdate: (sessions: Session[]) => void,
+  onUpdate: (sessions: StoreSession[]) => void,
   onError: (err: Error) => void
 ): () => void {
   return sessionsCol(gymId)
     .where('endTime', '==', null)
     .onSnapshot(
       (snap) => {
-        const sessions: Session[] = [];
+        const sessions: StoreSession[] = [];
         snap.forEach((docSnap) => {
           const data = docSnap.data() as FirestoreSessionDoc;
           sessions.push(fromDoc(docSnap.id, data));
@@ -156,7 +157,7 @@ export async function addEvent(event: SessionEvent): Promise<void> {
 
 export function useActiveSession() {
   const user = useAuthStore((s) => s.user);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<StoreSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -183,10 +184,7 @@ export function useActiveSession() {
   return { sessions, loading, error };
 }
 
-import firestore from '@react-native-firebase/firestore';
-import { COLLECTIONS, SessionDoc, Session } from '../../types/aria';
-
-function parseSession(doc: SessionDoc): Session {
+function parseSession(doc: SessionDoc): FirestoreSession {
   return {
     ...doc,
     startTime: doc.startTime.toDate(),

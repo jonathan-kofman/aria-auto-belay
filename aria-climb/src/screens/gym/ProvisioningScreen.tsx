@@ -20,7 +20,7 @@ import {
   type ARIAAdvertisedDevice,
   type ProvisioningStatus,
 } from '../../services/ble/bleProvisioning';
-import { waitForDeviceOnline } from '../../services/firebase/bleProvisioningVerifier';
+import { waitForDeviceOnline } from '../../services/ble/bleProvisioningVerifier';
 
 type Nav = DrawerNavigationProp<GymDrawerParamList, 'Provisioning'>;
 
