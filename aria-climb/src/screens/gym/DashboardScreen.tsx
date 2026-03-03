@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 import type { DrawerNavigationProp } from '@react-navigation/drawer';
 import type { GymDrawerParamList } from '../../types/navigation';
+import { useAuthStore } from '../../store/authStore';
+import { useGymDevices } from '../../hooks/useGymDevices';
 
-const DEVICES = [
+const MOCK_DEVICES = [
   { id: 'ARIA-01', wall: 'Lead Wall 1', gradeBand: '5.9–5.11a', state: 'IDLE', activeSessions: 0 },
   { id: 'ARIA-02', wall: 'Lead Wall 2', gradeBand: '5.10b–5.11d', state: 'CLIMBING', activeSessions: 1 },
   { id: 'ARIA-03', wall: 'Training Wall', gradeBand: '5.7–5.10a', state: 'CLIMBING_PAUSED', activeSessions: 1 },
@@ -18,14 +20,37 @@ export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const [filter, setFilter] = useState<'all' | 'active' | 'paused'>('all');
 
-  const totalDevices = DEVICES.length;
-  const active = DEVICES.filter((d) => d.state === 'CLIMBING').length;
-  const paused = DEVICES.filter((d) => d.state === 'CLIMBING_PAUSED').length;
+  const user = useAuthStore((s) => s.user);
+  const gymId = user?.homeGymId || 'demo-gym';
+  const { devices, isLoading } = useGymDevices(gymId);
+
+  const liveDevices = devices.map((d) => ({
+    id: d.deviceId,
+    wall: d.wallName,
+    gradeBand: d.gradeBand,
+    state: d.state,
+    activeSessions: d.state === 'CLIMBING' ? 1 : 0,
+  }));
+
+  const effectiveDevices = liveDevices.length > 0 && !isLoading ? liveDevices : MOCK_DEVICES;
+
+  const totalDevices = effectiveDevices.length;
+  const active = effectiveDevices.filter((d) => d.state === 'CLIMBING').length;
+  const paused = effectiveDevices.filter(
+    (d) => d.state === 'LOCKOUT' || d.state === 'MAINTENANCE' || d.state === 'CLIMBING_PAUSED'
+  ).length;
+
   const filteredDevices = useMemo(() => {
-    if (filter === 'active') return DEVICES.filter((d) => d.state === 'CLIMBING');
-    if (filter === 'paused') return DEVICES.filter((d) => d.state === 'CLIMBING_PAUSED');
-    return DEVICES;
-  }, [filter]);
+    if (filter === 'active') {
+      return effectiveDevices.filter((d) => d.state === 'CLIMBING');
+    }
+    if (filter === 'paused') {
+      return effectiveDevices.filter(
+        (d) => d.state === 'LOCKOUT' || d.state === 'MAINTENANCE' || d.state === 'CLIMBING_PAUSED'
+      );
+    }
+    return effectiveDevices;
+  }, [effectiveDevices, filter]);
 
   return (
     <View style={styles.container}>

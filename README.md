@@ -124,14 +124,14 @@ IDLE → CLIMBING → CLIPPING (auto) → CLIMBING
 | Path | What it does |
 |------|--------------|
 | **Dashboard & models** | |
-| `aria_dashboard.py` | Streamlit virtual testing (static, dynamic drop, state machine) + design suggestions |
+| `aria_dashboard.py` | Streamlit virtual testing (static, dynamic drop, state machine) + design suggestions + **Hardware Bring-Up checklist**, **PID tuner**, and **live Test Session logger/replay** |
 | `aria_models/` | Physics and state machine (static tests, drop sim, false-trip check) |
 | `START_DASHBOARD.bat` | One-click dashboard on Windows (sets up local Python if needed) |
 | **App** | |
-| `aria-climb/` | React Native app — Gym Mode (iPad) + Climber Mode (phone), Firebase + BLE |
+| `aria-climb/` | React Native app — Gym Mode (iPad) + Climber Mode (phone), Firebase + BLE (sessions, incidents, device control, provisioning, calibration, device health) |
 | **Firmware** | |
-| `firmware/stm32/aria_main.cpp` | STM32 state machine, brake GPIO, VESC UART (no FOC on STM32) |
-| `firmware/stm32/safety.cpp` | Watchdog + fault recovery |
+| `firmware/stm32/aria_main.cpp` | STM32 state machine, brake GPIO, VESC UART (no FOC on STM32), PID tension loop, UART command handler (`CMD:PAUSE/RESUME/LOCKOUT/RETURN/CALIBRATE`) |
+| `firmware/stm32/safety.cpp` | Watchdog + fault recovery + power-on safety boot sequence (brake first, then sensors, then motor) |
 | `firmware/stm32/calibration.cpp` | HX711 calibration + motor alignment |
 | `firmware/esp32/aria_esp32_firmware.ino` | Voice + CV + BLE + UART intelligence layer |
 | `firmware/esp32/aria_wearable/` | Wearable BLE mic firmware |
@@ -152,7 +152,13 @@ git clone https://github.com/jonathan-kofman/aria-auto-belay
 cd aria-auto-belay
 ```
 
-**Virtual testing (dashboard)** — Windows: double‑click `START_DASHBOARD.bat` (or run `run_dashboard.bat`). It sets up local Python and launches the Streamlit dashboard for static, dynamic drop, and state-machine tests. See [`CURSOR_GUIDE.md`](CURSOR_GUIDE.md) for details.
+**Virtual testing (dashboard)** — Windows: double‑click `START_DASHBOARD.bat` (or run `run_dashboard.bat`). It sets up local Python and launches the Streamlit dashboard for static, dynamic drop, and state-machine tests, plus:
+
+- **Hardware Bring-Up**: pre‑power‑on wiring/ESTOP checklist with per‑step status and readiness %.
+- **PID Tuner**: Kp/Ki/Kd sliders, simple step‑response preview, and “Copy to firmware” that updates `tensionPID` gains in `firmware/stm32/aria_main.cpp`.
+- **Test Session**: live serial streaming from STM32 (tension, rope position, state), JSON session recording, replay with charts, and optional Firebase push.
+
+See [`CURSOR_GUIDE.md`](CURSOR_GUIDE.md) for details.
 
 **Simulator (CLI)** — `python tools/aria_simulator.py` then e.g. `scenario climb`, `voice take`, `status`.
 

@@ -38,6 +38,7 @@ static constexpr uint8_t PIN_WH         = PA10;
 static constexpr uint8_t PIN_EN         = PB10;
 static constexpr uint8_t PIN_LED        = PC13;
 static constexpr uint8_t PIN_ESTOP      = PB12;
+static constexpr uint8_t PIN_BRAKE      = PB13;  // mechanical brake FET; held HIGH (engaged) during boot
 
 // Calibration constants — paste from "cal" routine output
 static int32_t HX711_OFFSET = 0;            // ← paste here after calibration
@@ -223,6 +224,33 @@ void uart_parse(const char* p) {
             g_lastEsp32RxMs=millis();
         }
     }
+    // Firebase → ESP32 → STM32 commands: CMD:PAUSE, CMD:RESUME, CMD:LOCKOUT, CMD:RETURN, CMD:CALIBRATE
+    else if(p[0]=='C' && p[1]=='M' && p[2]=='D' && p[3]==':'){
+        const char* cmd = p+4;
+        if(strcmp(cmd,"PAUSE")==0){
+            // Treat as REST voice command so existing logic handles it
+            g_voiceCmd = CMD_REST;
+            g_voiceConf = 1.0f;
+        } else if(strcmp(cmd,"RESUME")==0){
+            // Resume normal climbing tension control
+            g_voiceCmd = CMD_CLIMBING;
+            g_voiceConf = 1.0f;
+        } else if(strcmp(cmd,"LOCKOUT")==0){
+            // Remote lockout → ESTOP
+            setState(STATE_ESTOP);
+            handleEstop();
+        } else if(strcmp(cmd,"RETURN")==0){
+            // Return from ESTOP/lockout to IDLE (requires manual inspection outside firmware)
+            if(g_state==STATE_ESTOP){
+                motor.enable();
+                digitalWrite(PIN_LED,HIGH);
+                setState(STATE_IDLE);
+            }
+        } else if(strcmp(cmd,"CALIBRATE")==0){
+            // Enter a safe resting state; full calibration still follows documented boot-time flow
+            setState(STATE_REST);
+        }
+    }
     // PID tuner support — added for aria_pid_tuner.py
     else if(p[0]=='P'){
         float kp,ki,kd;
@@ -367,12 +395,16 @@ void setup(){
     delay(300);
     Serial.println("ARIA Firmware v0.3 — modular");
 
+    // Power safety boot sequence — see safety.h / safety.cpp
+    Safety_BootBegin();               // 1) Brake ON (engaged) before anything else
+
     pinMode(PIN_LED,OUTPUT); digitalWrite(PIN_LED,HIGH);
     pinMode(PIN_ESTOP,INPUT_PULLUP);
 
     // HX711 calibration (type "cal" within 3s)
     hx711.begin();
     maybeEnterHX711Cal();
+    Safety_BootMarkHX711Ok();         // 2) Load cell init OK
 
     // Apply calibration constants
     // If user ran cal, CALIB_* are updated. Otherwise use hardcoded values above.
@@ -381,10 +413,12 @@ void setup(){
 
     // UART to ESP32
     ESP32Serial.begin(115200, SERIAL_8N1, PA3, PA2);
+    Safety_BootMarkUartOk();          // 4) UART init OK
 
     // Motor hardware init
     SPI.begin();
     sensor.init();
+    Safety_BootMarkEncoderOk();       // 3) Encoder init OK
     motor.linkSensor(&sensor);
     driver.voltage_power_supply = SUPPLY_V;
     driver.init();
@@ -404,12 +438,17 @@ void setup(){
 
     // initFOC after alignment
     motor.initFOC();
+    Safety_BootMarkMotorOk();         // 5) Motor init + FOC OK
 
     // Safety layer (watchdog + fault detection)
     Safety_Init();
 
     g_stateMs = millis();
     Serial.println("ARIA ready.");
+
+    // 6) First heartbeat to ESP32, then 7) release brake if all boot steps succeeded.
+    uart_tx();
+    Safety_BootComplete();
 
     for(int i=0;i<3;i++){
         digitalWrite(PIN_LED,LOW); delay(150);

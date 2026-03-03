@@ -20,9 +20,17 @@ export function SignupScreen() {
     }
     try {
       await authService.signUp(email.trim(), password, displayName.trim());
-      navigation.replace('RoleSelect');
+      // Firebase will now have a profile doc; RootNavigator will take over via auth listener.
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t('common.error'));
+      const msg = e instanceof Error ? e.message : t('common.error');
+      if (typeof msg === 'string' && msg.includes("No Firebase App '[DEFAULT]'")) {
+        setError(
+          "Firebase isn’t initialized in this build. Make sure you’re running a Dev Client build (not Expo Go) and that `google-services.json` exists, then rebuild with `npx expo run:android`."
+        );
+      } else {
+        setError(msg);
+      }
     }
   }
 

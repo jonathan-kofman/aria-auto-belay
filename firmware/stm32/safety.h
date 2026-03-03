@@ -13,7 +13,30 @@
 // ─────────────────────────────────────────────
 
 /**
- * Call once in setup() after all peripherals initialized.
+ * Power-safety boot sequence:
+ *
+ *  1. Safety_BootBegin()        → engage mechanical brake GPIO HIGH.
+ *  2. HX711 / load cell init    → on success, call Safety_BootMarkHX711Ok().
+ *  3. Encoder init              → on success, call Safety_BootMarkEncoderOk().
+ *  4. UART init (ESP32 link)    → on success, call Safety_BootMarkUartOk().
+ *  5. Motor + FOC init          → on success, call Safety_BootMarkMotorOk().
+ *  6. First heartbeat to ESP32  → call uart_tx() from aria_main.cpp.
+ *  7. Safety_BootComplete()     → if all flags set, release brake; otherwise ESTOP.
+ *
+ * If any step never calls its Safety_BootMark* function, the system remains
+ * in a faulted boot state with the brake engaged.
+ */
+void Safety_BootBegin();
+void Safety_BootMarkHX711Ok();
+void Safety_BootMarkEncoderOk();
+void Safety_BootMarkUartOk();
+void Safety_BootMarkMotorOk();
+void Safety_BootComplete();
+
+/**
+ * Call once in setup() after all peripherals initialized
+ * (and after Safety_BootComplete has been called).
+ *
  * Detects prior IWDG reset, initializes watchdog timer.
  * Returns false if IWDG init failed (system should halt).
  */

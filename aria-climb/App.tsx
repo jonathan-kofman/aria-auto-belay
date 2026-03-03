@@ -7,6 +7,7 @@ import { initReactI18next } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from './src/store/authStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import * as authService from './src/services/firebase/auth';
 import en from './src/locales/en.json';
 import es from './src/locales/es.json';
 import fr from './src/locales/fr.json';
@@ -26,10 +27,22 @@ export default function App() {
   const setLoading = useAuthStore((s) => s.setLoading);
 
   useEffect(() => {
-    // For now, don't block on Firebase; just show the auth flow immediately.
-    setLoading(false);
-    setUser(null);
-    setPendingRoleSelect(false);
+    // Real auth flow (Firebase). If Firebase isn't available (e.g. Expo Go),
+    // we fail open to the auth screens instead of blocking the UI.
+    setLoading(true);
+    try {
+      const unsub = authService.onAuthStateChanged(({ user, pendingRoleSelect }) => {
+        setUser(user);
+        setPendingRoleSelect(pendingRoleSelect);
+        setLoading(false);
+      });
+      return unsub;
+    } catch {
+      setUser(null);
+      setPendingRoleSelect(false);
+      setLoading(false);
+      return;
+    }
   }, [setLoading, setUser, setPendingRoleSelect]);
 
   return (

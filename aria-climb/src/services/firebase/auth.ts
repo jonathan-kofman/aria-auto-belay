@@ -1,6 +1,6 @@
 import auth from '@react-native-firebase/auth';
 import type { User } from '../../types/user';
-import { getUser } from './firestore';
+import { getUser, setUserProfile } from './firestore';
 
 export async function signIn(email: string, password: string): Promise<User | null> {
   const cred = await auth().signInWithEmailAndPassword(email, password);
@@ -16,6 +16,13 @@ export async function signUp(
 ): Promise<string> {
   const cred = await auth().createUserWithEmailAndPassword(email, password);
   await cred.user.updateProfile({ displayName });
+  // Default all new signups to climber; management roles should be assigned via claims/admin.
+  await setUserProfile(cred.user.uid, {
+    displayName,
+    email,
+    role: 'climber',
+    homeGymId: 'default-gym',
+  });
   return cred.user.uid;
 }
 

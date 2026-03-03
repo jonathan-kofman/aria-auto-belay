@@ -24,6 +24,11 @@ export function RootNavigator() {
     return <AuthNavigator initialRoute="Login" />;
   }
 
+  // Owner or staff accounts without a gymId should complete gym onboarding first.
+  if ((user.role === 'owner' || user.role === 'staff') && !user.homeGymId) {
+    return <AuthNavigator initialRoute="ClaimGym" />;
+  }
+
   if (useAuthStore.getState().isGymMode) {
     return <GymNavigator />;
   }
