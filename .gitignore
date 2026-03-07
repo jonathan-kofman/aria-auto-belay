@@ -8,6 +8,7 @@ python-embed.zip
 .env
 dataset/
 *.wav
+cem_design_history.json
 
 # Arduino build artifacts
 build/

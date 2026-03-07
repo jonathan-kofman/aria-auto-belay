@@ -477,7 +477,7 @@ class ARIAStateMachine:
             self._motor_direction, "?"
         )
         return (
-            f"\n{'═'*55}\n"
+            f"\n{'='*55}\n"
             f"  STATE:        {self.state.name}\n"
             f"  Motor:        {self._motor_output:.1f}% [{direction_str}]\n"
             f"  Tension:      {s.load_cell_n:.1f} N\n"
@@ -487,7 +487,7 @@ class ARIAStateMachine:
             f"  Clip conf:    {s.cv_clip_confidence:.2f}\n"
             f"  Climber det:  {s.cv_climber_detected}\n"
             f"  Time in state:{self._time_in_state():.1f}s\n"
-            f"{'═'*55}"
+            f"{'='*55}"
         )
 
 
@@ -509,7 +509,7 @@ def run_tick_loop(aria: ARIAStateMachine, hz=20):
 
 def scenario_normal_climb(aria: ARIAStateMachine):
     """Simulates a full climb: attach → climb → clip × 3 → take → lower."""
-    print("\n\033[95m▶ Running scenario: Normal Climb\033[0m\n")
+    print("\n>> Running scenario: Normal Climb\n")
     steps = [
         (1.0,  dict(cv_climber_detected=True, load_cell_n=50.0,
                     cv_climber_height_m=0.5, rope_speed_ms=0.3),
@@ -544,7 +544,7 @@ def scenario_normal_climb(aria: ARIAStateMachine):
                None, "Climber reaches ground"),
     ]
     for delay, sensors, voice, description in steps:
-        print(f"\n  → {description}")
+        print(f"\n  -> {description}")
         aria.inject_sensor(**sensors)
         if voice:
             aria.inject_voice(voice)
@@ -554,7 +554,7 @@ def scenario_normal_climb(aria: ARIAStateMachine):
 
 def scenario_fall(aria: ARIAStateMachine):
     """Simulates a lead fall above last bolt."""
-    print("\n\033[95m▶ Running scenario: Lead Fall\033[0m\n")
+    print("\n>> Running scenario: Lead Fall\n")
     steps = [
         (1.0, dict(cv_climber_detected=True, load_cell_n=45.0,
                    cv_climber_height_m=6.0, rope_position_m=6.0,
@@ -571,7 +571,7 @@ def scenario_fall(aria: ARIAStateMachine):
               None, "Back on ground"),
     ]
     for delay, sensors, voice, description in steps:
-        print(f"\n  → {description}")
+        print(f"\n  -> {description}")
         aria.inject_sensor(**sensors)
         if voice:
             aria.inject_voice(voice)
@@ -581,7 +581,7 @@ def scenario_fall(aria: ARIAStateMachine):
 
 def scenario_watch_me(aria: ARIAStateMachine):
     """Simulates WATCH ME mode on a hard move."""
-    print("\n\033[95m▶ Running scenario: Watch Me Mode\033[0m\n")
+    print("\n>> Running scenario: Watch Me Mode\n")
     steps = [
         (1.0, dict(cv_climber_detected=True, load_cell_n=45.0,
                    cv_climber_height_m=5.0, rope_speed_ms=0.2),
@@ -602,7 +602,65 @@ def scenario_watch_me(aria: ARIAStateMachine):
               None, "Back to climbing"),
     ]
     for delay, sensors, voice, description in steps:
-        print(f"\n  → {description}")
+        print(f"\n  -> {description}")
+        aria.inject_sensor(**sensors)
+        if voice:
+            aria.inject_voice(voice)
+        time.sleep(delay)
+    print(aria.status())
+
+
+def scenario_rest(aria: ARIAStateMachine):
+    """Simulates REST: climb -> rest -> hold -> climbing to resume."""
+    print("\n>> Running scenario: Rest (hold then resume)\n")
+    steps = [
+        (1.0, dict(cv_climber_detected=True, load_cell_n=50.0,
+                   cv_climber_height_m=1.0, rope_speed_ms=0.3),
+              None, "Climber attaches, starts climbing"),
+        (2.0, dict(load_cell_n=45.0, cv_climber_height_m=4.0,
+                   rope_position_m=4.0, rope_speed_ms=0.2),
+              None, "Climbing to mid-wall"),
+        (0.5, dict(load_cell_n=45.0), "rest",
+              "Yells REST - need to shake out"),
+        (3.0, dict(load_cell_n=45.0, rope_speed_ms=0.0,
+                   cv_climber_height_m=4.0),
+              None, "Holding position in REST"),
+        (0.5, dict(load_cell_n=45.0), "climbing",
+              "Ready - yells CLIMBING"),
+        (1.0, dict(load_cell_n=45.0, rope_speed_ms=0.2),
+              None, "Back to climbing"),
+    ]
+    for delay, sensors, voice, description in steps:
+        print(f"\n  -> {description}")
+        aria.inject_sensor(**sensors)
+        if voice:
+            aria.inject_voice(voice)
+        time.sleep(delay)
+    print(aria.status())
+
+
+def scenario_up(aria: ARIAStateMachine):
+    """Simulates UP (slack): climb -> up -> slack -> climbing to resume."""
+    print("\n>> Running scenario: Up (slack then resume)\n")
+    steps = [
+        (1.0, dict(cv_climber_detected=True, load_cell_n=50.0,
+                   cv_climber_height_m=2.0, rope_speed_ms=0.3),
+              None, "Climber climbing"),
+        (1.0, dict(load_cell_n=45.0, cv_climber_height_m=5.0,
+                   rope_position_m=5.0),
+              None, "At bolt, needs slack to clip"),
+        (0.5, dict(load_cell_n=45.0), "up",
+              "Yells UP for slack"),
+        (2.0, dict(load_cell_n=20.0, rope_speed_ms=0.4,
+                   cv_climber_height_m=5.5, rope_position_m=5.5),
+              None, "Motor paying slack"),
+        (0.5, dict(load_cell_n=40.0), "climbing",
+              "Clipped - yells CLIMBING"),
+        (1.0, dict(load_cell_n=45.0, rope_speed_ms=0.2),
+              None, "Back to tension control"),
+    ]
+    for delay, sensors, voice, description in steps:
+        print(f"\n  -> {description}")
         aria.inject_sensor(**sensors)
         if voice:
             aria.inject_voice(voice)
@@ -615,8 +673,8 @@ def scenario_watch_me(aria: ARIAStateMachine):
 # ─────────────────────────────────────────────
 
 HELP_TEXT = """
-ARIA Simulator — Commands:
-─────────────────────────────────────────────
+ARIA Simulator - Commands:
+-----------------------------------------------
   status              Print current system status
   voice <cmd>         Inject voice command
                       Commands: take, slack, lower, up, watch me, rest, climbing
@@ -625,11 +683,11 @@ ARIA Simulator — Commands:
                             cv_climber_height_m, cv_clip_confidence,
                             cv_climber_detected
   scenario <name>     Run automated test scenario
-                      Scenarios: climb, fall, watch_me
+                      Scenarios: climb, fall, watch_me, rest, up
   log                 Show last 10 log entries
   help                Show this message
   quit / exit         Exit simulator
-─────────────────────────────────────────────
+-----------------------------------------------
 Examples:
   voice take
   voice watch me
@@ -649,13 +707,11 @@ def parse_sensor_value(key, val_str):
 
 
 def run_cli(aria: ARIAStateMachine):
-    print("\033[96m")
-    print("╔══════════════════════════════════════════════╗")
-    print("║   ARIA — Autonomous Rope Intelligence System  ║")
-    print("║   Lead Auto Belay Simulator v0.1              ║")
-    print("║   Type 'help' for commands                    ║")
-    print("╚══════════════════════════════════════════════╝")
-    print("\033[0m")
+    print("\n+==================================================+")
+    print("|   ARIA - Autonomous Rope Intelligence System  |")
+    print("|   Lead Auto Belay Simulator v0.1                |")
+    print("|   Type 'help' for commands                     |")
+    print("+==================================================+\n")
 
     while True:
         try:
@@ -706,7 +762,7 @@ def run_cli(aria: ARIAStateMachine):
 
         elif cmd == "scenario":
             if len(parts) < 2:
-                print("Usage: scenario <climb|fall|watch_me>")
+                print("Usage: scenario <climb|fall|watch_me|rest|up>")
             else:
                 name = parts[1].lower()
                 if name == "climb":
@@ -722,6 +778,16 @@ def run_cli(aria: ARIAStateMachine):
                 elif name == "watch_me":
                     t = threading.Thread(
                         target=scenario_watch_me, args=(aria,), daemon=True
+                    )
+                    t.start()
+                elif name == "rest":
+                    t = threading.Thread(
+                        target=scenario_rest, args=(aria,), daemon=True
+                    )
+                    t.start()
+                elif name == "up":
+                    t = threading.Thread(
+                        target=scenario_up, args=(aria,), daemon=True
                     )
                     t.start()
                 else:

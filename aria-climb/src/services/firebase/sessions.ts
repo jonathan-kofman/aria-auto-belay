@@ -1,6 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
 import { useEffect, useState } from 'react';
-import { useSessionStore } from '../../store/sessionStore';
 import { useAuthStore } from '../../store/authStore';
 import type { Session as StoreSession, TensionSample, SessionEvent } from '../../types/session';
 import { COLLECTIONS, type SessionDoc, type Session as FirestoreSession } from '../../types/aria';
@@ -66,93 +65,6 @@ export function subscribeToActiveSessions(
       },
       (err) => onError(err as Error)
     );
-}
-
-export async function startSession(deviceId: string, routeName?: string): Promise<string> {
-  const user = useAuthStore.getState().user;
-  if (!user) {
-    throw new Error('Not authenticated');
-  }
-  const gymId = user.homeGymId || 'default-gym';
-  const col = sessionsCol(gymId);
-  const ref = col.doc();
-  const now = firestore.FieldValue.serverTimestamp();
-  await ref.set({
-    gymId,
-    deviceId,
-    climberId: user.uid,
-    climberName: user.displayName,
-    routeName: routeName ?? null,
-    startTime: now,
-    endTime: null,
-    durationSeconds: null,
-    maxHeightMeters: 0,
-    clipCount: 0,
-    fallCount: 0,
-    tensionTrace: [],
-    heightTrace: [],
-    events: [],
-  });
-  useSessionStore.setState({
-    currentSession: { id: ref.id, deviceId, climberId: user.uid, climberName: user.displayName, gymId },
-    tensionBuffer: [],
-    heightBuffer: [],
-    eventBuffer: [],
-  });
-  return ref.id;
-}
-
-export async function endSession(): Promise<void> {
-  const { currentSession, tensionBuffer, heightBuffer, eventBuffer } = useSessionStore.getState();
-  const user = useAuthStore.getState().user;
-  if (!currentSession || !user || !currentSession.gymId) return;
-  const gymId = currentSession.gymId;
-  const sessionId = currentSession.id as string;
-  const ref = sessionsCol(gymId).doc(sessionId);
-  const doc = await ref.get();
-  if (!doc.exists) return;
-  const existing = doc.data() as FirestoreSessionDoc;
-
-  const start = existing.startTime.toDate();
-  const end = new Date();
-  const durationSeconds = (end.getTime() - start.getTime()) / 1000;
-  const maxHeightMeters = Math.max(
-    existing.maxHeightMeters ?? 0,
-    ...((existing.heightTrace ?? []).map((h) => h.height) || []),
-    ...tensionBuffer.map(() => 0) // keep types happy; real height updates via heightBuffer
-  );
-  const clipCount = (existing.clipCount ?? 0) + eventBuffer.filter((e) => e.type === 'clip').length;
-  const fallCount =
-    (existing.fallCount ?? 0) + eventBuffer.filter((e) => e.type === 'fall').length;
-
-  await ref.set(
-    {
-      endTime: firestore.FieldValue.serverTimestamp(),
-      durationSeconds,
-      maxHeightMeters,
-      clipCount,
-      fallCount,
-      tensionTrace: [...(existing.tensionTrace ?? []), ...tensionBuffer],
-      heightTrace: [...(existing.heightTrace ?? []), ...useSessionStore.getState().heightBuffer],
-      events: [...(existing.events ?? []), ...eventBuffer],
-    },
-    { merge: true }
-  );
-
-  useSessionStore.setState({
-    currentSession: null,
-    tensionBuffer: [],
-    heightBuffer: [],
-    eventBuffer: [],
-  });
-}
-
-export async function addTensionSample(sample: TensionSample): Promise<void> {
-  useSessionStore.getState().addTensionSample(sample);
-}
-
-export async function addEvent(event: SessionEvent): Promise<void> {
-  useSessionStore.getState().addEvent(event);
 }
 
 export function useActiveSession() {

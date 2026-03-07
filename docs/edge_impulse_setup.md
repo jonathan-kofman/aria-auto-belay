@@ -3,6 +3,20 @@
 
 ---
 
+## Quick start — Record audio (Windows)
+
+1. **Start recording:** Double-click **`RECORD_EDGE_IMPULSE_AUDIO.bat`** in the project root (or run it from a terminal in the project folder).
+2. The script will install `sounddevice`, `soundfile`, and `numpy` if needed, then prompt you to record each class.
+3. **Target:** 60 clips per class. For each clip you press ENTER, then say the word (or record noise/unknown as instructed).
+4. Clips are saved under **`dataset/`** (e.g. `dataset/take/`, `dataset/slack/`, …).
+5. When done, continue with **Step 1** below (create Edge Impulse project) and **Step 3** (upload the `dataset/` folders).
+
+To record only one class:  
+`python tools/aria_collect_audio.py take`  
+(or `slack`, `lower`, `up`, `watch_me`, `rest`, `noise`, `unknown`).
+
+---
+
 ## Overview
 
 This guide takes you from zero to a deployed wake word model on the XIAO ESP32-S3 Sense

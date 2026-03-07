@@ -13,6 +13,7 @@ export type AuthStackParamList = {
 
 export type GymDrawerParamList = {
   Dashboard: undefined;
+  DashboardHome: undefined;
   DeviceDetail: { deviceId: string };
   DeviceHealth: { deviceId: string };
   SessionHistory: { deviceId?: string };

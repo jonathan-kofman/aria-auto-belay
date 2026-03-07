@@ -18,8 +18,15 @@ const Stack = createStackNavigator<GymDrawerParamList>();
 
 function DashboardStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: true }}>
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+    <Stack.Navigator
+      screenOptions={{ headerShown: true }}
+      initialRouteName="DashboardHome"
+    >
+      <Stack.Screen
+        name="DashboardHome"
+        component={DashboardScreen}
+        options={{ title: 'Dashboard' }}
+      />
       <Stack.Screen name="DeviceDetail" component={DeviceDetailScreen} />
       <Stack.Screen name="DeviceHealth" component={DeviceHealthScreen} />
     </Stack.Navigator>

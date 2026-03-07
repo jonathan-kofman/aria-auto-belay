@@ -152,6 +152,13 @@ git clone https://github.com/jonathan-kofman/aria-auto-belay
 cd aria-auto-belay
 ```
 
+**Get everything working (one-time):**
+
+- **Dashboard (Windows, no system Python):** Double‑click `START_DASHBOARD.bat`. It creates `.python\` and installs deps from `requirements.txt` (streamlit, plotly, pyserial, etc.). If you already had the dashboard running but CEM charts or other features failed, run `START_DASHBOARD.bat` again — it will install any missing packages (e.g. plotly).
+- **Dashboard (system Python):** `pip install -r requirements.txt` then `streamlit run aria_dashboard.py`.
+- **Audio (Edge Impulse):** Double‑click `RECORD_EDGE_IMPULSE_AUDIO.bat`; it will install sounddevice, soundfile, numpy if needed. For the same env as the dashboard, use `.python\python.exe` (run `START_DASHBOARD.bat` once first).
+- **Simulator / constants sync:** `python tools/aria_simulator.py`, `python tools/aria_constants_sync.py`. Use `python` or `.python\python.exe` depending on which env you use.
+
 **Virtual testing (dashboard)** — Windows: double‑click `START_DASHBOARD.bat` (or run `run_dashboard.bat`). It sets up local Python and launches the Streamlit dashboard for static, dynamic drop, and state-machine tests, plus:
 
 - **Hardware Bring-Up**: pre‑power‑on wiring/ESTOP checklist with per‑step status and readiness %.
@@ -170,7 +177,7 @@ See [`CURSOR_GUIDE.md`](CURSOR_GUIDE.md) for details.
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Mechanical — Lead Solo design, housing CAD, sheave, mount | Not started |
+| 1 | Mechanical — Lead Solo design, housing CAD, sheave, mount | In progress |
 | 2 | Motor + VESC + brake — slack management firmware | In progress |
 | 3 | Voice — Edge Impulse wake words + wearable BLE | In progress |
 | 4 | Camera safety monitoring — zone intrusion, session detection | Planned |

@@ -67,9 +67,14 @@ if ($LASTEXITCODE -ne 0) {
 }
 Remove-Item $getPipPath -Force -ErrorAction SilentlyContinue
 
-# Install dashboard deps
-Write-Host "Installing streamlit, pandas, numpy..." -ForegroundColor Cyan
-& $pythonExe -m pip install streamlit pandas numpy --quiet --disable-pip-version-check
+# Install dashboard and tools deps (streamlit, plotly, pyserial, audio libs, etc.)
+Write-Host "Installing dependencies from requirements.txt..." -ForegroundColor Cyan
+$requirementsPath = Join-Path $ProjectRoot "requirements.txt"
+if (Test-Path $requirementsPath) {
+    & $pythonExe -m pip install -r $requirementsPath --quiet --disable-pip-version-check
+} else {
+    & $pythonExe -m pip install streamlit pandas numpy plotly pyserial --quiet --disable-pip-version-check
+}
 if ($LASTEXITCODE -ne 0) { throw "pip install failed." }
 
 Write-Host ""

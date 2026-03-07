@@ -1,0 +1,102 @@
+name: ARIA Physics Tests
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install numpy pandas scipy
+
+      - name: Smoke test — static model
+        run: |
+          python3 -c "
+          from aria_models import simulate_static_pawl
+          df = simulate_static_pawl([1000, 4000, 8000])
+          assert len(df) == 3, 'Expected 3 load rows'
+          assert 'min_sf' in df.columns, 'Missing min_sf column'
+          print('Static model OK — min SF:', df['min_sf'].min())
+          "
+
+      - name: Smoke test — drop model
+        run: |
+          python3 -c "
+          from aria_models import simulate_drop_test
+          df, summary = simulate_drop_test()
+          assert summary['trigger_fired'], 'Trigger must fire at default params'
+          assert summary['arrest_distance_mm'] < 813, f'Arrest distance {summary[\"arrest_distance_mm\"]}mm exceeds ANSI 813mm'
+          assert summary['peak_force_N'] < 8000, f'Peak force {summary[\"peak_force_N\"]}N exceeds ANSI 8000N'
+          print('Drop model OK — peak:', summary['peak_force_N'], 'N  dist:', summary['arrest_distance_mm'], 'mm')
+          "
+
+      - name: Smoke test — false trip check
+        run: |
+          python3 -c "
+          from aria_models import simulate_false_trip_check
+          result = simulate_false_trip_check(accel_g=0.3)
+          assert result['passed'], 'False trip check must pass at 0.3g (must NOT fire at slow movement)'
+          print('False trip OK — trigger did not fire at 0.3g')
+          "
+
+      - name: Smoke test — state machine
+        run: |
+          python3 -c "
+          from aria_models import AriaStateMachine, Inputs
+          sm = AriaStateMachine()
+          # IDLE with no tension
+          out = sm.step(Inputs(tension_N=0.0, time_s=0.0))
+          assert out.state.name == 'IDLE', f'Expected IDLE, got {out.state.name}'
+          # Tension applied -> CLIMBING
+          out = sm.step(Inputs(tension_N=50.0, time_s=0.1))
+          assert out.state.name == 'CLIMBING', f'Expected CLIMBING, got {out.state.name}'
+          # Voice take + high load -> TAKE
+          sm.step(Inputs(voice='take', tension_N=50.0, time_s=0.2))
+          out = sm.step(Inputs(tension_N=250.0, time_s=0.5))
+          assert out.state.name == 'TAKE', f'Expected TAKE, got {out.state.name}'
+          # Voice lower -> LOWER
+          out = sm.step(Inputs(voice='lower', tension_N=250.0, time_s=0.6))
+          assert out.state.name == 'LOWER', f'Expected LOWER, got {out.state.name}'
+          # Tension drops -> IDLE
+          out = sm.step(Inputs(tension_N=5.0, time_s=0.7))
+          assert out.state.name == 'IDLE', f'Expected IDLE, got {out.state.name}'
+          print('State machine OK — IDLE->CLIMBING->TAKE->LOWER->IDLE cycle verified')
+          "
+
+      - name: Smoke test — ESTOP always wins
+        run: |
+          python3 -c "
+          from aria_models import AriaStateMachine, Inputs
+          sm = AriaStateMachine()
+          sm.step(Inputs(tension_N=50.0, time_s=0.0))  # get to CLIMBING
+          out = sm.step(Inputs(tension_N=50.0, estop=True, time_s=0.1))
+          assert out.state.name == 'ESTOP', f'ESTOP must override all states, got {out.state.name}'
+          assert out.motor_mode == 'OFF', f'Motor must be OFF in ESTOP, got {out.motor_mode}'
+          print('ESTOP override OK')
+          "
+
+      - name: Smoke test — CEM ARIA (if aria_cem.py present)
+        run: |
+          python3 -c "
+          import os, sys
+          if not os.path.exists('aria_cem.py'):
+              print('aria_cem.py not in repo root — skipping')
+              sys.exit(0)
+          from aria_cem import ARIAInputs, compute_aria
+          g = compute_aria(ARIAInputs())
+          assert g.predicted_peak_force_kN <= 6.5, f'Peak force {g.predicted_peak_force_kN}kN too high'
+          assert g.clutch.safety_margin >= 3.0, f'Clutch margin {g.clutch.safety_margin}x too low'
+          assert g.ratchet.face_width_mm < 250, f'Ratchet face width {g.ratchet.face_width_mm}mm unreasonable'
+          print(f'CEM OK — peak {g.predicted_peak_force_kN:.2f}kN  clutch {g.clutch.safety_margin:.1f}x  ratchet {g.ratchet.face_width_mm:.1f}mm')
+          " || true

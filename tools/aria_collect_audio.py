@@ -111,21 +111,21 @@ def list_devices():
 
 def collect_class(label, goal=SAMPLES_GOAL):
     existing = count_existing(label)
-    print(f"\n{'═'*50}")
+    print(f"\n{'='*50}")
     print(f"  Class: '{label}'")
     print(f"  Existing: {existing} / {goal}")
-    print(f"{'═'*50}")
+    print(f"{'='*50}")
 
     if label == "noise":
-        print("  → Record BACKGROUND GYM NOISE only. Do NOT speak.")
-        print("  → Hold mic in gym, let ambient sound record.")
+        print("  -> Record BACKGROUND GYM NOISE only. Do NOT speak.")
+        print("  -> Hold mic in gym, let ambient sound record.")
     elif label == "unknown":
-        print("  → Say RANDOM words (not your commands).")
-        print("  → Examples: hello, stop, yes, no, go, climb, belay, rope")
+        print("  -> Say RANDOM words (not your commands).")
+        print("  -> Examples: hello, stop, yes, no, go, climb, belay, rope")
     else:
-        print(f"  → Say the word: '{label.upper().replace('_',' ')}'")
-        print(f"  → Vary your volume, distance, and tone each clip.")
-        print(f"  → Try saying it with different urgency (calm, urgent, yelling)")
+        print(f"  -> Say the word: '{label.upper().replace('_',' ')}'")
+        print(f"  -> Vary your volume, distance, and tone each clip.")
+        print(f"  -> Try saying it with different urgency (calm, urgent, yelling)")
 
     print(f"\n  Press ENTER to start recording each clip.")
     print(f"  Press Q + ENTER to skip to next class.")
@@ -143,49 +143,49 @@ def collect_class(label, goal=SAMPLES_GOAL):
             print(f"  Skipping '{label}'")
             break
 
-        print(f"  🔴 Recording {DURATION_S}s... SAY IT NOW")
+        print(f"  >> Recording {DURATION_S}s... SAY IT NOW")
         audio = record_clip()
         audio = normalize_audio(audio)
 
         # Quality check (skip for noise class)
         if label != "noise" and not check_audio_level(audio):
-            print(f"  ⚠️  Too quiet — clip rejected. Speak closer to mic.\n")
+            print(f"  [!] Too quiet - clip rejected. Speak closer to mic.\n")
             continue
 
         path = save_clip(audio, label, idx)
         idx += 1
-        print(f"  ✓ Saved: {os.path.basename(path)} ({remaining-1} remaining)\n")
+        print(f"  [OK] Saved: {os.path.basename(path)} ({remaining-1} remaining)\n")
 
-    print(f"  ✓ '{label}' complete: {idx} clips")
+    print(f"  [OK] '{label}' complete: {idx} clips")
 
 # ─────────────────────────────────────────────
 # PROGRESS REPORT
 # ─────────────────────────────────────────────
 
 def print_progress():
-    print(f"\n{'═'*50}")
+    print(f"\n{'='*50}")
     print(f"  DATASET PROGRESS")
-    print(f"{'═'*50}")
+    print(f"{'='*50}")
     total = 0
     for cmd in COMMANDS:
         n = count_existing(cmd)
         total += n
-        bar = "█" * (n // 3) + "░" * ((SAMPLES_GOAL - n) // 3)
-        status = "✓" if n >= SAMPLES_GOAL else f"{n}/{SAMPLES_GOAL}"
+        bar = "#" * (n // 3) + "-" * ((SAMPLES_GOAL - n) // 3)
+        status = "OK" if n >= SAMPLES_GOAL else f"{n}/{SAMPLES_GOAL}"
         print(f"  {cmd:<12} {bar} {status}")
-    print(f"{'─'*50}")
+    print(f"{'-'*50}")
     print(f"  Total clips: {total}")
-    print(f"{'═'*50}\n")
+    print(f"{'='*50}\n")
 
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
 
 def main():
-    print("\n╔══════════════════════════════════════════════╗")
-    print("║  ARIA Wake Word Dataset Collector             ║")
-    print("║  Target: Edge Impulse KWS training            ║")
-    print("╚══════════════════════════════════════════════╝\n")
+    print("\n+==================================================+")
+    print("|  ARIA Wake Word Dataset Collector             |")
+    print("|  Target: Edge Impulse KWS training            |")
+    print("+==================================================+\n")
 
     list_devices()
     print(f"\nRecording at {SAMPLE_RATE}Hz, {DURATION_S}s clips.")
@@ -211,12 +211,12 @@ def main():
     for cmd in COMMANDS:
         existing = count_existing(cmd)
         if existing >= SAMPLES_GOAL:
-            print(f"  ✓ '{cmd}' already complete ({existing} clips) — skipping")
+            print(f"  [OK] '{cmd}' already complete ({existing} clips) - skipping")
             continue
         collect_class(cmd)
 
     print_progress()
-    print("\n✓ Dataset collection complete!")
+    print("\n[OK] Dataset collection complete!")
     print("\nNEXT STEPS:")
     print("  1. Upload dataset/ folders to studio.edgeimpulse.com")
     print("  2. Create impulse: Audio → MFE (40 coefficients, 1s window)")
