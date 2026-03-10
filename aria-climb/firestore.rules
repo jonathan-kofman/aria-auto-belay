@@ -1,0 +1,19 @@
+rules_version = '2';
+// Deploy from Firebase Console: Firestore Database → Rules → paste and Publish.
+// Or: firebase deploy --only firestore:rules (if you use Firebase CLI and firebase.json).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Required for sign-up: app creates users/{uid} after Firebase Auth user is created.
+    match /users/{uid} {
+      allow read, create, update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // Optional: add rules for other collections as you use them (gyms, gymClaims, sessions, etc.)
+    // match /gymClaims/{code} { allow read: if request.auth != null; allow write: if false; }
+    // match /gyms/{gymId} { allow read: if request.auth != null; allow write: if false; }
+    // match /gyms/{gymId}/sessions/{sessionId} { allow read, write: if request.auth != null; }
+  }
+}

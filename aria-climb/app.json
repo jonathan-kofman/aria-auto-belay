@@ -14,7 +14,14 @@
         "@react-native-firebase/app",
         { "android": { "googleServicesFile": "./google-services.json" } }
       ],
-      "./plugins/withGoogleServicesGradle.js"
+      "./plugins/withGoogleServicesGradle.js",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ARIA Climb uses the camera for safety zone monitoring.",
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "ios": {
       "bundleIdentifier": "com.ariaclimb.app",

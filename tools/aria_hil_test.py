@@ -44,6 +44,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+# Ensure project root is on path when run as tools/aria_hil_test.py
+_repo_root = Path(__file__).resolve().parent.parent
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
+
 # ── Protocol config — update to match your actual firmware ────────────────────
 PROTOCOL = {
     'tension_cmd':    'CMD:TENSION:{value:.2f}',
@@ -99,7 +104,7 @@ HIL_TESTS = [
 
     HILTest(
         name='idle_to_climbing',
-        description='Tension above threshold transitions IDLE → CLIMBING',
+        description='Tension above threshold transitions IDLE -> CLIMBING',
         suite='quick',
         steps=[
             HILStep('Reset', [('reset', '')], wait_s=0.5, expect_state='IDLE'),
@@ -144,7 +149,7 @@ HIL_TESTS = [
 
     HILTest(
         name='take_to_lower_to_idle',
-        description='Full descent cycle: TAKE → LOWER → IDLE',
+        description='Full descent cycle: TAKE -> LOWER -> IDLE',
         suite='quick',
         steps=[
             HILStep('Reset, climb, take', [('reset', ''), ('tension', 45.0)], wait_s=0.5),
@@ -404,10 +409,10 @@ class HILRunner:
 
             if not state_data:
                 step_result['passed'] = False
-                step_result['detail'] = f'Timeout — no response within {step.timeout_s}s'
+                step_result['detail'] = f'Timeout - no response within {step.timeout_s}s'
                 result['passed'] = False
                 if self._verbose:
-                    print(f"    Step {step_idx+1}: ❌ TIMEOUT — {step.description}")
+                    print(f"    Step {step_idx+1}: [FAIL] TIMEOUT - {step.description}")
                 result['steps'].append(step_result)
                 continue
 
@@ -436,7 +441,7 @@ class HILRunner:
             step_result['raw'] = state_data
 
             if self._verbose:
-                icon = '✅' if step_result['passed'] else '❌'
+                icon = '[PASS]' if step_result['passed'] else '[FAIL]'
                 print(f"    Step {step_idx+1}: {icon} {step.description}")
                 print(f"           State={actual_state} Motor={actual_motor}", end='')
                 if not step_result['passed']:
@@ -470,7 +475,7 @@ def print_report(results: list, mock: bool = False):
     print('='*60)
 
     for r in results:
-        icon = '✅' if r['passed'] else '❌'
+        icon = '[PASS]' if r['passed'] else '[FAIL]'
         print(f"\n{icon} {r['name']}")
         print(f"   {r['description']}")
         if not r['passed']:
@@ -481,10 +486,10 @@ def print_report(results: list, mock: bool = False):
 
     print('\n' + '-'*60)
     if failed == 0:
-        print(f"✅ ALL TESTS PASSED ({passed}/{len(results)})")
-        print("   Hardware matches firmware model — safe to proceed.")
+        print(f"[PASS] ALL TESTS PASSED ({passed}/{len(results)})")
+        print("   Hardware matches firmware model - safe to proceed.")
     else:
-        print(f"❌ {failed} TEST(S) FAILED ({passed}/{len(results)} passed)")
+        print(f"[FAIL] {failed} TEST(S) FAILED ({passed}/{len(results)} passed)")
         print("   Do NOT use this hardware until failures are resolved.")
     print('='*60 + '\n')
 
@@ -518,12 +523,12 @@ def main():
         sys.exit(2)
 
     # Connect
-    print(f"\nARIA HIL Test Runner — suite={args.suite}")
+    print(f"\nARIA HIL Test Runner - suite={args.suite}")
     if args.mock:
-        print("Mode: MOCK — running against Python state machine model")
+        print("Mode: MOCK - running against Python state machine model")
         serial_iface = MockSerial()
     else:
-        print(f"Mode: HARDWARE — connecting to {args.port} @ {args.baud} baud")
+        print(f"Mode: HARDWARE - connecting to {args.port} @ {args.baud} baud")
         try:
             serial_iface = RealSerial(args.port, args.baud)
             print("Connected.")

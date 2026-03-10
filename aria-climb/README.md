@@ -5,7 +5,7 @@ React Native app for the ARIA auto belay device — **Gym Mode** (iPad) and **Cl
 ## Phase 1 (current)
 
 - Auth (Firebase email/password), role select after signup, role-based routing
-- Gym Navigator (drawer): Dashboard, Session History, Routes, Alerts, Settings
+- Gym Navigator (drawer): Dashboard, Session History, **Safety / Camera test**, Routes, Alerts, Settings
 - Climber Navigator (tabs): Home, Sessions, Leaderboard, Profile
 - Types, i18n (en + scaffolded es/fr/de/ja), Zustand stores, formatters, BLE UUIDs
 - Firestore offline persistence enabled in `App.tsx`
@@ -32,6 +32,8 @@ React Native app for the ARIA auto belay device — **Gym Mode** (iPad) and **Cl
    You cannot use Expo Go; use a dev client build.
 
 4. **Optional:** Copy `.env.example` to `.env` and add any Firebase keys if you use env-based config.
+
+**Testing safety monitoring (no hardware):** See [APP_WORKFLOW.md](APP_WORKFLOW.md). Gym → **Safety / Camera test** lets you verify camera permission, optional live preview (with `expo-camera`), and a **mock zone intrusion** that drives the same alert banner and Alert history as real hardware.
 
 ## Developing on Windows (no Mac)
 

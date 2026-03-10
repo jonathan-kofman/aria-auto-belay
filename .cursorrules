@@ -1,0 +1,66 @@
+# ARIA Agent — Cursor Rules
+# Read this file first, every session, before doing anything.
+
+## What is ARIA
+Autonomous Rope Intelligence Architecture — wall-mounted lead climbing auto-belay
+device targeting the US market gap in lead climbing automation. Open source.
+Provisional patent filed. Built by Jonathan Kofman (Northeastern MEng + Georgia Tech OMSCS).
+
+## Repo Map
+- Root Python files     → dashboard tabs, CEM simulation, state machine, cert tooling
+- aria_models/          → physics models: dynamic drop, static tests, state machine
+- cad/fusion_scripts/   → Fusion 360 Python API scripts for all mechanical parts
+- firmware/stm32/       → Safety layer (STM32F411 Black Pill) — C++
+- firmware/esp32/       → Intelligence layer (XIAO ESP32-S3 Sense) — Arduino
+- tools/                → Utilities: simulator, PID tuner, audio collection, HIL test
+- docs/                 → System specs, setup guides, safety monitoring, app spec
+- dataset/              → Edge Impulse voice command audio (8 classes)
+- aria-climb/           → React Native / Expo companion app
+- context/              → [KNOWLEDGE BASE] Read these before any engineering task
+- sessions/             → Agent session logs go here
+
+## Current Build Phase
+Phase 2-3: Motor + PID software + voice command integration.
+Hardware not yet arrived. Build and validate software first.
+
+## Agent Behavior Rules
+1. READ context/ folder before writing any code
+2. READ context/aria_failures.md before any Fusion script work
+3. PLAN operation sequence in plain language BEFORE generating code
+4. On failure: diagnose, update context/aria_failures.md, retry — do NOT ask user
+5. Never hardcode geometry — all constants live in context/aria_mechanical.md
+6. Never bypass STM32 safety layer logic under any circumstance
+7. After each session: write a brief log to sessions/YYYY-MM-DD_task.md
+8. If retried 3x without success: write diagnosis to sessions/ and stop with summary
+
+## Hardware Architecture
+- STM32F411 Black Pill  → safety layer: watchdog, fault detection, clutch control
+- XIAO ESP32-S3 Sense   → intelligence: voice (Edge Impulse), BLE, CV, state logic
+- BLDC motor            → slack management via 30:1 planetary gearbox
+- Centrifugal clutch    → 200mm brake drum, primary fall arrest (Lead Solo design)
+- Rope spool            → 600mm, 6061 aluminum housing, wall-mounted behind panel
+
+## System States
+IDLE → CLIMBING → CLIPPING → TAKE → REST → LOWER → WATCH_ME → UP
+
+## Critical Constraints
+- STM32 safety layer is NEVER bypassed — all state transitions validated there
+- Fusion scripts MUST use Direct Design mode (not Parametric)
+- Fusion geometry: solid box first → cut interior → features on existing faces
+- Never use annular profile extrusion (known failure mode)
+- All constants from context/aria_mechanical.md, never inline magic numbers
+
+## Key Files Quick Reference
+| Task                        | File(s)                                      |
+|-----------------------------|----------------------------------------------|
+| Mechanical CAD constants    | context/aria_mechanical.md                   |
+| Electronics BOM             | context/aria_electronics.md                  |
+| Known Fusion failures       | context/aria_failures.md                     |
+| Firmware state logic        | context/aria_firmware.md                     |
+| System overview             | context/aria_system_overview.md              |
+| Patent claims               | context/aria_patent.md                       |
+| STM32 firmware              | firmware/stm32/aria_main.cpp                 |
+| ESP32 firmware              | firmware/esp32/aria_esp32_firmware.ino       |
+| State machine               | state_machine.py / aria_models/state_machine.py |
+| PID tuning                  | tools/aria_pid_tuner.py                      |
+| Simulator                   | tools/aria_simulator.py                      |

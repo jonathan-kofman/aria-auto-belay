@@ -18,12 +18,20 @@ export type GymDrawerParamList = {
   DeviceHealth: { deviceId: string };
   SessionHistory: { deviceId?: string };
   Provisioning: undefined;
+  SafetyCameraTest: undefined;
   RouteManagement: undefined;
   AlertHistory: undefined;
   Settings: { deviceId?: string };
 };
 
 export type ClimberTabParamList = {
+  Home: undefined;
+  Sessions: undefined;
+  Leaderboard: undefined;
+  Profile: undefined;
+};
+
+export type ClimberDrawerParamList = {
   Home: undefined;
   Sessions: undefined;
   Leaderboard: undefined;

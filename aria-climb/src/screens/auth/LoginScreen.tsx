@@ -100,6 +100,9 @@ export function LoginScreen() {
       <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
         <Text style={styles.link}>{t('auth.signup')}</Text>
       </TouchableOpacity>
+      <TouchableOpacity onPress={() => navigation.navigate('RoleSelect')} style={styles.linkButton}>
+        <Text style={styles.link}>Use app without signing in (select role)</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -132,4 +135,5 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#1a1a2e', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   buttonText: { color: '#fff', fontSize: 16 },
   link: { marginTop: 16, textAlign: 'center', color: '#666' },
+  linkButton: { marginTop: 8 },
 });
