@@ -1,0 +1,17 @@
+{
+  "part_name": "generate the ARIA ratchet ring optimized: outer diameter 213mm, inner diameter 120mm, thickness 21mm, material 4340 steel, 12 ratchet teeth asymmetric profile drive face 8 degrees back face 60 degrees, tooth height 8mm tip flat 3mm, 6x M6 bolt holes on 150mm bolt circle",
+  "bbox_mm": {
+    "x": 190.287,
+    "y": 177.284,
+    "z": 21.0
+  },
+  "dims_mm": {
+    "OUTER_DIAMETER_MM": 213.0,
+    "INNER_DIAMETER_MM": 120.0,
+    "THICKNESS_MM": 21.0,
+    "TOOTH_HEIGHT_MM": 8.0,
+    "TIP_FLAT_MM": 3.0,
+    "BOLT_HOLE_DIA_MM": 6.0,
+    "BOLT_CIRCLE_DIA_MM": 150.0
+  }
+}

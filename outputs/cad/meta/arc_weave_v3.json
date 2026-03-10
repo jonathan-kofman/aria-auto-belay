@@ -1,0 +1,20 @@
+{
+  "part_name": "arc_weave_v3",
+  "bbox_mm": {
+    "x": 120.0,
+    "y": 80.0,
+    "z": 6.6
+  },
+  "dims_mm": {
+    "WIDTH_MM": 120.0,
+    "HEIGHT_MM": 80.0,
+    "DEPTH_MM": 6.0,
+    "CELL_SIZE_MM": 9.0,
+    "STRUT_DIAMETER_MM": 1.2
+  },
+  "lattice": {
+    "pattern": "arc_weave",
+    "form": "volumetric",
+    "generator": "blender_headless"
+  }
+}

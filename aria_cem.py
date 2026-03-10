@@ -121,7 +121,9 @@ class ARIAInputs:
 
     # Geometry constraints (from existing ARIA design)
     brake_drum_diameter_mm: float = 200.0  # Lead Solo design
-    rope_spool_diameter_mm: float = 120.0  # spool hub diameter
+    rope_spool_hub_diameter_mm: float = 120.0   # spool hub/core diameter
+    rope_spool_od_mm: float = 600.0            # spool outer diameter (rope wrap)
+    gearbox_ratio: float = 30.0                # 30:1 planetary (physical spec, context/aria_system_overview.md)
     housing_od_mm: float        = 260.0   # outer housing diameter
     wall_mount_bolt_pattern_mm: float = 150.0  # bolt circle
 
@@ -182,6 +184,7 @@ class RopeSpoolGeom:
     layers: int                # rope layers
     capacity_m: float          # actual rope capacity
     moment_of_inertia_kg_m2: float
+    effective_rope_radius_m: float  # where rope wraps (spool OD/2)
 
 
 @dataclass
@@ -192,6 +195,7 @@ class MotorSpec:
     motor_torque_Nm: float     # at motor shaft (before gearbox)
     motor_speed_rpm: float     # at motor shaft
     back_drive_torque_Nm: float  # torque to back-drive (must exceed rope tension)
+    velocity_limit_rad_s: float  # motor shaft rad/s limit
     recommendation: str
 
 
@@ -336,7 +340,7 @@ def compute_centrifugal_clutch(inp: ARIAInputs,
     Safety margin:   v_fall / v_climb > 3 (per Lead Solo design principle)
     """
     R_drum  = drum.diameter_mm / 2 / 1000  # m (rope wraps at drum OD)
-    R_spool = inp.rope_spool_diameter_mm / 2 / 1000  # m
+    R_spool = inp.rope_spool_od_mm / 2 / 1000  # m (effective rope wrap radius)
 
     # Rope speed → spool angular velocity
     omega_detect = inp.fall_detection_v_m_s / R_spool  # rad/s
@@ -382,9 +386,12 @@ def compute_rope_spool(inp: ARIAInputs) -> RopeSpoolGeom:
     Spool geometry to hold required rope capacity.
     V_spool = pi/4 * (D_flange^2 - D_hub^2) * W  = n_layers * n_wraps * rope_vol
     """
-    d_hub   = inp.rope_spool_diameter_mm  # mm
-    d_rope  = inp.rope_diameter_mm        # mm
-    L_rope  = inp.max_rope_capacity_m     # m
+    d_hub   = inp.rope_spool_hub_diameter_mm  # mm
+    d_rope  = inp.rope_diameter_mm            # mm
+    L_rope  = inp.max_rope_capacity_m         # m
+
+    # Effective rope wrap radius = spool OD/2 (where rope wraps)
+    effective_rope_radius_m = inp.rope_spool_od_mm / 2 / 1000  # m
 
     # Flange diameter — typically hub + 6 layers of rope
     n_layers  = 6
@@ -415,6 +422,7 @@ def compute_rope_spool(inp: ARIAInputs) -> RopeSpoolGeom:
         layers                   = n_layers,
         capacity_m               = capacity_m,
         moment_of_inertia_kg_m2  = I_spool + I_rope,
+        effective_rope_radius_m   = effective_rope_radius_m,
     )
 
 
@@ -427,7 +435,7 @@ def compute_motor(inp: ARIAInputs, spool: RopeSpoolGeom) -> MotorSpec:
       - Back-drive prevention (hold tension without power)
       - Speed range coverage
     """
-    R_spool = spool.hub_diameter_mm / 2 / 1000  # m
+    R_spool = spool.effective_rope_radius_m  # m (rope wrap radius)
 
     # Required torque at spool (normal tension + safety margin)
     T_spool_Nm  = inp.target_tension_N * R_spool * 1.5  # 1.5x margin
@@ -441,11 +449,8 @@ def compute_motor(inp: ARIAInputs, spool: RopeSpoolGeom) -> MotorSpec:
     motor_peak_Nm  = 0.5
     motor_peak_RPM = 3000.0
 
-    # Required gear ratio
-    GR_torque = T_max_Nm / motor_peak_Nm
-    GR_speed  = motor_peak_RPM / RPM_spool
-    GR        = max(GR_torque, 20.0)  # min 20:1 for back-drive prevention
-    GR        = min(GR, 50.0)         # 30:1 in ARIA design notes
+    # Use physical gearbox ratio from inputs (30:1 planetary per ARIA spec)
+    GR = inp.gearbox_ratio
 
     # Back-drive analysis
     # For worm-equivalent: self-locking if efficiency < 50%
@@ -460,6 +465,9 @@ def compute_motor(inp: ARIAInputs, spool: RopeSpoolGeom) -> MotorSpec:
         f"Max rope speed: {motor_peak_RPM/60*2*np.pi/GR*R_spool:.2f} m/s."
     )
 
+    # Motor shaft rad/s limit from RPM
+    velocity_limit_rad_s = motor_peak_RPM * 2 * np.pi / 60  # 3000 RPM -> ~314 rad/s
+
     return MotorSpec(
         required_torque_Nm   = T_spool_Nm,
         required_speed_rpm   = RPM_spool,
@@ -467,6 +475,7 @@ def compute_motor(inp: ARIAInputs, spool: RopeSpoolGeom) -> MotorSpec:
         motor_torque_Nm      = motor_peak_Nm,
         motor_speed_rpm      = motor_peak_RPM,
         back_drive_torque_Nm = back_drive_T,
+        velocity_limit_rad_s = velocity_limit_rad_s,
         recommendation       = recommendation,
     )
 
@@ -579,6 +588,57 @@ def compute_aria(inputs: ARIAInputs) -> ARIAGeom:
         predicted_catch_time_ms     = t_catch,
         total_mass_kg           = total_mass,
     )
+
+
+def export_sync_constants(geom: 'ARIAGeom', inp: ARIAInputs,
+                          out_path: str = None) -> dict:
+    """
+    Export firmware-relevant constants from CEM geometry.
+    Returns dict and optionally writes JSON.
+    """
+    import json
+    from pathlib import Path
+
+    constants = {
+        # Geometry — from physical design
+        "SPOOL_R": geom.spool.effective_rope_radius_m,
+        "GEAR_RATIO": geom.motor.gearbox_ratio,
+
+        # Motor limits — from CEM motor spec
+        "MOTOR_VELOCITY_LIMIT": geom.motor.velocity_limit_rad_s,
+        "MOTOR_TORQUE_NM": geom.motor.motor_torque_Nm,
+
+        # Tension targets — from design requirements
+        "T_BASELINE": inp.target_tension_N,
+        "T_RETRACT": inp.target_tension_N * 1.5,   # 60N for retract
+
+        # Speed limits — from CEM
+        "SPD_RETRACT": inp.max_retract_speed_m_s
+                       if hasattr(inp, 'max_retract_speed_m_s')
+                       else 0.8,
+        # NOTE: SPD_FALL in firmware is motor yield speed (2.0 m/s).
+        # CEM engagement_v_m_s is clutch engagement speed (~1.3 m/s).
+        # These are different — do not sync automatically.
+        # SPD_FALL omitted from export to prevent accidental patch.
+
+        # Shared STM32+ESP32 constants (keep in sync)
+        "VOICE_CONF_MIN": 0.85,
+        "CLIP_CONF_MIN": 0.75,
+        "CLIP_SLACK_M": 0.65,
+
+        # Safety constants (never change from CEM)
+        "T_TAKE": 200.0,    # ANSI minimum for take confirmation
+        "T_FALL": 400.0,    # Fall detection threshold
+        "T_GROUND": 15.0,   # Ground/idle threshold
+    }
+
+    if out_path:
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_text(
+            json.dumps(constants, indent=2))
+        print(f"CEM constants exported to {out_path}")
+
+    return constants
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1054,7 +1114,8 @@ if __name__ == "__main__":
         max_retract_speed_m_s   = 1.5,
         target_tension_N        = 40.0,
         brake_drum_diameter_mm  = 200.0,
-        rope_spool_diameter_mm  = 120.0,
+        rope_spool_hub_diameter_mm = 120.0,
+        rope_spool_od_mm        = 600.0,
         housing_od_mm           = 260.0,
         safety_factor_structural= 3.0,
         safety_factor_fatigue   = 5.0,

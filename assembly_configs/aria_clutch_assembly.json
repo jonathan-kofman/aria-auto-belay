@@ -1,17 +1,186 @@
 {
   "name": "aria_clutch_assembly",
+  "optimization_notes": {
+    "pawl_lever": "24mm thickness, 4340 Steel, SF=4.07x",
+    "ratchet_ring": "21mm thickness, 4340 Steel, SF from CEM (model conservative)",
+    "blocker_bar": "15x10mm cross-section, 6061-T6 Al, SF from CEM (model conservative)",
+    "trip_lever": "8x6mm cross-section, 6061-T6 Al, SF from CEM (model conservative)",
+    "optimization_date": "2026-03-10",
+    "ansi_target": "Z359.14, SF>=2.0 all structural"
+  },
+  "constraints": [
+    {
+      "type": "coaxial",
+      "part_a": "ratchet_ring",
+      "part_b": "cam_collar",
+      "params": {"axis": "Z"}
+    },
+    {
+      "type": "face_contact",
+      "part_a": "ratchet_ring",
+      "part_b": "cam_collar",
+      "params": {"face_a": ">Z", "face_b": "<Z"}
+    },
+    {
+      "type": "coaxial",
+      "part_a": "ratchet_ring",
+      "part_b": "bearing_retainer_front",
+      "params": {"axis": "Z"}
+    },
+    {
+      "type": "coaxial",
+      "part_a": "ratchet_ring",
+      "part_b": "bearing_retainer_rear",
+      "params": {"axis": "Z"}
+    },
+    {
+      "type": "face_contact",
+      "part_a": "ratchet_ring",
+      "part_b": "pawl_lever_1",
+      "params": {"face_a": ">Z", "face_b": "<Z"}
+    },
+    {
+      "type": "face_contact",
+      "part_a": "ratchet_ring",
+      "part_b": "pawl_lever_2",
+      "params": {"face_a": ">Z", "face_b": "<Z"}
+    }
+  ],
   "parts": [
     {
       "name": "ratchet_ring",
-      "step_path": "outputs/cad/step/llm_aria_ratchet_ring_outer_inner.step",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0]
+      "step_path": "outputs/cad/step/llm_aria_ratchet_ring_correct_asymmetric.step",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "notes": "213mm OD, 21mm thick, Z=0 front face"
     },
     {
       "name": "cam_collar",
       "step_path": "outputs/cad/step/aria_cam_collar.step",
-      "position": [0, 0, 21],
-      "rotation": [0, 0, 0]
+      "position": [
+        0,
+        0,
+        21
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "notes": "55mm OD, 8mm thick, sits immediately behind ratchet ring"
+    },
+    {
+      "name": "pawl_lever_1",
+      "step_path": "outputs/cad/step/llm_aria_pawl_lever_optimized_steel.step",
+      "position": [
+        106,
+        0,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "notes": "Positioned at ratchet ring OD radius, mid-height of ring"
+    },
+    {
+      "name": "pawl_lever_2",
+      "step_path": "outputs/cad/step/llm_aria_pawl_lever_optimized_steel.step",
+      "position": [
+        -106,
+        0,
+        8
+      ],
+      "rotation": [
+        0,
+        0,
+        180
+      ],
+      "notes": "Second pawl 180 degrees opposite"
+    },
+    {
+      "name": "blocker_bar",
+      "step_path": "outputs/cad/step/llm_aria_blocker_bar_tall_t6.step",
+      "position": [
+        0,
+        113,
+        5
+      ],
+      "rotation": [
+        0,
+        0,
+        90
+      ],
+      "notes": "Sits radially above ratchet ring, oriented tangentially"
+    },
+    {
+      "name": "bearing_retainer_front",
+      "step_path": "outputs/cad/step/llm_aria_bearing_retainer.step",
+      "position": [
+        0,
+        0,
+        -5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "notes": "Front bearing retainer, 80mm OD, 5mm thick"
+    },
+    {
+      "name": "bearing_retainer_rear",
+      "step_path": "outputs/cad/step/llm_aria_bearing_retainer.step",
+      "position": [
+        0,
+        0,
+        29
+      ],
+      "rotation": [
+        0,
+        180,
+        0
+      ],
+      "notes": "Rear bearing retainer behind cam collar"
+    },
+    {
+      "name": "flyweight",
+      "step_path": "outputs/cad/step/llm_aria_flyweight_sector_plate_fan.step",
+      "position": [
+        0.0,
+        85.0,
+        8.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "notes": "auto-added by --generate-and-assemble"
+    },
+    {
+      "name": "trip_lever",
+      "step_path": "outputs/cad/step/llm_aria_trip_lever_t6_aluminum.step",
+      "position": [
+        0.0,
+        106.0,
+        5.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "notes": "auto-added by --generate-and-assemble"
     }
   ]
 }

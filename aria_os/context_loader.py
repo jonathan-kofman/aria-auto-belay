@@ -77,3 +77,63 @@ def get_mechanical_constants(context: dict[str, str]) -> dict[str, float]:
     for k, v in constants.items():
         result[aliases.get(k, k)] = v
     return result
+
+
+def load_materials(context: dict) -> list:
+    """Parse material library directly from aria_materials.md."""
+    from pathlib import Path
+    import re
+    from .material_study import Material
+
+    md_path = None
+    for p in [
+        Path("context/aria_materials.md"),
+        Path(__file__).parent.parent / "context/aria_materials.md",
+    ]:
+        if p.exists():
+            md_path = p
+            break
+    if md_path is None:
+        return []
+
+    text = md_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    # Find header row starting with "| id" that contains yield_mpa
+    header_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith("| id") and "yield_mpa" in line:
+            header_idx = i
+            break
+    if header_idx is None:
+        return []
+
+    header = [h.strip() for h in lines[header_idx].split("|") if h.strip()]
+
+    materials: list[Material] = []
+    for line in lines[header_idx + 1:]:
+        # Skip separator rows
+        if re.match(r"^[\|\-\s]+$", line):
+            continue
+        if not line.strip().startswith("|"):
+            break
+        cols = [c.strip() for c in line.split("|") if c.strip()]
+        if len(cols) < len(header):
+            continue
+        row = dict(zip(header, cols))
+        try:
+            mat = Material(
+                id=row["id"],
+                name=row["name"],
+                yield_mpa=float(row["yield_mpa"]),
+                ultimate_mpa=float(row["ultimate_mpa"]),
+                density_gcc=float(row["density_gcc"]),
+                relative_cost=float(row["relative_cost"]),
+                machinability=float(row["machinability"]),
+                processes=[p.strip() for p in row["processes"].split(",") if p.strip()],
+            )
+            materials.append(mat)
+        except (KeyError, ValueError):
+            continue
+
+    return materials

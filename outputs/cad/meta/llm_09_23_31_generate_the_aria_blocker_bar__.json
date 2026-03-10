@@ -1,0 +1,17 @@
+{
+  "part_name": "2026-03-09_23-31_generate_the_ARIA_blocker_bar__120mm_long__15mm_wi_opt8",
+  "bbox_mm": {
+    "x": 120.0,
+    "y": 15.0,
+    "z": 6.5
+  },
+  "dims_mm": {
+    "LENGTH_MM": 120.0,
+    "WIDTH_MM": 15.0,
+    "HEIGHT_MM": 6.5,
+    "CHAMFER_MM": 3.0,
+    "HOLE_DIA_MM": 5.0,
+    "HOLE_OFFSET_MM": 20.0,
+    "FILLET_MM": 0.5
+  }
+}

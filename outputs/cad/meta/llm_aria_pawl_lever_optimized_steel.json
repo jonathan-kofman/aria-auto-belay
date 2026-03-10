@@ -1,0 +1,21 @@
+{
+  "part_name": "generate the ARIA pawl lever optimized: 60mm long, 12mm wide, 24mm thick 4340 steel, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip using threePointArc, stop pad on bottom face: 8mm x 6mm x 3mm raised boss at 45mm from pivot end, fillet all edges 0.5mm",
+  "bbox_mm": {
+    "x": 60.0,
+    "y": 12.0,
+    "z": 27.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 60.0,
+    "WIDTH_MM": 12.0,
+    "THICKNESS_MM": 24.0,
+    "PIVOT_HOLE_DIA_MM": 6.0,
+    "PIVOT_OFFSET_MM": 8.0,
+    "NOSE_RADIUS_MM": 6.0,
+    "STOP_PAD_LENGTH_MM": 8.0,
+    "STOP_PAD_WIDTH_MM": 6.0,
+    "STOP_PAD_HEIGHT_MM": 3.0,
+    "STOP_PAD_OFFSET_MM": 45.0,
+    "FILLET_MM": 0.5
+  }
+}

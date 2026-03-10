@@ -1,0 +1,17 @@
+{
+  "part_name": "2026-03-09_23-31_generate_the_ARIA_pawl_lever__60mm_long__12mm_wide_opt16",
+  "bbox_mm": {
+    "x": 60.0,
+    "y": 12.0,
+    "z": 24.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 60.0,
+    "WIDTH_MM": 12.0,
+    "THICKNESS_MM": 24.0,
+    "PIVOT_HOLE_DIA_MM": 6.0,
+    "PIVOT_OFFSET_MM": 8.0,
+    "NOSE_RADIUS_MM": 6.0,
+    "FILLET_MM": 0.5
+  }
+}

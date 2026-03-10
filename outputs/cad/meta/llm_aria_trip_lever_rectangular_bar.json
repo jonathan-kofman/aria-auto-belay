@@ -1,0 +1,18 @@
+{
+  "part_name": "generate ARIA trip lever: rectangular bar 80mm long, 8mm wide, 6mm thick, hook feature at one end: 4mm tall 6mm long, pivot hole 4mm diameter at 10mm from hook end, fillet all edges 0.5mm",
+  "bbox_mm": {
+    "x": 80.0,
+    "y": 8.0,
+    "z": 10.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 80.0,
+    "WIDTH_MM": 8.0,
+    "THICKNESS_MM": 6.0,
+    "HOOK_HEIGHT_MM": 4.0,
+    "HOOK_LENGTH_MM": 6.0,
+    "PIVOT_HOLE_DIA_MM": 4.0,
+    "PIVOT_OFFSET_MM": 10.0,
+    "FILLET_MM": 0.5
+  }
+}

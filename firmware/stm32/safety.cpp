@@ -26,7 +26,7 @@
 // ── Forward declarations of ARIA globals (defined in aria_main.cpp) ──
 extern BLDCMotor      motor;
 extern BLDCDriver3PWM driver;
-extern float          g_tension_n;    // latest load cell reading
+extern float          g_tension;     // latest load cell reading
 
 // HX711 reader — same class as in aria_main.cpp
 class HX711Reader;

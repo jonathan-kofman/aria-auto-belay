@@ -54,6 +54,8 @@ IDLE → CLIMBING → CLIPPING → TAKE → REST → LOWER → WATCH_ME → UP
 | Task                        | File(s)                                      |
 |-----------------------------|----------------------------------------------|
 | Mechanical CAD constants    | context/aria_mechanical.md                   |
+| Materials & yield data      | context/aria_materials.md                    |
+| Test standards & ANSI limits| context/aria_test_standards.md              |
 | Electronics BOM             | context/aria_electronics.md                  |
 | Known Fusion failures       | context/aria_failures.md                     |
 | Firmware state logic        | context/aria_firmware.md                     |
@@ -64,3 +66,78 @@ IDLE → CLIMBING → CLIPPING → TAKE → REST → LOWER → WATCH_ME → UP
 | State machine               | state_machine.py / aria_models/state_machine.py |
 | PID tuning                  | tools/aria_pid_tuner.py                      |
 | Simulator                   | tools/aria_simulator.py                      |
+
+## CEM Integration
+- Every generated part runs CEM checks appropriate to its type
+- Static SF < 1.5 = hard failure in future revisions; currently surfaced as a strong warning
+- Static SF 1.5–2.0 = warning, outputs saved with flag
+- Static SF >= 2.0 = pass
+- See context/aria_materials.md for yield strengths
+- See context/aria_test_standards.md for ANSI limits
+- Meta JSON at outputs/cad/meta/<part>.json contains extracted dims (bbox; part-specific dims can be added by generators)
+
+## ARIA-OS Command Reference
+
+### Generation
+  python run_aria_os.py "describe part"
+  -> planner -> CadQuery generation -> geometry validation -> CEM check -> STEP/STL
+  Output: outputs/cad/step/, outputs/cad/stl/, outputs/cad/generated_code/, outputs/cad/meta/
+
+### Modification  
+  python run_aria_os.py --modify "outputs/cad/generated_code/<part>.py" "what to change"
+  -> loads existing code -> LLM modifies specific feature only -> validates -> exports as _mod1, _mod2...
+
+### Assembly
+  python run_aria_os.py --assemble assembly_configs/<config>.json
+  -> imports multiple STEPs -> positions them -> exports single assembly STEP/STL
+
+### Inspection
+  python run_aria_os.py --list        -> all parts with sizes and validation status
+  python run_aria_os.py --validate    -> re-validate all STEPs, exit 1 if any fail
+
+### Optimization (new)
+  python run_aria_os.py --optimize "outputs/cad/generated_code/<part>.py" --goal "minimize_weight" --constraint "SF>=2.0" --constraint "wall>=6mm"
+  -> parametric sweep -> score each variant -> return best design
+
+### Optimizer + Auto-Regenerate
+  python run_aria_os.py --optimize-and-regenerate <part_stub> --goal <goal> --constraint <rule> [--material <material_id>]
+  -> optimize -> (optional) material recommendation -> auto-generate part at optimal dimensions -> validate -> export STEP/STL
+
+### CEM Full System Check (new)
+  python run_aria_os.py --cem-full
+  -> runs CEM checks across ALL generated parts -> system-level report
+
+### Generate and Assemble (new)
+  python run_aria_os.py --generate-and-assemble "part description" --into assembly_configs/<config>.json --as "part_label" --at "x,y,z"
+  -> generates part -> validates -> adds to assembly config -> re-runs assembly
+
+## Firmware Sync
+
+### ESP32 Sync
+  python tools/aria_constants_sync.py --from-cem --esp32
+  -> checks STM32 + ESP32 shared constants for drift
+  -> with --patch: updates ESP32 thresholds to match STM32 values
+     (comms constants like UART_BAUD are checked, never patched)
+
+## Dashboard
+  python -m streamlit run aria_dashboard.py
+  -> includes "ARIA-OS (CAD & manufacturing)" with a "CAD & Manufacturing" view
+
+## Template Override Detection
+  [TEMPLATE] = validated template used (no LLM call, fastest)
+  [LLM] Overrides detected -> LLM used, explicit dims respected
+  [LLM] Unknown part -> LLM used
+
+## CEM Routing by Part Type
+  pawl/lever/ratchet/shaft/collar/spool -> static SF check only
+  housing -> static + dynamic drop + full CEM system check
+  motor/mount/plate/guide -> no CEM check
+
+## Output Structure
+  outputs/cad/step/          -> STEP files (gitignored, regenerable)
+  outputs/cad/stl/           -> STL files (gitignored, regenerable)
+  outputs/cad/generated_code/-> raw LLM Python (gitignored)
+  outputs/cad/meta/          -> dimension JSON (tracked in git)
+  assembly_configs/          -> assembly JSON configs (tracked in git)
+  sessions/                  -> agent session logs (tracked in git)
+

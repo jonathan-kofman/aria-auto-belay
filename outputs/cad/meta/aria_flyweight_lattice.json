@@ -1,0 +1,21 @@
+{
+  "part_name": "aria_flyweight_lattice",
+  "bbox_mm": {
+    "x": 85.0,
+    "y": 50.0,
+    "z": 8.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 85.0,
+    "HEIGHT_MM": 50.0,
+    "DEPTH_MM": 8.0,
+    "CELL_SIZE_MM": 8.0,
+    "STRUT_DIAMETER_MM": 0.8
+  },
+  "lattice": {
+    "pattern": "octet_truss",
+    "form": "skin_core",
+    "cell_count": 0,
+    "strut_count": 1440
+  }
+}

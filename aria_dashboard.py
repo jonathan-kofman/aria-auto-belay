@@ -21,6 +21,7 @@ from aria_cert_package import render_cert_package_tab
 from aria_offline_mode import render_offline_status
 from aria_drop_parser import render_drop_parser_tab
 from aria_fault_behavior import render_fault_table_tab
+from aria_cad_tab import render_cad_tab
 
 try:  # optional, used for live serial connection
     import serial  # type: ignore
@@ -103,6 +104,9 @@ SETUPS = {
     ],
     "CEM Design (physics-derived geometry)": [
         "Design parameters & Fusion exports",
+    ],
+    "ARIA-OS (CAD & manufacturing)": [
+        "CAD & Manufacturing",
     ],
     "Voice & audio": [
         "Voice commands reference",
@@ -483,6 +487,9 @@ else:
     # Full-width tabs first (render in main area, not in col_right)
     if setup.startswith("CEM Design"):
         render_cem_tab()
+
+    elif setup.startswith("ARIA-OS (CAD & manufacturing)"):
+        render_cad_tab()
 
     elif setup.startswith("Test Data & Calibration"):
         render_testdata_tab()

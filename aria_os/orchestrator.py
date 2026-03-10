@@ -3,9 +3,10 @@ from pathlib import Path
 from .context_loader import load_context
 from .planner import plan as planner_plan
 from .generator import generate as generator_generate, KNOWN_PART_IDS
-from .validator import validate, validate_housing_spec, validate_step_file, ValidationResult
-from .exporter import export, get_output_paths
+from .validator import validate, validate_housing_spec, validate_step_file, validate_mesh_integrity, ValidationResult
+from .exporter import export, get_output_paths, get_meta_path
 from .logger import log as logger_log, log_failure as logger_log_failure
+from . import cem_checks
 
 
 def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
@@ -60,7 +61,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
         stl_path = Path(paths["stl_path"])
 
         if use_llm:
-            inject = {"STEP_PATH": str(step_path), "STL_PATH": str(stl_path)}
+            inject = {"STEP_PATH": str(step_path), "STL_PATH": str(stl_path), "PART_NAME": part_name}
             result = validate(code, expected_bbox=expected_bbox, inject_namespace=inject, min_step_size_kb=1.0)
         else:
             result = validate(code, expected_bbox=expected_bbox)
@@ -83,6 +84,22 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
             session["step_path"] = paths["step_path"]
             session["stl_path"] = paths["stl_path"]
 
+        # CEM integration: run physics checks using meta JSON if available
+        try:
+            meta_path_str = get_meta_path(part_id or part_name, repo_root)
+            cem_result = cem_checks.run_cem_checks(part_id or part_name, Path(meta_path_str), context)
+            session["cem_overall_passed"] = cem_result.overall_passed
+            session["cem_summary"] = cem_result.summary
+            if cem_result.static_min_sf is not None:
+                session["cem_static_min_sf"] = cem_result.static_min_sf
+            if not cem_result.overall_passed:
+                print(f"[CEM FAIL] {cem_result.summary}")
+            else:
+                print(f"[CEM PASS] {cem_result.summary}")
+        except Exception as e:
+            # CEM is advisory; do not fail geometry run if integration fails
+            session["cem_error"] = str(e)
+
         step_path_check = Path(session["step_path"])
         file_valid, solid_count, file_errors = validate_step_file(step_path_check, min_size_kb=1.0)
         if not file_valid and file_errors:
@@ -90,6 +107,17 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
                 last_error = "; ".join(file_errors)
                 continue
             session["validation_errors"] = file_errors
+
+        # Mesh integrity check (STL) — advisory for print readiness
+        try:
+            stl_path_check = Path(session.get("stl_path", ""))
+            if stl_path_check.exists():
+                mesh = validate_mesh_integrity(str(stl_path_check))
+                session["mesh_validation"] = mesh
+                if int(mesh.get("degenerate_triangles", 0)) > 0:
+                    print(f"[MESH WARNING] {mesh.get('degenerate_triangles')} degenerate triangles found — do not print until geometry is fixed")
+        except Exception as e:
+            session["mesh_validation_error"] = str(e)
 
         logger_log(session)
         return session

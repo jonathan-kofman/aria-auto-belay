@@ -60,7 +60,7 @@ static constexpr float   T_GROUND      = 15.0f;
 static constexpr float   CLIP_CONF_MIN = 0.75f;
 static constexpr float   CLIP_SLACK_M  = 0.65f;
 static constexpr float   SPD_LOWER     = 0.5f;
-static constexpr float   SPD_RETRACT   = 0.8f;
+static constexpr float   SPD_RETRACT   = 1.5f;
 static constexpr float   SPD_FALL      = 2.0f;
 static constexpr uint32_t TAKE_CONF_MS = 500;
 static constexpr uint32_t WATCH_MS     = 180000UL;
@@ -155,7 +155,7 @@ struct PID {
 };
 
 // Starting gains — auto-tuner will improve these
-PID tensionPID{.kp=0.08f,.ki=1.5f,.kd=0.0005f};
+PID tensionPID{.kp=0.022f,.ki=0.413f,.kd=0.0005f};
 LowPassFilter tensionLPF(0.02f);
 
 

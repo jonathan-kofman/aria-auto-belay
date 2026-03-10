@@ -4,3 +4,4 @@ cadquery-ocp==7.8.1.1.post1
 numpy==2.4.3
 rich==14.3.3
 anthropic>=0.39.0
+pandas==3.0.1

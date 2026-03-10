@@ -51,6 +51,25 @@ def has_dimensional_overrides(goal: str, template_dims: dict, part_id: str = "")
     return False
 
 
+LATTICE_KEYWORDS = [
+    "lattice",
+    "weave",
+    "mesh",
+    "honeycomb",
+    "octet",
+    "truss",
+    "infill",
+    "kagome",
+    "islamic",
+    "geometric",
+    "periodic",
+    "tiling",
+    "strut",
+    "cellular",
+    "porous",
+]
+
+
 def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
     """
     Produce a structured plan. Returns dict with:
@@ -66,6 +85,16 @@ def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
         context = load_context()
     constants = get_mechanical_constants(context)
     goal_lower = goal.lower()
+
+    # ---------- Lattice generator routing ----------
+    if any(kw in goal_lower for kw in LATTICE_KEYWORDS):
+        return {
+            "part_id": "lattice",
+            "text": goal,
+            "route": "lattice_generator",
+            "base_shape": "panel",
+            "build_order": ["params", "pattern", "form", "export"],
+        }
 
     # ---------- ARIA housing shell ----------
     if "housing" in goal_lower and ("shell" in goal_lower or "box" in goal_lower or "aria housing" in goal_lower):

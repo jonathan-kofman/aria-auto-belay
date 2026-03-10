@@ -292,3 +292,80 @@ Full environment setup and ARIA-OS v1 were completed. The system can load contex
 **Attempts:** 1
 **Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_housing.step
 **Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_housing.stl
+
+## Session 2026-03-09T22:19:33.358981
+
+**Status:** Failure
+**Goal:** generate the ARIA pawl lever: 60mm long, 12mm wide, 6mm thick aluminum plate, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip, fillet all edges 0.5mm
+**Attempts:** 3
+**Diagnosis:** LLM generation failed: anthropic package required for LLM generation. Install with: pip install anthropic
+
+## Session 2026-03-09T22:19:43.474074
+
+**Status:** Failure
+**Goal:** generate the ARIA ratchet ring: outer diameter 213mm, inner diameter 120mm, thickness 21mm, 12 ratchet teeth asymmetric profile drive face 8deg back face 60deg, tooth height 8mm, 6x M6 on 150mm bolt circle
+**Attempts:** 3
+**Diagnosis:** LLM generation failed: anthropic package required for LLM generation. Install with: pip install anthropic
+
+## Session 2026-03-09T22:19:47.988787
+
+**Status:** Failure
+**Goal:** generate the ARIA housing shell
+**Attempts:** 3
+**Diagnosis:** No module named 'cadquery'
+
+## Session 2026-03-09T23:19:24.197590
+
+**Status:** Success
+**Goal:** generate ARIA flyweight sector plate: fan-shaped sector, outer radius 85mm, inner radius 25mm, sector angle 120 degrees, thickness 8mm, pivot hole 10mm diameter, weight pocket 40x15x4mm at 65mm radius
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_flyweight_sector_plate_fan.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_flyweight_sector_plate_fan.stl
+
+## Session 2026-03-09T23:31:09.392725
+
+**Status:** Success
+**Goal:** generate the ARIA housing shell
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_housing.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_housing.stl
+
+## Session 2026-03-09T23:31:18.237267
+
+**Status:** Success
+**Goal:** generate the ARIA pawl lever: 60mm long, 12mm wide, 6mm thick aluminum plate, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip, fillet all edges 0.5mm
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_pawl_lever_aluminum_plate.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_pawl_lever_aluminum_plate.stl
+
+## Session 2026-03-09T23:31:20.158269
+
+**Status:** Success
+**Goal:** generate the ARIA blocker bar: 120mm long, 15mm wide, 10mm tall, chamfer both ends 3mm, 2x M5 holes at 20mm from each end, fillet vertical edges 0.5mm
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_blocker_bar_tall_chamfer.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_blocker_bar_tall_chamfer.stl
+
+## Session 2026-03-09T23:31:26.236843
+
+**Status:** Success
+**Goal:** generate the ARIA ratchet ring: outer diameter 213mm, inner diameter 120mm, thickness 21mm, 12 ratchet teeth asymmetric profile drive face 8 degrees back face 60 degrees, tooth height 8mm tip flat 3mm, 6x M6 bolt holes on 150mm bolt circle
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_ratchet_ring_outer_inner.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_ratchet_ring_outer_inner.stl
+
+## Session 2026-03-09T23:32:47.271749
+
+**Status:** Success
+**Goal:** generate ARIA trip lever: rectangular bar 80mm long, 8mm wide, 6mm thick, hook feature at one end: 4mm tall 6mm long, pivot hole 4mm diameter at 10mm from hook end, fillet all edges 0.5mm
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_trip_lever_rectangular_bar.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_trip_lever_rectangular_bar.stl
+
+## Session 2026-03-09T23:50:47.275041
+
+**Status:** Success
+**Goal:** generate a high-complexity ARIA centrifugal flyweight shoe: crescent-shaped body - outer arc radius 95mm, inner arc radius 60mm, arc sweep angle 75 degrees, thickness 12mm, pivot boss on inner face: 18mm diameter, 6mm tall, 8mm bore through full thickness, friction pad pocket on outer arc face: 55mm long, 10mm wide, 3mm deep, centered at midpoint of arc, 3x lightening holes through thickness: 10mm diameter, evenly spaced along arc centerline at 60mm radius, 2x M4 tapped holes (4.5mm diameter) on inner face either side of boss at 12mm offset, chamfer all outer arc edges 1mm, fillet all inner arc edges 0.5mm, material 4140 steel
+**Attempts:** 2
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_high_complexity_aria_centrifugal_flyweig.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_high_complexity_aria_centrifugal_flyweig.stl

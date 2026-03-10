@@ -51,7 +51,9 @@ def run_assemble(config_path: str):
             name=p.get("name", "part"),
         ))
     assy = Assembler(repo_root=ROOT)
-    out_path = assy.assemble(parts, name)
+    constraints = cfg.get("constraints", [])
+    # run_assemble does not load full context; assembler will do so if needed
+    out_path = assy.assemble(parts, name, constraints=constraints or None, context=None)
     print(f"Assembly exported: {out_path}")
 
 
@@ -100,6 +102,529 @@ def validate_all():
             print(f"FAIL {p.name}: {'; '.join(errs)}")
     sys.exit(0 if all_ok else 1)
 
+def run_print_scale(args: list[str]):
+    """
+    Scale an existing STEP file for print-fit checks:
+      python run_aria_os.py --print-scale <part_stub> --scale 0.75
+    Writes <part>_print_<pct>pct.step/.stl and reports dims + 256mm bed fit.
+    """
+    if len(args) < 1:
+        print("Usage: python run_aria_os.py --print-scale <part_stub> --scale <factor>")
+        sys.exit(1)
+    part_stub = args[0]
+    scale = 1.0
+    i = 1
+    while i < len(args):
+        if args[i] == "--scale" and i + 1 < len(args):
+            try:
+                scale = float(args[i + 1])
+            except ValueError:
+                pass
+            i += 2
+        else:
+            i += 1
+
+    from aria_os.exporter import get_output_paths
+    import cadquery as cq
+    from cadquery import importers, exporters
+
+    paths = get_output_paths(part_stub, ROOT)
+    step_path = Path(paths["step_path"])
+    if not step_path.exists():
+        step_dir = ROOT / "outputs" / "cad" / "step"
+        matches = [p for p in step_dir.glob("*.step") if part_stub.lower() in p.stem.lower()]
+        if matches:
+            matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+            step_path = matches[0]
+        else:
+            print(f"STEP not found for stub: {part_stub}")
+            sys.exit(1)
+
+    imported = importers.importStep(str(step_path))
+    solid = imported.val() if hasattr(imported, "val") else imported
+    bb = solid.BoundingBox()
+    orig_dims = (bb.xlen, bb.ylen, bb.zlen)
+
+    scaled_solid = solid.scale(scale)
+    bb2 = scaled_solid.BoundingBox()
+    scaled_dims = (bb2.xlen, bb2.ylen, bb2.zlen)
+
+    pct = int(round(scale * 100))
+    out_base = f"{step_path.stem}_print_{pct}pct"
+    out_step = ROOT / "outputs" / "cad" / "step" / f"{out_base}.step"
+    out_stl = ROOT / "outputs" / "cad" / "stl" / f"{out_base}.stl"
+    result = cq.Workplane("XY").add(scaled_solid)
+    exporters.export(result, str(out_step), exporters.ExportTypes.STEP)
+    exporters.export(result, str(out_stl), exporters.ExportTypes.STL)
+
+    bed_mm = 256.0
+    fit = max(scaled_dims[0], scaled_dims[1]) <= bed_mm
+    clearance = (bed_mm - max(scaled_dims[0], scaled_dims[1])) / 2.0
+
+    print("=== Print Scale ===")
+    print(f"Input STEP:  {step_path}")
+    print(f"Scale:       {scale} ({pct}%)")
+    print(f"Orig dims:   {orig_dims[0]:.2f} x {orig_dims[1]:.2f} x {orig_dims[2]:.2f} mm")
+    print(f"Scaled dims: {scaled_dims[0]:.2f} x {scaled_dims[1]:.2f} x {scaled_dims[2]:.2f} mm")
+    print(f"Output STEP: {out_step}")
+    print(f"Output STL:  {out_stl}")
+    print(f"Fits 256mm bed: {'YES' if fit else 'NO'} (clearance per side: {clearance:.2f} mm)")
+
+
+def run_optimize(args: list[str]):
+    """CLI entry for --optimize."""
+    if len(args) < 1:
+        print("Usage: python run_aria_os.py --optimize <code_or_stub> --goal <goal> [--constraint RULE ...] [--max-iter N]")
+        sys.exit(1)
+    code_stub = args[0]
+    goal = "minimize_weight"
+    constraints: list[str] = []
+    max_iter = 20
+
+    i = 1
+    while i < len(args):
+        tok = args[i]
+        if tok == "--goal" and i + 1 < len(args):
+            goal = args[i + 1]
+            i += 2
+        elif tok == "--constraint" and i + 1 < len(args):
+            constraints.append(args[i + 1])
+            i += 2
+        elif tok in ("--max-iter", "--max_iter") and i + 1 < len(args):
+            try:
+                max_iter = int(args[i + 1])
+            except ValueError:
+                pass
+            i += 2
+        else:
+            i += 1
+
+    # Resolve code path or stub to an actual file in outputs/cad/generated_code
+    gen_dir = ROOT / "outputs" / "cad" / "generated_code"
+    direct = Path(code_stub)
+    if not direct.is_absolute():
+        direct = (ROOT / code_stub).resolve()
+    resolved_path: Path | None = None
+    if direct.exists():
+        resolved_path = direct
+    else:
+        # Search by substring in generated_code filenames
+        if gen_dir.exists():
+            matches: list[Path] = []
+            for p in gen_dir.glob("*.py"):
+                if code_stub.lower() in p.name.lower():
+                    matches.append(p)
+            if matches:
+                matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                resolved_path = matches[0]
+    if resolved_path is None:
+        print(f"Could not find generated code matching: {code_stub!r}")
+        if gen_dir.exists():
+            print("Available generated code files:")
+            for p in sorted(gen_dir.glob("*.py")):
+                print(f"  - {p.name}")
+        sys.exit(1)
+
+    from aria_os.optimizer import PartOptimizer
+
+    opt = PartOptimizer(repo_root=ROOT)
+    result = opt.optimize(str(resolved_path), goal=goal, constraints=constraints, context=None, max_iterations=max_iter)
+    print("=== Optimization Result ===")
+    print(f"Part:        {result.part_name}")
+    print(f"Goal:        {result.goal}")
+    print(f"Constraints: {result.constraints}")
+    print(f"Iterations:  {result.iterations}")
+    print(f"Converged:   {result.converged}")
+    print(f"Best score:  {result.best_score}")
+    print(f"Best params: {result.best_params}")
+    print(f"Best STEP:   {result.best_step_path}")
+    print(result.summary)
+
+def run_optimize_and_regenerate(args: list[str]):
+    """CLI entry for --optimize-and-regenerate."""
+    if len(args) < 1:
+        print("Usage: python run_aria_os.py --optimize-and-regenerate <code_or_stub> --goal <goal> [--constraint RULE ...] [--material MATERIAL_ID] [--max-iter N]")
+        sys.exit(1)
+    code_stub = args[0]
+    goal = "minimize_weight"
+    constraints: list[str] = []
+    material: str | None = None
+    max_iter = 20
+
+    i = 1
+    while i < len(args):
+        tok = args[i]
+        if tok == "--goal" and i + 1 < len(args):
+            goal = args[i + 1]
+            i += 2
+        elif tok == "--constraint" and i + 1 < len(args):
+            constraints.append(args[i + 1])
+            i += 2
+        elif tok == "--material" and i + 1 < len(args):
+            material = args[i + 1]
+            i += 2
+        elif tok in ("--max-iter", "--max_iter") and i + 1 < len(args):
+            try:
+                max_iter = int(args[i + 1])
+            except ValueError:
+                pass
+            i += 2
+        else:
+            i += 1
+
+    # Resolve code path or stub to an actual file in outputs/cad/generated_code
+    gen_dir = ROOT / "outputs" / "cad" / "generated_code"
+    direct = Path(code_stub)
+    if not direct.is_absolute():
+        direct = (ROOT / code_stub).resolve()
+    resolved_path: Path | None = None
+    if direct.exists():
+        resolved_path = direct
+    else:
+        if gen_dir.exists():
+            matches: list[Path] = []
+            for p in gen_dir.glob("*.py"):
+                if code_stub.lower() in p.name.lower():
+                    matches.append(p)
+            if matches:
+                matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                resolved_path = matches[0]
+    if resolved_path is None:
+        print(f"Could not find generated code matching: {code_stub!r}")
+        if gen_dir.exists():
+            print("Available generated code files:")
+            for p in sorted(gen_dir.glob('*.py')):
+                print(f"  - {p.name}")
+        sys.exit(1)
+
+    from aria_os.optimizer import PartOptimizer
+    from aria_os.context_loader import load_context
+
+    context = load_context(ROOT)
+    opt = PartOptimizer(repo_root=ROOT)
+    out = opt.optimize_and_regenerate(
+        base_code_path=str(resolved_path),
+        goal=goal,
+        constraints=constraints,
+        context=context,
+        material=material,
+        max_iterations=max_iter,
+    )
+
+    opt_result = out.get("optimization")
+    print("=== Optimize + Regenerate Result ===")
+    if opt_result is not None:
+        print(f"Part:        {getattr(opt_result, 'part_name', '')}")
+        print(f"Goal:        {getattr(opt_result, 'goal', '')}")
+        print(f"Constraints: {getattr(opt_result, 'constraints', [])}")
+        print(f"Iterations:  {getattr(opt_result, 'iterations', 0)}")
+        print(f"Converged:   {getattr(opt_result, 'converged', False)}")
+        print(f"Best params: {getattr(opt_result, 'best_params', {})}")
+        print(f"Best STEP:   {getattr(opt_result, 'best_step_path', '')}")
+    print(f"Recommended material: {out.get('recommended_material')}")
+    gen = out.get("generation") or {}
+    if gen:
+        print(f"Generated STEP: {gen.get('step_path')}")
+    print(out.get("summary", ""))
+
+
+def run_cem_full():
+    """Run CEM checks on all parts with meta JSON and print a rich report."""
+    from aria_os.context_loader import load_context
+    from aria_os import cem_checks
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+
+    console = Console(highlight=False, emoji=False)
+    context = load_context(ROOT)
+    report = cem_checks.run_full_system_cem(ROOT / "outputs", context)
+
+    total = report.get("total_parts", 0)
+    passed = report.get("passed", 0)
+    failed = report.get("failed", [])
+    weakest_part = report.get("weakest_part")
+    weakest_sf = report.get("weakest_sf")
+    system_passed = report.get("system_passed", True)
+
+    status_text = "OK ALL PARTS PASS" if system_passed else "[!] ATTENTION NEEDED"
+
+    header = Panel.fit(
+        f"ARIA SYSTEM CEM REPORT\n\n"
+        f"Parts checked: {total}\n"
+        f"Passed:        {passed}\n"
+        f"Failed:        {len(failed)}\n"
+        f"System status: {status_text}",
+        title="ARIA CEM",
+    )
+    console.print(header)
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Part", style="cyan")
+    table.add_column("Static SF", justify="right")
+    table.add_column("Status", justify="center")
+
+    results = report.get("results", {})
+    for name, data in results.items():
+        sf = data.get("static_min_sf")
+        ok = data.get("overall_passed", False)
+        status = "[OK] PASS" if ok else "[FAIL] FAIL"
+        sf_str = f"{sf:.2f}" if sf is not None else "-"
+        table.add_row(name, sf_str, status)
+
+    console.print(table)
+
+    if weakest_part:
+        console.print(
+            f"Weakest link: [bold]{weakest_part}[/bold] "
+            f"({weakest_sf:.2f}x SF)" if weakest_sf is not None else f"Weakest link: {weakest_part}"
+        )
+
+
+def run_generate_and_assemble(description: str, into_path: str, part_label: str, at_vec: str, rot_vec: str | None = None):
+    """Generate a part, append it to an assembly config, and re-run assembly."""
+    from aria_os import run as orchestrator_run
+
+    # 1. Generate part
+    session = orchestrator_run(description, repo_root=ROOT)
+    step_path_str = session.get("step_path")
+    if not step_path_str:
+        print("Generation did not produce a STEP path.")
+        sys.exit(1)
+    step_path = Path(step_path_str)
+    if not step_path.exists():
+        print(f"Generated STEP not found: {step_path}")
+        sys.exit(1)
+
+    # 2. Load assembly JSON
+    cfg_path = ROOT / into_path if not Path(into_path).is_absolute() else Path(into_path)
+    if not cfg_path.exists():
+        print(f"Assembly config not found: {cfg_path}")
+        sys.exit(1)
+    cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+
+    # 3. Parse vectors
+    def _parse_vec(txt: str) -> list[float]:
+        parts = [p for p in txt.split(",") if p.strip()]
+        if len(parts) != 3:
+            raise ValueError(f"Expected 3 comma-separated values, got: {txt!r}")
+        return [float(p) for p in parts]
+
+    pos = _parse_vec(at_vec)
+    rot = _parse_vec(rot_vec) if rot_vec else [0.0, 0.0, 0.0]
+
+    # 4. Append new part entry
+    rel_step = step_path
+    try:
+        rel_step = step_path.relative_to(ROOT)
+    except ValueError:
+        rel_step = step_path
+
+    parts = cfg.get("parts", [])
+    parts.append(
+        {
+            "name": part_label,
+            "step_path": str(rel_step).replace("\\", "/"),
+            "position": pos,
+            "rotation": rot,
+            "notes": "auto-added by --generate-and-assemble",
+        }
+    )
+    cfg["parts"] = parts
+    cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+
+    # 5. Re-run assembly
+    run_assemble(str(cfg_path))
+
+
+def run_material_study_cli(part_stub: str):
+    """CLI entry for --material-study."""
+    from rich.console import Console
+    from rich.table import Table
+    from aria_os.context_loader import load_context
+    from aria_os.material_study import run_material_study
+
+    console = Console(highlight=False, emoji=False)
+    context = load_context(ROOT)
+    outputs_dir = ROOT / "outputs"
+    result = run_material_study(part_stub, context, outputs_dir)
+
+    console.print(f"[bold]Material study for[/bold] {result.part_name} (criticality: {result.part_criticality}, SF target={result.sf_target:.1f}x)")
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Rank", justify="right")
+    table.add_column("Material")
+    table.add_column("SF", justify="right")
+    table.add_column("Weight [g]", justify="right")
+    table.add_column("Rel Cost", justify="right")
+    table.add_column("Mach", justify="right")
+    table.add_column("Verdict")
+
+    for r in result.ranked_results:
+        table.add_row(
+            str(r.rank),
+            r.material.id,
+            f"{r.sf:.2f}",
+            f"{r.weight_g:.0f}",
+            f"{r.relative_cost:.2f}",
+            f"{r.machinability:.1f}",
+            r.verdict,
+        )
+
+    console.print(table)
+    console.print(f"[bold]Recommendation:[/bold] {result.recommendation.id} - {result.recommendation_reasoning}")
+    console.print(f"Baseline material rank: {result.current_material_rank}")
+
+
+def run_material_study_all_cli():
+    from aria_os.context_loader import load_context
+    from aria_os.material_study import run_material_study_all
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console(highlight=False, emoji=False)
+    context = load_context(ROOT)
+
+    console.print("\n[bold]Running material studies on all parts...[/bold]\n")
+
+    report = run_material_study_all(context, ROOT / "outputs")
+    if "error" in report:
+        console.print(f"[red]Error: {report['error']}[/red]")
+        return
+
+    table = Table(title="ARIA Material Study - All Parts")
+    table.add_column("Part", style="cyan", width=36)
+    table.add_column("Criticality", width=13)
+    table.add_column("Recommended", style="green", width=17)
+    table.add_column("SF", justify="right", width=6)
+    table.add_column("Current", width=12)
+    table.add_column("Action", width=8)
+
+    for row in report["summary"]:
+        action_style = "green" if row["action"] == "OK" else "red"
+        table.add_row(
+            row["part"],
+            row["criticality"],
+            row["recommended"],
+            f"{row['recommended_sf']:.2f}",
+            row["current"],
+            f"[{action_style}]{row['action']}[/{action_style}]",
+        )
+
+    console.print(table)
+    console.print(f"\nFull results saved to: {report['output_file']}")
+
+
+def run_lattice_test():
+    """Quick test to verify Blender pipeline works."""
+    from rich.console import Console
+    from aria_os.lattice.blender_pipeline import find_blender
+
+    console = Console(highlight=False, emoji=False)
+
+    blender = find_blender()
+    if blender is None:
+        console.print("[FAIL] Blender not found.")
+        console.print("Install from: https://www.blender.org/download/")
+        console.print("Then run: python run_aria_os.py --lattice-test")
+        return
+
+    console.print(f"[OK] Blender found: {blender}")
+    console.print("Running quick geometry test...")
+
+    from aria_os.lattice import generate_lattice, LatticeParams
+
+    params = LatticeParams(
+        pattern="honeycomb",
+        form="volumetric",
+        width_mm=40,
+        height_mm=40,
+        depth_mm=5,
+        cell_size_mm=10,
+        strut_diameter_mm=2.0,
+        frame_thickness_mm=3.0,
+        process="fdm",
+        part_name="lattice_test_honeycomb",
+    )
+
+    try:
+        result = generate_lattice(params)
+        console.print(f"[OK] Honeycomb: {result.summary}")
+        console.print(f"     STL: {result.stl_path}")
+    except Exception as e:
+        console.print(f"[FAIL] Honeycomb: {e}")
+
+    params.pattern = "arc_weave"
+    params.part_name = "lattice_test_arc_weave"
+    try:
+        result = generate_lattice(params)
+        console.print(f"[OK] Arc weave: {result.summary}")
+    except Exception as e:
+        console.print(f"[FAIL] Arc weave: {e}")
+
+    params.pattern = "octet_truss"
+    params.width_mm = 30
+    params.height_mm = 30
+    params.depth_mm = 30
+    params.cell_size_mm = 15
+    params.part_name = "lattice_test_octet"
+    try:
+        result = generate_lattice(params)
+        console.print(f"[OK] Octet truss: {result.summary}")
+    except Exception as e:
+        console.print(f"[FAIL] Octet truss: {e}")
+
+
+def run_lattice(args: list[str]):
+    """
+    CLI entry for lattice generation:
+      python run_aria_os.py --lattice --pattern honeycomb --form volumetric ...
+    """
+    from rich.console import Console
+    from aria_os.lattice import generate_lattice, LatticeParams
+
+    console = Console(highlight=False, emoji=False)
+
+    def get_arg(flag: str, default: str) -> str:
+        try:
+            idx = args.index(flag)
+            return args[idx + 1]
+        except (ValueError, IndexError):
+            return default
+
+    params = LatticeParams(
+        pattern=get_arg("--pattern", "honeycomb"),
+        form=get_arg("--form", "volumetric"),
+        width_mm=float(get_arg("--width", "100")),
+        height_mm=float(get_arg("--height", "100")),
+        depth_mm=float(get_arg("--depth", "10")),
+        cell_size_mm=float(get_arg("--cell-size", "10")),
+        strut_diameter_mm=float(get_arg("--strut", "1.5")),
+        skin_thickness_mm=float(get_arg("--skin", "2.0")),
+        frame_thickness_mm=float(get_arg("--frame", "5.0")),
+        process=get_arg("--process", "both"),
+        part_name=get_arg("--name", "lattice_panel"),
+    )
+
+    console.print(f"\nGenerating {params.pattern} {params.form} lattice...")
+
+    result = generate_lattice(params)
+
+    for w in result.process_warnings:
+        console.print(f"  [WARN] {w}")
+
+    console.print(f"\n[DONE] {result.summary}")
+    console.print(f"  STEP: {result.step_path}")
+    console.print(f"  STL:  {result.stl_path}")
+    console.print(f"  Cells: {result.cell_count}")
+    console.print(f"  Min feature: {result.min_feature_mm}mm")
+    console.print(f"  Est. weight: {result.estimated_weight_g:.1f}g")
+
+    if result.passed_process_check:
+        console.print("  Process check: PASS")
+    else:
+        console.print("  Process check: FAIL - see warnings")
+
 
 def main():
     if len(sys.argv) >= 2 and sys.argv[1] == "--list":
@@ -121,6 +646,88 @@ def main():
             print("Usage: python run_aria_os.py --assemble assembly_configs/aria_clutch_assembly.json")
             sys.exit(1)
         run_assemble(sys.argv[2])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--print-scale":
+        if len(sys.argv) < 4:
+            print("Usage: python run_aria_os.py --print-scale <part_stub> --scale <factor>")
+            sys.exit(1)
+        run_print_scale(sys.argv[2:])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--optimize":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --optimize <code_path> --goal <goal> [--constraint RULE ...]")
+            sys.exit(1)
+        run_optimize(sys.argv[2:])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--optimize-and-regenerate":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --optimize-and-regenerate <code_path_or_stub> --goal <goal> [--constraint RULE ...] [--material MATERIAL_ID]")
+            sys.exit(1)
+        run_optimize_and_regenerate(sys.argv[2:])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--cem-full":
+        run_cem_full()
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--material-study":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --material-study <part_name_or_stub>")
+            sys.exit(1)
+        run_material_study_cli(sys.argv[2])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--material-study-all":
+        run_material_study_all_cli()
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--lattice-test":
+        run_lattice_test()
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--lattice":
+        if len(sys.argv) < 3:
+            print(
+                "Usage: python run_aria_os.py --lattice "
+                "--pattern [arc_weave|honeycomb|octet_truss] "
+                "--form [volumetric|conformal|skin_core] ..."
+            )
+            sys.exit(1)
+        run_lattice(sys.argv[2:])
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--generate-and-assemble":
+        # Parse: --generate-and-assemble <desc...> --into PATH --as LABEL --at "x,y,z" [--rot "rx,ry,rz"]
+        if len(sys.argv) < 4:
+            print("Usage: python run_aria_os.py --generate-and-assemble \"part description\" --into assembly_configs/foo.json --as label --at \"x,y,z\" [--rot \"rx,ry,rz\"]")
+            sys.exit(1)
+        argv = sys.argv[2:]
+        # Find --into as delimiter for description
+        try:
+            into_idx = argv.index("--into")
+        except ValueError:
+            print("Missing --into for --generate-and-assemble")
+            sys.exit(1)
+        description = " ".join(argv[:into_idx])
+        into_path = None
+        part_label = None
+        at_vec = None
+        rot_vec = None
+        i = into_idx
+        while i < len(argv):
+            tok = argv[i]
+            if tok == "--into" and i + 1 < len(argv):
+                into_path = argv[i + 1]
+                i += 2
+            elif tok == "--as" and i + 1 < len(argv):
+                part_label = argv[i + 1]
+                i += 2
+            elif tok == "--at" and i + 1 < len(argv):
+                at_vec = argv[i + 1]
+                i += 2
+            elif tok == "--rot" and i + 1 < len(argv):
+                rot_vec = argv[i + 1]
+                i += 2
+            else:
+                i += 1
+        if not (into_path and part_label and at_vec):
+            print("Missing required flags for --generate-and-assemble (need --into, --as, --at).")
+            sys.exit(1)
+        run_generate_and_assemble(description, into_path, part_label, at_vec, rot_vec)
         return
     if len(sys.argv) < 2:
         print("Usage: python run_aria_os.py \"describe the part you want\"")

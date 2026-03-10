@@ -1,0 +1,912 @@
+{
+  "2026-03-09_23-31_generate_the_ARIA_blocker_bar__120mm_long__15mm_wi_opt8": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.02772321428571429,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.03x, weight=19 g, relative_cost~0.02, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 19.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 19.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.05,
+        "weight_g": 19.7,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.15,
+        "weight_g": 55.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.13,
+        "weight_g": 54.6,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.1,
+        "weight_g": 55.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.09,
+        "weight_g": 31.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.07,
+        "weight_g": 55.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.11,
+        "weight_g": 57.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.03,
+        "weight_g": 56.2,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "2026-03-09_23-31_generate_the_ARIA_pawl_lever__60mm_long__12mm_wide_opt16": {
+    "part_criticality": "safety_critical",
+    "recommendation": "4340 Steel",
+    "recommendation_sf": 4.070769230769231,
+    "current_material_rank": 3,
+    "materials_passing": 5,
+    "reasoning": "4340 Steel recommended: SF=4.07x, weight=81 g, relative_cost~0.33, machinability=5.0/10. Baseline material '4140_ht' ranks 3.",
+    "ranked": [
+      {
+        "material": "4340 Steel",
+        "sf": 4.07,
+        "weight_g": 81.4,
+        "verdict": "RECOMMENDED"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 3.63,
+        "weight_g": 80.7,
+        "verdict": "ACCEPTABLE"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 2.77,
+        "weight_g": 81.4,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 3.05,
+        "weight_g": 84.9,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.76,
+        "weight_g": 28.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 2.44,
+        "weight_g": 45.9,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 1.39,
+        "weight_g": 29.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.72,
+        "weight_g": 28.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 1.81,
+        "weight_g": 81.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.8,
+        "weight_g": 82.9,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "2026-03-09_23-32_generate_ARIA_trip_lever__rectangular_bar_80mm_lon_opt15": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.3416091428571429,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.34x, weight=28 g, relative_cost~0.03, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.34,
+        "weight_g": 27.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.32,
+        "weight_g": 27.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.62,
+        "weight_g": 28.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 1.82,
+        "weight_g": 80.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 1.62,
+        "weight_g": 80.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 1.24,
+        "weight_g": 80.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 1.09,
+        "weight_g": 45.6,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.81,
+        "weight_g": 80.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 1.36,
+        "weight_g": 84.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.36,
+        "weight_g": 82.3,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA blocker bar optimized: 120mm long, 15mm wide, 10mm tall, material 6061-T6 aluminum, chamfer both ends 3mm, 2x M5 holes at 20mm from each end, fillet vertical edges 0.5mm": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.02772321428571429,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.03x, weight=29 g, relative_cost~0.03, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 29.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 29.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.05,
+        "weight_g": 30.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.15,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.13,
+        "weight_g": 84.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.1,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.09,
+        "weight_g": 47.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.07,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.11,
+        "weight_g": 88.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.03,
+        "weight_g": 86.4,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA blocker bar: 120mm long, 15mm wide, 10mm tall, chamfer both ends 3mm, 2x M5 holes at 20mm from each end, fillet vertical edges 0.5mm": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.02772321428571429,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.03x, weight=29 g, relative_cost~0.03, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 29.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.03,
+        "weight_g": 29.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.05,
+        "weight_g": 30.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.15,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.13,
+        "weight_g": 84.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.1,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.09,
+        "weight_g": 47.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.07,
+        "weight_g": 84.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.11,
+        "weight_g": 88.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.03,
+        "weight_g": 86.4,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate ARIA flyweight sector plate: fan-shaped sector, outer radius 85mm, inner radius 25mm, sector angle 120 degrees, thickness 8mm, pivot hole 10mm diameter, weight pocket 40x15x4mm at 65mm radius": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.0,
+    "current_material_rank": 1,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.00x, weight=69 g, relative_cost~0.07, machinability=10.0/10. Baseline material '6061_t6' ranks 1.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 69.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 69.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 72.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.0,
+        "weight_g": 201.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.0,
+        "weight_g": 113.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.0,
+        "weight_g": 201.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.0,
+        "weight_g": 204.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.0,
+        "weight_g": 201.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.0,
+        "weight_g": 199.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.0,
+        "weight_g": 209.8,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA pawl lever: 60mm long, 12mm wide, 6mm thick aluminum plate, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip, fillet all edges 0.5mm": {
+    "part_criticality": "safety_critical",
+    "recommendation": "4340 Steel",
+    "recommendation_sf": 0.2544230769230769,
+    "current_material_rank": 3,
+    "materials_passing": 0,
+    "reasoning": "4340 Steel recommended: SF=0.25x, weight=20 g, relative_cost~0.08, machinability=5.0/10. Baseline material '4140_ht' ranks 3.",
+    "ranked": [
+      {
+        "material": "4340 Steel",
+        "sf": 0.25,
+        "weight_g": 20.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.23,
+        "weight_g": 20.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.17,
+        "weight_g": 20.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.19,
+        "weight_g": 21.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.05,
+        "weight_g": 7.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.15,
+        "weight_g": 11.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.09,
+        "weight_g": 7.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.05,
+        "weight_g": 7.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.11,
+        "weight_g": 20.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.05,
+        "weight_g": 20.7,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA pawl lever: 60mm long, 12mm wide, 24mm thick 4340 steel plate, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip, fillet all edges 0.5mm": {
+    "part_criticality": "safety_critical",
+    "recommendation": "4340 Steel",
+    "recommendation_sf": 4.070769230769231,
+    "current_material_rank": 3,
+    "materials_passing": 5,
+    "reasoning": "4340 Steel recommended: SF=4.07x, weight=71 g, relative_cost~0.28, machinability=5.0/10. Baseline material '4140_ht' ranks 3.",
+    "ranked": [
+      {
+        "material": "4340 Steel",
+        "sf": 4.07,
+        "weight_g": 70.5,
+        "verdict": "RECOMMENDED"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 3.63,
+        "weight_g": 69.9,
+        "verdict": "ACCEPTABLE"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 2.77,
+        "weight_g": 70.5,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 3.05,
+        "weight_g": 73.6,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.76,
+        "weight_g": 24.3,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 2.44,
+        "weight_g": 39.8,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 1.39,
+        "weight_g": 25.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.72,
+        "weight_g": 24.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 1.81,
+        "weight_g": 70.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.8,
+        "weight_g": 71.9,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA ratchet ring optimized: outer diameter 213mm, inner diameter 120mm, thickness 21mm, material 4340 steel, 12 ratchet teeth asymmetric profile drive face 8 degrees back face 60 degrees, tooth height 8mm tip flat 3mm, 6x M6 bolt holes on 150mm bolt circle": {
+    "part_criticality": "safety_critical",
+    "recommendation": "4340 Steel",
+    "recommendation_sf": 10.025620669745958,
+    "current_material_rank": 3,
+    "materials_passing": 7,
+    "reasoning": "4340 Steel recommended: SF=10.03x, weight=3337 g, relative_cost~13.35, machinability=5.0/10. Baseline material '4140_ht' ranks 3.",
+    "ranked": [
+      {
+        "material": "4340 Steel",
+        "sf": 10.03,
+        "weight_g": 3336.7,
+        "verdict": "RECOMMENDED"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 8.93,
+        "weight_g": 3307.0,
+        "verdict": "ACCEPTABLE"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 6.82,
+        "weight_g": 3336.7,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 7.5,
+        "weight_g": 3481.2,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 1.88,
+        "weight_g": 1147.7,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 6.0,
+        "weight_g": 1883.0,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 3.43,
+        "weight_g": 1194.4,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 1.77,
+        "weight_g": 1151.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 4.47,
+        "weight_g": 3336.7,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 1.98,
+        "weight_g": 3400.5,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA ratchet ring: outer diameter 213mm, inner diameter 120mm, thickness 21mm, 12 ratchet teeth asymmetric profile drive face 8 degrees back face 60 degrees, tooth height 8mm tip flat 3mm, 6x M6 bolt holes on 150mm bolt circle": {
+    "part_criticality": "safety_critical",
+    "recommendation": "4340 Steel",
+    "recommendation_sf": 10.025620669745958,
+    "current_material_rank": 3,
+    "materials_passing": 7,
+    "reasoning": "4340 Steel recommended: SF=10.03x, weight=7578 g, relative_cost~30.31, machinability=5.0/10. Baseline material '4140_ht' ranks 3.",
+    "ranked": [
+      {
+        "material": "4340 Steel",
+        "sf": 10.03,
+        "weight_g": 7577.9,
+        "verdict": "RECOMMENDED"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 8.93,
+        "weight_g": 7510.3,
+        "verdict": "ACCEPTABLE"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 6.82,
+        "weight_g": 7577.9,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 7.5,
+        "weight_g": 7906.1,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 1.88,
+        "weight_g": 2606.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 6.0,
+        "weight_g": 4276.4,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 3.43,
+        "weight_g": 2712.6,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 1.77,
+        "weight_g": 2616.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 4.47,
+        "weight_g": 7577.9,
+        "verdict": "MARGINAL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 1.98,
+        "weight_g": 7722.7,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate the ARIA trip lever optimized: rectangular bar 80mm long, 8mm wide, 6mm thick, material 6061-T6 aluminum, hook feature at one end 4mm tall 6mm long, pivot hole 4mm diameter at 10mm from hook end, fillet all edges 0.5mm": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.02365714285714286,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.02x, weight=10 g, relative_cost~0.01, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.02,
+        "weight_g": 10.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.02,
+        "weight_g": 10.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.04,
+        "weight_g": 10.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.13,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.11,
+        "weight_g": 29.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.09,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.08,
+        "weight_g": 17.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.06,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.09,
+        "weight_g": 31.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.02,
+        "weight_g": 30.7,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate ARIA trip lever: rectangular bar 80mm long, 8mm wide, 6mm thick, hook feature at one end: 4mm tall 6mm long, pivot hole 4mm diameter at 10mm from hook end, fillet all edges 0.5mm": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.02365714285714286,
+    "current_material_rank": 6,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.02x, weight=10 g, relative_cost~0.01, machinability=10.0/10. Baseline material '4140_ht' ranks 6.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.02,
+        "weight_g": 10.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.02,
+        "weight_g": 10.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.04,
+        "weight_g": 10.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.13,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.11,
+        "weight_g": 29.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.09,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.08,
+        "weight_g": 17.0,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.06,
+        "weight_g": 30.1,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.09,
+        "weight_g": 31.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.02,
+        "weight_g": 30.7,
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "generate a high-complexity ARIA centrifugal flyweight shoe: crescent-shaped body - outer arc radius 95mm, inner arc radius 60mm, arc sweep angle 75 degrees, thickness 12mm, pivot boss on inner face: 18mm diameter, 6mm tall, 8mm bore through full thickness, friction pad pocket on outer arc face: 55mm long, 10mm wide, 3mm deep, centered at midpoint of arc, 3x lightening holes through thickness: 10mm diameter, evenly spaced along arc centerline at 60mm radius, 2x M4 tapped holes (4.5mm diameter) on inner face either side of boss at 12mm offset, chamfer all outer arc edges 1mm, fillet all inner arc edges 0.5mm, material 4140 steel": {
+    "part_criticality": "non_critical",
+    "recommendation": "6061-T6 Aluminum",
+    "recommendation_sf": 0.0,
+    "current_material_rank": 1,
+    "materials_passing": 0,
+    "reasoning": "6061-T6 Aluminum recommended: SF=0.00x, weight=409 g, relative_cost~0.41, machinability=10.0/10. Baseline material '6061_t6' ranks 1.",
+    "ranked": [
+      {
+        "material": "6061-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 409.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "6082-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 410.7,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "7075-T6 Aluminum",
+        "sf": 0.0,
+        "weight_g": 425.9,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 Normalized",
+        "sf": 0.0,
+        "weight_g": 1189.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Ti-6Al-4V",
+        "sf": 0.0,
+        "weight_g": 671.4,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4140 HT Steel",
+        "sf": 0.0,
+        "weight_g": 1189.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "316L Stainless",
+        "sf": 0.0,
+        "weight_g": 1212.5,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "4340 Steel",
+        "sf": 0.0,
+        "weight_g": 1189.8,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "17-4PH H900",
+        "sf": 0.0,
+        "weight_g": 1179.2,
+        "verdict": "FAIL"
+      },
+      {
+        "material": "Inconel 718",
+        "sf": 0.0,
+        "weight_g": 1241.3,
+        "verdict": "FAIL"
+      }
+    ]
+  }
+}

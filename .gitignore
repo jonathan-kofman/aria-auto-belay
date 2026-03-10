@@ -32,3 +32,16 @@ aria_provisional_patent*
 github_setup*
 system-flow*
 aria_youtube*
+
+# ARIA-OS generated outputs (regenerable via run_aria_os.py)
+outputs/cad/step/
+outputs/cad/stl/
+outputs/cad/stl/
+outputs/cad/generated_code/
+outputs/logs/
+
+# Keep meta JSON (small, useful for reproducibility)
+# outputs/cad/meta/ is NOT ignored
+
+# Keep assembly configs
+# assembly_configs/ is NOT ignored

@@ -26,7 +26,7 @@ class Assembler:
         self.step_dir.mkdir(parents=True, exist_ok=True)
         self.stl_dir.mkdir(parents=True, exist_ok=True)
 
-    def assemble(self, parts: List[AssemblyPart], name: str) -> str:
+    def assemble(self, parts: List[AssemblyPart], name: str, constraints: Optional[List[dict]] = None, context: Optional[dict] = None) -> str:
         """
         parts: list of AssemblyPart(step_path, position, rotation, name)
         name: assembly name for output file
@@ -34,6 +34,16 @@ class Assembler:
         """
         import cadquery as cq
         from cadquery import Assembly
+        from .mating_solver import MatingSolver, MatingConstraint
+        from .context_loader import load_context
+
+        # Apply mating constraints if provided
+        if constraints:
+            if context is None:
+                context = load_context(self.repo_root)
+            solver = MatingSolver(repo_root=self.repo_root)
+            mc = [MatingConstraint(type=c.get("type", ""), part_a=c.get("part_a", ""), part_b=c.get("part_b", ""), params=c.get("params", {})) for c in constraints]
+            parts = solver.solve(parts, mc, context)
 
         assy = Assembly(None, name=name)
         for part in parts:

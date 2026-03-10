@@ -1,0 +1,20 @@
+{
+  "part_name": "octet_final",
+  "bbox_mm": {
+    "x": 48.0,
+    "y": 48.0,
+    "z": 48.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 45.0,
+    "HEIGHT_MM": 45.0,
+    "DEPTH_MM": 45.0,
+    "CELL_SIZE_MM": 15.0,
+    "STRUT_DIAMETER_MM": 2.0
+  },
+  "lattice": {
+    "pattern": "octet_truss",
+    "form": "volumetric",
+    "generator": "blender_headless"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "part_name": "lattice_test_octet",
+  "bbox_mm": {
+    "x": 33.0,
+    "y": 33.0,
+    "z": 33.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 30,
+    "HEIGHT_MM": 30,
+    "DEPTH_MM": 30,
+    "CELL_SIZE_MM": 15,
+    "STRUT_DIAMETER_MM": 2.0
+  },
+  "lattice": {
+    "pattern": "octet_truss",
+    "form": "volumetric",
+    "generator": "blender_headless"
+  }
+}

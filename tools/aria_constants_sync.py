@@ -53,28 +53,124 @@ PYTHON_CONSTANTS = {
     # Safety
     'ESTOP_BRAKE_DELAY_MS':     {'value': 50.0,   'unit': 'ms',  'description': 'Max delay from ESTOP signal to brake engage'},
     'WATCHDOG_TIMEOUT_MS':      {'value': 500.0,  'unit': 'ms',  'description': 'STM32 watchdog timeout'},
+    # PID gains (from aria_pid_tuner; safe Kp for 10V limit at 360N error)
+    'tensionPID_kp':            {'value': 0.022,  'unit': '-',   'description': 'Tension PID Kp'},
+    'tensionPID_ki':            {'value': 0.413,  'unit': '-',   'description': 'Tension PID Ki'},
+    'tensionPID_kd':            {'value': 0.0005, 'unit': '-',   'description': 'Tension PID Kd'},
+}
+
+# ── CEM constants (firmware names) — used when --from-cem or --cem-json ───────
+# These map to actual firmware constant names in aria_main.cpp
+CEM_CONSTANT_NAMES = [
+    'SPOOL_R', 'GEAR_RATIO', 'MOTOR_VELOCITY_LIMIT',
+    'T_BASELINE', 'T_RETRACT', 'SPD_RETRACT', 'SPD_FALL',
+    'VOICE_CONF_MIN', 'CLIP_CONF_MIN', 'CLIP_SLACK_M',
+    'T_TAKE', 'T_FALL', 'T_GROUND',
+]
+# Constants that must never be auto-patched (engineering review required)
+NEVER_PATCH = {
+    "T_FALL",        # hard safety limit
+    "T_TAKE",        # ANSI confirmation threshold
+    "SPD_FALL",      # motor yield speed, not clutch engagement
+    "VOLTAGE_LIMIT", # hardware limit
+    "v_mag_limit",   # hardware limit
+    "tensionPID_kp", "tensionPID_ki", "tensionPID_kd",  # from aria_pid_tuner hardware testing
+    "UART_BAUD",     # comms constant
+}
+# For reporting only: CEM reference value for never-patch constants (firmware may differ by design)
+DESIGN_DECISION_CEM = {"SPD_FALL": 1.275}
+
+# ── ESP32 sync constants (must match STM32) ───────────────────────────────────
+ESP32_SYNC_CONSTANTS = {
+    "VOICE_CONF_MIN": 0.85,
+    "CLIP_CONF_MIN": 0.75,
+    "CLIP_SLACK_M": 0.65,
+    "FALL_TENSION_DELTA": 15.0,
+}
+
+# Shared comms constants (checked, never auto-patched)
+SHARED_COMMS = {"UART_BAUD": 115200}
+
+# CEM constant metadata (unit, description) for sync report
+CEM_CONSTANT_META = {
+    'SPOOL_R':            {'unit': 'm',   'description': 'Effective rope wrap radius'},
+    'GEAR_RATIO':         {'unit': '-',   'description': 'Motor-to-spool gear ratio'},
+    'MOTOR_VELOCITY_LIMIT': {'unit': 'rad/s', 'description': 'Motor shaft velocity limit'},
+    'T_BASELINE':         {'unit': 'N',   'description': 'Target climbing tension'},
+    'T_RETRACT':          {'unit': 'N',   'description': 'Retract tension'},
+    'SPD_RETRACT':        {'unit': 'm/s', 'description': 'Max retract speed'},
+    'SPD_FALL':           {'unit': 'm/s', 'description': 'Fall detection speed threshold'},
+    'VOICE_CONF_MIN':     {'unit': '-',   'description': 'Voice confidence minimum'},
+    'CLIP_CONF_MIN':      {'unit': '-',   'description': 'CV clip confidence minimum'},
+    'CLIP_SLACK_M':       {'unit': 'm',   'description': 'Clip rope payout'},
+    'T_TAKE':             {'unit': 'N',   'description': 'Take confirmation threshold'},
+    'T_FALL':             {'unit': 'N',   'description': 'Fall detection tension'},
+    'T_GROUND':           {'unit': 'N',   'description': 'Ground/idle threshold'},
 }
 
 # ── Firmware constant name patterns ───────────────────────────────────────────
-# Maps Python constant names to regex patterns that find them in C++ code.
-# Handles both #define and constexpr float/int styles.
+# Maps constant names to regex patterns (capture group 1 = numeric value).
+# Handles constexpr float, #define, and bare float styles.
+_ALL_SYNC_NAMES = list(PYTHON_CONSTANTS) + CEM_CONSTANT_NAMES
 FIRMWARE_PATTERNS = {
     name: [
-        # #define CONST_NAME 123.4
-        rf'#\s*define\s+{name}\s+([\d.]+)',
-        # constexpr float CONST_NAME = 123.4f;
         rf'constexpr\s+\w+\s+{name}\s*=\s*([\d.]+)',
-        # static const float CONST_NAME = 123.4;
+        rf'#\s*define\s+{name}\s+([\d.]+)',
         rf'(?:static\s+)?const\s+\w+\s+{name}\s*=\s*([\d.]+)',
-        # float CONST_NAME = 123.4; (bare global)
         rf'(?:^|\s)\w+\s+{name}\s*=\s*([\d.]+)',
     ]
-    for name in PYTHON_CONSTANTS
+    for name in _ALL_SYNC_NAMES
 }
+# PID struct member patterns (tensionPID.kp = ...)
+FIRMWARE_PATTERNS['tensionPID_kp'] = [r'\.kp\s*=\s*([\d.]+)']
+FIRMWARE_PATTERNS['tensionPID_ki'] = [r'\.ki\s*=\s*([\d.]+)']
+FIRMWARE_PATTERNS['tensionPID_kd'] = [r'\.kd\s*=\s*([\d.]+)']
+# ESP32 comms constant
+FIRMWARE_PATTERNS['UART_BAUD'] = [r'#\s*define\s+UART_BAUD\s+([\d.]+)']
 
 # Tolerance for float comparison (1% relative or 0.001 absolute)
 REL_TOLERANCE = 0.01
 ABS_TOLERANCE = 0.001
+
+
+def load_cem_constants(from_cem: bool = False, cem_json_path: Path = None,
+                       repo_root: Path = None) -> dict:
+    """
+    Load CEM-derived constants. Returns {name: {value, unit, description}}.
+    When from_cem=True: run aria_cem.compute_aria + export_sync_constants.
+    When cem_json_path: load from JSON file.
+    """
+    if cem_json_path and cem_json_path.exists():
+        data = json.loads(cem_json_path.read_text())
+        return {
+            k: {'value': v, **CEM_CONSTANT_META.get(k, {'unit': '-', 'description': ''})}
+            for k, v in data.items() if k in CEM_CONSTANT_NAMES
+        }
+    if from_cem:
+        sys.path.insert(0, str(repo_root or Path('.')))
+        from aria_cem import ARIAInputs, compute_aria, export_sync_constants
+        inp = ARIAInputs()
+        geom = compute_aria(inp)
+        c = export_sync_constants(geom, inp)
+        return {
+            k: {'value': v, **CEM_CONSTANT_META.get(k, {'unit': '-', 'description': ''})}
+            for k, v in c.items() if k in CEM_CONSTANT_NAMES
+        }
+    return {}
+
+
+def get_sync_constants(from_cem: bool, cem_json_path: Path, repo_root: Path) -> dict:
+    """
+    Get constants to sync. CEM overrides for geometry; merge with PYTHON_CONSTANTS.
+    """
+    if from_cem or cem_json_path:
+        cem = load_cem_constants(from_cem, cem_json_path, repo_root)
+        # CEM values override. Add PYTHON_CONSTANTS for any not in CEM.
+        merged = dict(PYTHON_CONSTANTS)
+        for k, v in cem.items():
+            merged[k] = v
+        return merged
+    return PYTHON_CONSTANTS
 
 
 def find_firmware_files(repo_root: Path) -> list[Path]:
@@ -84,6 +180,133 @@ def find_firmware_files(repo_root: Path) -> list[Path]:
         return []
     files = list(fw_dir.rglob('*.cpp')) + list(fw_dir.rglob('*.h'))
     return sorted(files)
+
+def find_esp32_files(repo_root: Path) -> list[Path]:
+    """Find all .ino and .cpp/.h files under firmware/esp32/"""
+    esp32_dir = repo_root / "firmware" / "esp32"
+    if not esp32_dir.exists():
+        return []
+    files: list[Path] = []
+    for ext in ("*.ino", "*.cpp", "*.h"):
+        files.extend(list(esp32_dir.rglob(ext)))
+    return sorted(files)
+
+
+def _scan_text_for_constant(name: str, text: str) -> tuple[bool, float, int, str]:
+    """Scan provided text for constant patterns. Returns (found, value, line_num, raw)."""
+    patterns = FIRMWARE_PATTERNS.get(name, [])
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, re.MULTILINE | re.IGNORECASE):
+            try:
+                val = float(match.group(1))
+                line_num = text[:match.start()].count("\n") + 1
+                return True, val, line_num, match.group(0).strip()
+            except Exception:
+                continue
+    return False, 0.0, 0, ""
+
+
+def scan_esp32_for_constant(name: str, esp_files: list[Path]) -> dict:
+    """Scan ESP32 firmware for constant. Returns first match dict like scan_firmware_for_constant()."""
+    for fpath in esp_files:
+        try:
+            text = fpath.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        found, val, line_num, raw = _scan_text_for_constant(name, text)
+        if found:
+            return {
+                "found": True,
+                "value": val,
+                "file": str(fpath.relative_to(fpath.parent.parent.parent)),
+                "line": line_num,
+                "raw": raw,
+            }
+    return {"found": False}
+
+
+def _patch_text_constant(old_raw: str, new_val: float, text: str) -> str:
+    """Patch a single matched raw string by replacing its first numeric literal."""
+    new_num = f"{new_val:.6f}".rstrip("0").rstrip(".")
+    if "." not in new_num:
+        new_num += ".0"
+    new_raw = re.sub(r"(\s)([\d.]+)(f?)(\s*;?)", lambda m: m.group(1) + new_num + m.group(3) + m.group(4), old_raw, count=1)
+    return text.replace(old_raw, new_raw, 1)
+
+
+def _scan_stm32_uart_baud(fw_files: list[Path]) -> float | None:
+    """Extract UART baud from STM32 sources (ESP32Serial.begin(BAUD,...))."""
+    pat = re.compile(r"ESP32Serial\.begin\(\s*(\d+)", re.IGNORECASE)
+    for fpath in fw_files:
+        try:
+            text = fpath.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        m = pat.search(text)
+        if m:
+            try:
+                return float(m.group(1))
+            except Exception:
+                return None
+    return None
+
+
+def run_esp32_sync_check(repo_root: Path, stm32_fw_files: list[Path], patch: bool = False) -> dict:
+    """
+    Check ESP32 constants that must stay in sync with STM32.
+    ESP32 follows STM32 for threshold values; comms are checked only.
+    """
+    esp_files = find_esp32_files(repo_root)
+    out = {
+        "esp32_files_found": len(esp_files),
+        "esp32_files": [str(p.name) for p in esp_files],
+        "ok": [],
+        "drift": [],
+        "not_found": [],
+        "patches_applied": [],
+        "shared_comms": [],
+    }
+    if not esp_files:
+        return out
+
+    # Thresholds: compare ESP32 vs STM32 values (fallback to expected if STM32 symbol not present)
+    for name, expected in ESP32_SYNC_CONSTANTS.items():
+        stm = scan_firmware_for_constant(name, stm32_fw_files)
+        esp = scan_esp32_for_constant(name, esp_files)
+        if not esp.get("found"):
+            out["not_found"].append({"name": name, "where": "esp32"})
+            continue
+        stm_val = float(stm["value"]) if stm.get("found") else float(expected)
+        esp_val = float(esp["value"])
+        if values_match(stm_val, esp_val):
+            out["ok"].append({"name": name, "value": stm_val})
+        else:
+            out["drift"].append({"name": name, "stm32": stm_val, "esp32": esp_val, "esp32_loc": f"{esp['file']}:{esp['line']}"})
+            if patch and name not in NEVER_PATCH:
+                # Patch ESP32 to match STM32 (threshold values only)
+                esp_path = repo_root / esp["file"]
+                try:
+                    text = esp_path.read_text(encoding="utf-8", errors="ignore")
+                    new_text = _patch_text_constant(esp["raw"], stm_val, text)
+                    if new_text != text:
+                        esp_path.write_text(new_text, encoding="utf-8")
+                        out["patches_applied"].append(name)
+                except Exception:
+                    pass
+
+    # Shared comms: checked only, never patched
+    stm_baud = _scan_stm32_uart_baud(stm32_fw_files)
+    for cname, expected in SHARED_COMMS.items():
+        esp = scan_esp32_for_constant(cname, esp_files)
+        out["shared_comms"].append({
+            "name": cname,
+            "expected": expected,
+            "stm32": stm_baud,
+            "esp32": esp.get("value") if esp.get("found") else None,
+            "esp32_found": bool(esp.get("found")),
+        })
+
+    return out
 
 
 def scan_firmware_for_constant(name: str, fw_files: list[Path]) -> dict:
@@ -119,11 +342,14 @@ def values_match(a: float, b: float) -> bool:
     return rel_diff <= REL_TOLERANCE or abs(a - b) <= ABS_TOLERANCE
 
 
-def run_sync_check(repo_root: Path, verbose: bool = False, patch: bool = False) -> dict:
+def run_sync_check(repo_root: Path, constants: dict = None,
+                   verbose: bool = False, patch: bool = False) -> dict:
     """
     Main sync check. Returns dict with:
       matches, mismatches, not_found_in_firmware, summary
+    constants: {name: {value, unit, description}}. Defaults to PYTHON_CONSTANTS.
     """
+    constants = constants or PYTHON_CONSTANTS
     fw_files = find_firmware_files(repo_root)
 
     results = {
@@ -134,6 +360,7 @@ def run_sync_check(repo_root: Path, verbose: bool = False, patch: bool = False) 
         'mismatches':           [],
         'not_found':            [],
         'patches_applied':      [],
+        'design_decisions':     [],
     }
 
     if not fw_files:
@@ -143,7 +370,7 @@ def run_sync_check(repo_root: Path, verbose: bool = False, patch: bool = False) 
         )
         return results
 
-    for name, spec in PYTHON_CONSTANTS.items():
+    for name, spec in constants.items():
         py_val   = spec['value']
         fw_match = scan_firmware_for_constant(name, fw_files)
 
@@ -178,12 +405,22 @@ def run_sync_check(repo_root: Path, verbose: bool = False, patch: bool = False) 
             }
             results['mismatches'].append(entry)
 
-            # Auto-patch if requested
-            if patch:
+            # Auto-patch if requested (skip never-patch constants)
+            if patch and name not in NEVER_PATCH:
                 patched = _patch_firmware_constant(
                     name, py_val, fw_match, fw_files, repo_root)
                 if patched:
                     results['patches_applied'].append(name)
+
+    # Design-decision constants: report firmware vs CEM, never patch
+    for name, cem_val in DESIGN_DECISION_CEM.items():
+        fw_match = scan_firmware_for_constant(name, fw_files)
+        if fw_match['found']:
+            results['design_decisions'].append({
+                'name': name,
+                'fw_value': fw_match['value'],
+                'cem_value': cem_val,
+            })
 
     return results
 
@@ -240,8 +477,9 @@ def print_report(results: dict, verbose: bool = False) -> int:
 
     if 'warning' in results:
         print(f"\n[!] {results['warning']}")
-        print('\nPython model constants (source of truth):')
-        for name, spec in PYTHON_CONSTANTS.items():
+        src = results.get('constants_source', PYTHON_CONSTANTS)
+        print('\nConstants (source of truth):')
+        for name, spec in src.items():
             print(f"  {name:<35} = {spec['value']} {spec['unit']}")
         return 0
 
@@ -256,6 +494,12 @@ def print_report(results: dict, verbose: bool = False) -> int:
         if verbose:
             for m in results['matches']:
                 print(f"  {m['name']:<35} = {m['value']}  ({m['fw_file']}:{m['fw_line']})")
+
+    # Design decisions (never-patch; firmware vs CEM for reference)
+    if results.get('design_decisions'):
+        print(f"\n[DESIGN DECISION] (not auto-patched — requires engineering review)")
+        for d in results['design_decisions']:
+            print(f"  {d['name']}: firmware={d['fw_value']} CEM={d['cem_value']}")
 
     # Mismatches
     if results['mismatches']:
@@ -301,6 +545,36 @@ def print_report(results: dict, verbose: bool = False) -> int:
     return 1 if n_mismatch > 0 else 0
 
 
+def print_esp32_report(esp: dict) -> None:
+    if not esp:
+        return
+    print("\n" + "=" * 60)
+    print("ESP32 SYNC CHECK")
+    print("=" * 60)
+    print(f"ESP32 files scanned: {esp.get('esp32_files_found', 0)}")
+    if esp.get("ok"):
+        for r in esp["ok"]:
+            print(f"[STM32 OK] {r['name']} = {r['value']}")
+            print(f"[ESP32 OK] {r['name']} = {r['value']}  (in sync)")
+    if esp.get("drift"):
+        for d in esp["drift"]:
+            print(f"[ESP32 DRIFT] {d['name']}: STM32={d['stm32']}, ESP32={d['esp32']}  ({d.get('esp32_loc','')})")
+    if esp.get("not_found"):
+        for n in esp["not_found"]:
+            print(f"[ESP32 NOT FOUND] {n['name']} (missing in {n['where']})")
+    if esp.get("shared_comms"):
+        for c in esp["shared_comms"]:
+            if c.get("esp32_found") and c.get("stm32") is not None:
+                status = "OK" if float(c["esp32"]) == float(c["stm32"]) == float(c["expected"]) else "DRIFT"
+                print(f"[COMMS {status}] {c['name']}: STM32={c['stm32']}, ESP32={c['esp32']} (expected {c['expected']})")
+            else:
+                print(f"[COMMS CHECK] {c['name']}: STM32={c.get('stm32')}, ESP32={'FOUND' if c.get('esp32_found') else 'MISSING'} (expected {c['expected']})")
+    if esp.get("patches_applied"):
+        print(f"[ESP32 PATCH] AUTO-PATCHED ({len(esp['patches_applied'])})")
+        for name in esp["patches_applied"]:
+            print(f"  {name}")
+
+
 def save_report(results: dict, output_path: Path):
     """Save JSON report for CI consumption."""
     output_path.write_text(json.dumps(results, indent=2))
@@ -319,19 +593,36 @@ def main():
                         help='Save JSON report to this path (for CI)')
     parser.add_argument('--ci', action='store_true',
                         help='CI mode: exit 0 if no firmware files found (non-blocking)')
+    parser.add_argument('--from-cem', action='store_true',
+                        help='Use CEM (aria_cem) as source of truth for geometry constants')
+    parser.add_argument('--cem-json', type=Path, default=None,
+                        help='Load CEM constants from pre-generated JSON file')
+    parser.add_argument('--esp32', action='store_true',
+                        help='Also scan firmware/esp32 for shared constants')
     args = parser.parse_args()
+
+    repo_root = args.repo_root.resolve()
+    constants = get_sync_constants(args.from_cem, args.cem_json, repo_root)
 
     try:
         results = run_sync_check(
-            repo_root=args.repo_root.resolve(),
+            repo_root=repo_root,
+            constants=constants,
             verbose=args.verbose,
             patch=args.patch,
         )
+        results['constants_source'] = constants
+
+        if args.esp32:
+            fw_files = find_firmware_files(repo_root)
+            results["esp32"] = run_esp32_sync_check(repo_root, fw_files, patch=args.patch)
 
         if args.json_out:
             save_report(results, args.json_out)
 
         exit_code = print_report(results, verbose=args.verbose)
+        if args.esp32:
+            print_esp32_report(results.get("esp32", {}))
 
         # In CI mode, missing firmware files is not a failure
         if args.ci and results.get('firmware_files_found', 0) == 0:

@@ -1,0 +1,21 @@
+{
+  "part_name": "test_octet",
+  "bbox_mm": {
+    "x": 62.4,
+    "y": 62.4,
+    "z": 62.4
+  },
+  "dims_mm": {
+    "WIDTH_MM": 60.0,
+    "HEIGHT_MM": 60.0,
+    "DEPTH_MM": 60.0,
+    "CELL_SIZE_MM": 15.0,
+    "STRUT_DIAMETER_MM": 1.5
+  },
+  "lattice": {
+    "pattern": "octet_truss",
+    "form": "volumetric",
+    "cell_count": 0,
+    "strut_count": 1536
+  }
+}

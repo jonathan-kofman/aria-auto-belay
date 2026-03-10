@@ -1,0 +1,21 @@
+{
+  "part_name": "test_honeycomb",
+  "bbox_mm": {
+    "x": 100.0,
+    "y": 80.0,
+    "z": 8.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 100.0,
+    "HEIGHT_MM": 80.0,
+    "DEPTH_MM": 8.0,
+    "CELL_SIZE_MM": 10.0,
+    "STRUT_DIAMETER_MM": 2.0
+  },
+  "lattice": {
+    "pattern": "honeycomb",
+    "form": "volumetric",
+    "cell_count": 121,
+    "strut_count": 0
+  }
+}

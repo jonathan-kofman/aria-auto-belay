@@ -19,6 +19,42 @@ class ValidationResult:
     errors: List[str] = field(default_factory=list)
     stdout_capture: str = ""
 
+def validate_mesh_integrity(stl_path: str) -> dict:
+    """
+    Check STL for common mesh errors before printing.
+    Uses numpy-stl if available, falls back to file size check.
+    """
+    try:
+        import numpy as np
+        from stl import mesh as stl_mesh
+
+        m = stl_mesh.Mesh.from_file(stl_path)
+
+        # Check for degenerate triangles (zero area)
+        v0, v1, v2 = m.v0, m.v1, m.v2
+        cross = np.cross(v1 - v0, v2 - v0)
+        areas = np.sqrt((cross**2).sum(axis=1))
+        degenerate_count = int((areas < 1e-10).sum())
+
+        # Rough disconnected-body indicator: unique vertex count at 0.001mm rounding
+        all_verts = np.vstack([v0, v1, v2])
+        unique_verts = np.unique(np.round(all_verts, 3), axis=0)
+
+        return {
+            "valid": degenerate_count == 0,
+            "triangle_count": int(len(m.vectors)),
+            "degenerate_triangles": int(degenerate_count),
+            "unique_vertices": int(len(unique_verts)),
+            "print_ready": degenerate_count == 0,
+        }
+    except ImportError:
+        size = Path(stl_path).stat().st_size if Path(stl_path).exists() else 0
+        return {
+            "valid": size > 10000,
+            "print_ready": size > 10000,
+            "note": "install numpy-stl for full validation",
+        }
+
 
 def validate(code: str, expected_bbox: Optional[Tuple[float, float, float]] = None,
              step_path: Optional[Path] = None, min_step_size_kb: float = 50.0,

@@ -1,0 +1,21 @@
+{
+  "part_name": "test_arc_weave",
+  "bbox_mm": {
+    "x": 120.0,
+    "y": 80.0,
+    "z": 12.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 120.0,
+    "HEIGHT_MM": 80.0,
+    "DEPTH_MM": 12.0,
+    "CELL_SIZE_MM": 12.0,
+    "STRUT_DIAMETER_MM": 1.5
+  },
+  "lattice": {
+    "pattern": "arc_weave",
+    "form": "skin_core",
+    "cell_count": 54,
+    "strut_count": 0
+  }
+}

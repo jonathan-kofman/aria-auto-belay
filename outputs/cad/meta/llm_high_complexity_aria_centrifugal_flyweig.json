@@ -1,0 +1,25 @@
+{
+  "part_name": "generate a high-complexity ARIA centrifugal flyweight shoe: crescent-shaped body - outer arc radius 95mm, inner arc radius 60mm, arc sweep angle 75 degrees, thickness 12mm, pivot boss on inner face: 18mm diameter, 6mm tall, 8mm bore through full thickness, friction pad pocket on outer arc face: 55mm long, 10mm wide, 3mm deep, centered at midpoint of arc, 3x lightening holes through thickness: 10mm diameter, evenly spaced along arc centerline at 60mm radius, 2x M4 tapped holes (4.5mm diameter) on inner face either side of boss at 12mm offset, chamfer all outer arc edges 1mm, fillet all inner arc edges 0.5mm, material 4140 steel",
+  "bbox_mm": {
+    "x": 104.0,
+    "y": 115.665,
+    "z": 21.0
+  },
+  "dims_mm": {
+    "OUTER_RADIUS_MM": 95.0,
+    "INNER_RADIUS_MM": 60.0,
+    "THICKNESS_MM": 12.0,
+    "PIVOT_BOSS_DIA_MM": 18.0,
+    "PIVOT_BOSS_HEIGHT_MM": 6.0,
+    "PIVOT_BORE_DIA_MM": 8.0,
+    "FRICTION_PAD_LENGTH_MM": 55.0,
+    "FRICTION_PAD_WIDTH_MM": 10.0,
+    "FRICTION_PAD_DEPTH_MM": 3.0,
+    "LIGHTENING_HOLE_DIA_MM": 10.0,
+    "LIGHTENING_HOLE_RADIUS_MM": 60.0,
+    "M4_HOLE_DIA_MM": 4.5,
+    "M4_HOLE_OFFSET_MM": 12.0,
+    "OUTER_CHAMFER_MM": 1.0,
+    "INNER_FILLET_MM": 0.5
+  }
+}

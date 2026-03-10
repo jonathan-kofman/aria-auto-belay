@@ -1,0 +1,17 @@
+{
+  "part_name": "generate the ARIA blocker bar optimized: 120mm long, 15mm wide, 10mm tall, material 6061-T6 aluminum, chamfer both ends 3mm, 2x M5 holes at 20mm from each end, fillet vertical edges 0.5mm",
+  "bbox_mm": {
+    "x": 120.0,
+    "y": 15.0,
+    "z": 10.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 120.0,
+    "WIDTH_MM": 15.0,
+    "HEIGHT_MM": 10.0,
+    "CHAMFER_DEPTH_MM": 3.0,
+    "HOLE_DIA_MM": 5.0,
+    "HOLE_OFFSET_MM": 20.0,
+    "FILLET_MM": 0.5
+  }
+}

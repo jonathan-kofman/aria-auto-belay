@@ -1,0 +1,17 @@
+{
+  "part_name": "generate the ARIA pawl lever: 60mm long, 12mm wide, 24mm thick 4340 steel plate, pivot hole 6mm diameter centered 8mm from one end, nose end has 6mm radius rounded tip, fillet all edges 0.5mm",
+  "bbox_mm": {
+    "x": 52.0,
+    "y": 12.0,
+    "z": 24.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 60.0,
+    "WIDTH_MM": 12.0,
+    "THICKNESS_MM": 24.0,
+    "PIVOT_HOLE_DIA_MM": 6.0,
+    "PIVOT_OFFSET_MM": 8.0,
+    "NOSE_RADIUS_MM": 6.0,
+    "FILLET_MM": 0.5
+  }
+}

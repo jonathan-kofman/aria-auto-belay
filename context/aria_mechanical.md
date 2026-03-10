@@ -76,3 +76,29 @@
 - Always use Direct Design mode, not Parametric
 - Build sequence: solid box → interior cut → features on existing faces
 - See context/aria_failures.md for known failure modes
+
+## Pawl Geometry (from static_tests.py)
+| Constant              | Value    | Variable name in code      |
+|-----------------------|----------|----------------------------|
+| Pawl tip width        | 6.0 mm   | PAWL_TIP_WIDTH_MM          |
+| Pawl thickness        | 9.0 mm   | PAWL_THICKNESS_MM          |
+| Pawl arm length       | 45.0 mm  | PAWL_ARM_MM                |
+| Pawl body height      | 22.0 mm  | PAWL_BODY_H_MM             |
+| Pawl engagement depth | 3.0 mm   | PAWL_ENGAGEMENT_MM         |
+| Number of pawls       | 2        | N_PAWLS                    |
+
+## Ratchet Geometry (from static_tests.py / aria_cem.py)
+| Constant              | Value    | Variable name in code      |
+|-----------------------|----------|----------------------------|
+| Pitch radius          | 100.0 mm | RATCHET_PITCH_R_MM         |
+| Face width            | 20.0 mm  | RATCHET_FACE_W_MM          |
+| Number of teeth       | 24       | N_TEETH                    |
+| Pressure angle        | 26.0 deg | pressure_angle_deg         |
+| Module                | 3.0 mm   | module_mm                  |
+
+## Shaft Geometry
+| Constant              | Value    | Variable name in code      |
+|-----------------------|----------|----------------------------|
+| Shaft diameter        | 20.0 mm  | SHAFT_D_MM                 |
+| Shaft span            | 344.0 mm | SHAFT_SPAN_MM              |
+

@@ -1,0 +1,17 @@
+{
+  "part_name": "generate the ARIA ratchet ring with correct asymmetric teeth (no fillets): outer diameter 213mm, inner diameter 120mm, thickness 21mm, 12 ratchet teeth with genuinely asymmetric profile: drive face at exactly 8 degrees from radial direction (steep face), back face at exactly 60 degrees from radial (gradual face), tooth height 8mm, tooth tip flat 3mm wide, use the 4-point tooth profile with drive_rad and back_rad to compute correct asymmetric geometry, use rotate+union loop to pattern all 12 teeth, 6x M6 bolt holes on 150mm bolt circle",
+  "bbox_mm": {
+    "x": 228.98,
+    "y": 228.98,
+    "z": 31.5
+  },
+  "dims_mm": {
+    "OUTER_DIAMETER_MM": 213.0,
+    "INNER_DIAMETER_MM": 120.0,
+    "THICKNESS_MM": 21.0,
+    "TOOTH_HEIGHT_MM": 8.0,
+    "TOOTH_TIP_WIDTH_MM": 3.0,
+    "BOLT_HOLE_DIA_MM": 6.0,
+    "BOLT_CIRCLE_DIA_MM": 150.0
+  }
+}

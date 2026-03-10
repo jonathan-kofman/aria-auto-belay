@@ -38,6 +38,15 @@ def export(geometry, goal_or_part_id: str, repo_root: Optional[Path] = None) -> 
     return {"step_path": str(step_path), "stl_path": str(stl_path)}
 
 
+def get_meta_path(goal_or_part_id: str, repo_root: Optional[Path] = None) -> str:
+    """Return path to meta JSON for a part (does not create or check file)."""
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+    base = repo_root / "outputs" / "cad"
+    meta_dir = base / "meta"
+    name = goal_or_part_id if goal_or_part_id.startswith("aria_") and "_" in goal_or_part_id else _goal_to_part_name(goal_or_part_id)
+    return str(meta_dir / (name + ".json"))
+
 def _goal_to_part_name(goal: str) -> str:
     import re
     g = (goal or "").strip().lower()

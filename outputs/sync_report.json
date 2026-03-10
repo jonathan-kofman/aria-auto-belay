@@ -1,0 +1,317 @@
+{
+  "timestamp": "2026-03-10T01:12:22.294072",
+  "firmware_files_found": 6,
+  "firmware_files": [
+    "aria_main.cpp",
+    "calibration.cpp",
+    "safety.cpp",
+    "safety.h",
+    "wiring_verify.cpp",
+    "wiring_verify.h"
+  ],
+  "matches": [
+    {
+      "name": "SPOOL_R",
+      "value": 0.3,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 52
+    },
+    {
+      "name": "GEAR_RATIO",
+      "value": 50.0,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 51
+    },
+    {
+      "name": "T_BASELINE",
+      "value": 40.0,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 55
+    },
+    {
+      "name": "SPD_RETRACT",
+      "value": 1.5,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 63
+    },
+    {
+      "name": "SPD_FALL",
+      "value": 1.275,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 64
+    },
+    {
+      "name": "CLIP_CONF_MIN",
+      "value": 0.75,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 60
+    },
+    {
+      "name": "CLIP_SLACK_M",
+      "value": 0.65,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 61
+    },
+    {
+      "name": "T_TAKE",
+      "value": 200.0,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 57
+    },
+    {
+      "name": "T_FALL",
+      "value": 400.0,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 58
+    },
+    {
+      "name": "T_GROUND",
+      "value": 15.0,
+      "fw_file": "firmware\\stm32\\aria_main.cpp",
+      "fw_line": 59
+    }
+  ],
+  "mismatches": [],
+  "not_found": [
+    {
+      "name": "TENSION_CLIMB_MIN_N",
+      "py_value": 15.0,
+      "unit": "N",
+      "description": "Min tension to enter CLIMBING from IDLE"
+    },
+    {
+      "name": "TENSION_TAKE_CONFIRM_N",
+      "py_value": 200.0,
+      "unit": "N",
+      "description": "Min tension to confirm TAKE after voice"
+    },
+    {
+      "name": "TENSION_LOWER_EXIT_N",
+      "py_value": 15.0,
+      "unit": "N",
+      "description": "Tension below which LOWER transitions to IDLE"
+    },
+    {
+      "name": "TAKE_CONFIRM_WINDOW_S",
+      "py_value": 0.5,
+      "unit": "s",
+      "description": "Window after voice \"take\" for load confirmation"
+    },
+    {
+      "name": "VOICE_CONFIDENCE_MIN",
+      "py_value": 0.85,
+      "unit": "-",
+      "description": "Minimum Edge Impulse confidence to act on voice"
+    },
+    {
+      "name": "CLIP_DETECT_CONFIDENCE",
+      "py_value": 0.75,
+      "unit": "-",
+      "description": "Minimum CV confidence to enter CLIPPING"
+    },
+    {
+      "name": "CLIP_PAYOUT_M",
+      "py_value": 0.65,
+      "unit": "m",
+      "description": "Rope payout during CLIPPING state"
+    },
+    {
+      "name": "TENSION_TARGET_N",
+      "py_value": 40.0,
+      "unit": "N",
+      "description": "Target climbing tension"
+    },
+    {
+      "name": "TENSION_TIGHT_N",
+      "py_value": 60.0,
+      "unit": "N",
+      "description": "Tight tension in WATCH_ME state"
+    },
+    {
+      "name": "REST_TIMEOUT_S",
+      "py_value": 600.0,
+      "unit": "s",
+      "description": "10-minute REST auto-exit"
+    },
+    {
+      "name": "WATCH_ME_TIMEOUT_S",
+      "py_value": 180.0,
+      "unit": "s",
+      "description": "3-minute WATCH_ME auto-exit"
+    },
+    {
+      "name": "ZONE_PAUSE_TIMEOUT_S",
+      "py_value": 10.0,
+      "unit": "s",
+      "description": "Zone intrusion pause timeout"
+    },
+    {
+      "name": "ESTOP_BRAKE_DELAY_MS",
+      "py_value": 50.0,
+      "unit": "ms",
+      "description": "Max delay from ESTOP signal to brake engage"
+    },
+    {
+      "name": "WATCHDOG_TIMEOUT_MS",
+      "py_value": 500.0,
+      "unit": "ms",
+      "description": "STM32 watchdog timeout"
+    },
+    {
+      "name": "MOTOR_VELOCITY_LIMIT",
+      "py_value": 314.1592653589793,
+      "unit": "rad/s",
+      "description": "Motor shaft velocity limit"
+    },
+    {
+      "name": "T_RETRACT",
+      "py_value": 60.0,
+      "unit": "N",
+      "description": "Retract tension"
+    },
+    {
+      "name": "VOICE_CONF_MIN",
+      "py_value": 0.85,
+      "unit": "-",
+      "description": "Voice confidence minimum"
+    }
+  ],
+  "patches_applied": [],
+  "constants_source": {
+    "TENSION_CLIMB_MIN_N": {
+      "value": 15.0,
+      "unit": "N",
+      "description": "Min tension to enter CLIMBING from IDLE"
+    },
+    "TENSION_TAKE_CONFIRM_N": {
+      "value": 200.0,
+      "unit": "N",
+      "description": "Min tension to confirm TAKE after voice"
+    },
+    "TENSION_LOWER_EXIT_N": {
+      "value": 15.0,
+      "unit": "N",
+      "description": "Tension below which LOWER transitions to IDLE"
+    },
+    "TAKE_CONFIRM_WINDOW_S": {
+      "value": 0.5,
+      "unit": "s",
+      "description": "Window after voice \"take\" for load confirmation"
+    },
+    "VOICE_CONFIDENCE_MIN": {
+      "value": 0.85,
+      "unit": "-",
+      "description": "Minimum Edge Impulse confidence to act on voice"
+    },
+    "CLIP_DETECT_CONFIDENCE": {
+      "value": 0.75,
+      "unit": "-",
+      "description": "Minimum CV confidence to enter CLIPPING"
+    },
+    "CLIP_PAYOUT_M": {
+      "value": 0.65,
+      "unit": "m",
+      "description": "Rope payout during CLIPPING state"
+    },
+    "TENSION_TARGET_N": {
+      "value": 40.0,
+      "unit": "N",
+      "description": "Target climbing tension"
+    },
+    "TENSION_TIGHT_N": {
+      "value": 60.0,
+      "unit": "N",
+      "description": "Tight tension in WATCH_ME state"
+    },
+    "REST_TIMEOUT_S": {
+      "value": 600.0,
+      "unit": "s",
+      "description": "10-minute REST auto-exit"
+    },
+    "WATCH_ME_TIMEOUT_S": {
+      "value": 180.0,
+      "unit": "s",
+      "description": "3-minute WATCH_ME auto-exit"
+    },
+    "ZONE_PAUSE_TIMEOUT_S": {
+      "value": 10.0,
+      "unit": "s",
+      "description": "Zone intrusion pause timeout"
+    },
+    "ESTOP_BRAKE_DELAY_MS": {
+      "value": 50.0,
+      "unit": "ms",
+      "description": "Max delay from ESTOP signal to brake engage"
+    },
+    "WATCHDOG_TIMEOUT_MS": {
+      "value": 500.0,
+      "unit": "ms",
+      "description": "STM32 watchdog timeout"
+    },
+    "SPOOL_R": {
+      "value": 0.3,
+      "unit": "m",
+      "description": "Effective rope wrap radius"
+    },
+    "GEAR_RATIO": {
+      "value": 50.0,
+      "unit": "-",
+      "description": "Motor-to-spool gear ratio"
+    },
+    "MOTOR_VELOCITY_LIMIT": {
+      "value": 314.1592653589793,
+      "unit": "rad/s",
+      "description": "Motor shaft velocity limit"
+    },
+    "T_BASELINE": {
+      "value": 40.0,
+      "unit": "N",
+      "description": "Target climbing tension"
+    },
+    "T_RETRACT": {
+      "value": 60.0,
+      "unit": "N",
+      "description": "Retract tension"
+    },
+    "SPD_RETRACT": {
+      "value": 1.5,
+      "unit": "m/s",
+      "description": "Max retract speed"
+    },
+    "SPD_FALL": {
+      "value": 1.275,
+      "unit": "m/s",
+      "description": "Fall detection speed threshold"
+    },
+    "VOICE_CONF_MIN": {
+      "value": 0.85,
+      "unit": "-",
+      "description": "Voice confidence minimum"
+    },
+    "CLIP_CONF_MIN": {
+      "value": 0.75,
+      "unit": "-",
+      "description": "CV clip confidence minimum"
+    },
+    "CLIP_SLACK_M": {
+      "value": 0.65,
+      "unit": "m",
+      "description": "Clip rope payout"
+    },
+    "T_TAKE": {
+      "value": 200.0,
+      "unit": "N",
+      "description": "Take confirmation threshold"
+    },
+    "T_FALL": {
+      "value": 400.0,
+      "unit": "N",
+      "description": "Fall detection tension"
+    },
+    "T_GROUND": {
+      "value": 15.0,
+      "unit": "N",
+      "description": "Ground/idle threshold"
+    }
+  }
+}

@@ -54,6 +54,26 @@ Generate self-contained CadQuery Python code that:
 """
 
 
+def _generate_lattice_from_nl(goal: str) -> str:
+    """
+    Convert a natural-language lattice request into a small stub that the lattice CLI can handle.
+    This returns a comment-only CadQuery script so the validator has something to run.
+    Actual geometry is generated via run_aria_os.py --lattice, not this path.
+    """
+    return f'''import cadquery as cq
+
+# Lattice generation is handled via dedicated CLI:
+#   python run_aria_os.py --lattice "..." 
+# Goal was:
+#   {goal!r}
+#
+# No geometry generated in this path; use lattice CLI instead.
+result = cq.Workplane("XY").box(10, 10, 1)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
 def generate(
     plan: dict[str, Any] | str,
     context: dict[str, str],
@@ -69,6 +89,11 @@ def generate(
     """
     if isinstance(plan, str):
         plan = _plan_text_to_struct(plan, context)
+    # Lattice routing: special-case plan route before standard part_id logic
+    route = plan.get("route")
+    if route == "lattice_generator" and goal:
+        return _generate_lattice_from_nl(goal)
+
     part_id = plan.get("part_id", "aria_part")
     is_generic = part_id not in KNOWN_PART_IDS
     force_llm = plan.get("force_llm", False) or bool(plan.get("route_reason"))

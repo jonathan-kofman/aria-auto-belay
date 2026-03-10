@@ -1,0 +1,21 @@
+{
+  "part_name": "aria_housing_lattice_insert",
+  "bbox_mm": {
+    "x": 680.0,
+    "y": 660.0,
+    "z": 10.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 680.0,
+    "HEIGHT_MM": 660.0,
+    "DEPTH_MM": 10.0,
+    "CELL_SIZE_MM": 30.0,
+    "STRUT_DIAMETER_MM": 3.0
+  },
+  "lattice": {
+    "pattern": "honeycomb",
+    "form": "skin_core",
+    "cell_count": 810,
+    "strut_count": 0
+  }
+}

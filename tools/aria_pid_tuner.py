@@ -45,8 +45,11 @@ import sys
 import math
 import argparse
 import collections
+import json
+from pathlib import Path
 
 BAUD_RATE = 115200
+VOLTAGE_LIMIT = 10.0  # firmware VOLTAGE_LIMIT
 
 RESET  = "\033[0m"
 GREEN  = "\033[92m"
@@ -55,6 +58,52 @@ YELLOW = "\033[93m"
 CYAN   = "\033[96m"
 BOLD   = "\033[1m"
 GREY   = "\033[90m"
+
+
+# ─────────────────────────────────────────────
+# CEM CONSTANTS (--from-cem)
+# ─────────────────────────────────────────────
+
+def load_cem_constants(path: str = "outputs/cem_constants.json") -> dict:
+    """Load CEM-derived constants from JSON. Returns {} if file missing."""
+    p = Path(path)
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text())
+
+
+def validate_step_targets_cem(initial_n: float, final_n: float, cem: dict) -> list:
+    """Validate step targets against motor capacity. Returns list of warning strings."""
+    warnings = []
+    if not cem or 'SPOOL_R' not in cem or 'GEAR_RATIO' not in cem or 'MOTOR_TORQUE_NM' not in cem:
+        return warnings
+    spool_r = cem.get('SPOOL_R', 0.3)
+    gear = cem.get('GEAR_RATIO', 30.0)
+    torque = cem.get('MOTOR_TORQUE_NM', 0.1)
+    max_force = torque * gear / spool_r
+    if final_n > max_force * 0.8:
+        warnings.append(
+            f"Step target {final_n:.0f}N exceeds 80% of motor capacity {max_force:.0f}N"
+        )
+    return warnings
+
+
+def validate_gains_cem(kp: float, cem: dict) -> tuple:
+    """
+    Validate Kp against CEM motor model.
+    max_voltage = Kp * (T_FALL - T_BASELINE).
+    Returns (max_voltage, pass: bool, message: str)
+    """
+    if not cem:
+        return 0.0, True, ""
+    t_fall = cem.get('T_FALL', 400.0)
+    t_baseline = cem.get('T_BASELINE', 40.0)
+    max_error = t_fall - t_baseline  # 360N
+    max_voltage = kp * max_error
+    passed = max_voltage <= VOLTAGE_LIMIT
+    msg = (f"CEM validation: max voltage at fall detection = {max_voltage:.2f}v "
+           f"(limit: {VOLTAGE_LIMIT}v) — {'PASS' if passed else 'WARN'}")
+    return max_voltage, passed, msg
 
 
 # ─────────────────────────────────────────────
@@ -432,10 +481,15 @@ def validate_gains(collector: TensionCollector, kp, ki, kd,
 # ─────────────────────────────────────────────
 
 def run_step_tuning(collector: TensionCollector, method="cc",
-                    initial_n=40.0, final_n=80.0, record_s=15.0):
+                    initial_n=40.0, final_n=80.0, record_s=15.0, cem: dict = None):
     print(f"\n{BOLD}═══════════════════════════════════════════{RESET}")
     print(f"{BOLD}  ARIA PID Tuner — Method: {method.upper()}{RESET}")
     print(f"{BOLD}═══════════════════════════════════════════{RESET}\n")
+
+    # CEM validation: step targets within motor capacity
+    if cem:
+        for w in validate_step_targets_cem(initial_n, final_n, cem):
+            print(f"  {YELLOW}[WARN] {w}{RESET}")
 
     print(f"  Setpoint step: {initial_n}N → {final_n}N")
     print(f"  Recording for: {record_s}s")
@@ -513,6 +567,13 @@ def run_step_tuning(collector: TensionCollector, method="cc",
     print(f"  Ki = {Ki:.6f}")
     print(f"  Kd = {Kd:.6f}")
     print(f"{BOLD}{'═'*45}{RESET}")
+
+    # CEM validation: Kp at fall detection
+    if cem:
+        max_v, passed, msg = validate_gains_cem(Kp, cem)
+        color = GREEN if passed else YELLOW
+        print(f"\n  {color}{msg}{RESET}")
+
     print()
     print(f"  Paste into aria_stm32_complete.cpp:")
     print(f"  {CYAN}PID tensionPID {{")
@@ -582,7 +643,21 @@ def main():
                         help="Step target tension (N)")
     parser.add_argument("--duration", type=float, default=15.0,
                         help="Recording duration after step (s)")
+    parser.add_argument("--from-cem", action="store_true",
+                        help="Use CEM constants from outputs/cem_constants.json")
+    parser.add_argument("--cem-json", type=str, default="outputs/cem_constants.json",
+                        help="Path to CEM constants JSON (default: outputs/cem_constants.json)")
     args = parser.parse_args()
+
+    cem = {}
+    if args.from_cem:
+        cem = load_cem_constants(args.cem_json)
+        if cem:
+            args.initial = cem.get("T_BASELINE", 40.0)
+            args.final = args.initial * 2.0
+            print(f"  {CYAN}[CEM] Using T_BASELINE={args.initial:.0f}N, step target={args.final:.0f}N{RESET}")
+        else:
+            print(f"  {YELLOW}[CEM] File not found, using defaults{RESET}")
 
     port = args.port or find_port()
     if not port:
@@ -632,7 +707,8 @@ def main():
                 method=args.method,
                 initial_n=args.initial,
                 final_n=args.final,
-                record_s=args.duration
+                record_s=args.duration,
+                cem=cem if args.from_cem else None
             )
     except KeyboardInterrupt:
         print("\nTuning cancelled.")

@@ -52,6 +52,37 @@ def _build_system_prompt(context: dict[str, str]) -> str:
 - For end chamfers use: .faces(">X").chamfer(depth) not .edges().chamfer()
 - For selective edges: .edges("|Z").fillet(r) for vertical edges only.
 - After adding raised features (bosses, shoulders, rings), the original face selector may point to the raised feature face, not the base plate. Always add holes BEFORE raised features, or use explicit workplane construction.
+
+- NEVER use .union() on a bare Workplane() object.
+  Union must always be: existing_result = existing_result.union(new_shape)
+  where existing_result already has a solid on the stack.
+
+- NEVER use the same angle for both drive face and back face
+  of an asymmetric tooth. The asymmetry is the entire purpose
+  of the ratchet profile — drive face must be nearly radial
+  (8 deg) and back face must be gradual (60 deg).
+
+  Correct tooth pattern for circular arrays:
+    # Build ring body first
+    result = (cq.Workplane("XY")
+        .cylinder(HEIGHT_MM, OD_MM/2)
+        .cylinder(HEIGHT_MM, ID_MM/2, combine="cut"))
+
+    # Build ONE tooth as a separate solid
+    tooth_base = (cq.Workplane("XY")
+        ... tooth profile geometry ...
+        .extrude(HEIGHT_MM))
+
+    # Pattern the tooth using rotate + union in a loop
+    import math
+    for i in range(N_TEETH):
+        angle = i * 360.0 / N_TEETH
+        rotated = tooth_base.rotate((0,0,0),(0,0,1), angle)
+        result = result.union(rotated)
+
+  Never do:
+    cq.Workplane("XY").union(tooth_base)  # WRONG - empty stack
+    result.union(cq.Workplane("XY").box(...))  # WRONG - union with workplane not solid
 """
     return f"""You are a CadQuery expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
 
@@ -70,6 +101,34 @@ Mechanical constants (from aria_mechanical.md) — use these when relevant:
 Avoid these patterns (from aria_failures.md):
 {avoid}
 - NEVER union a cylinder to create a rounded end — use a 2D profile with .threePointArc() instead.
+
+Required code structure:
+
+  ## REQUIRED: All numeric dimensions must be module-level constants
+
+  EVERY dimension that appears in the geometry must be declared as
+  a module-level ALL_CAPS constant BEFORE it is used.
+  This is mandatory — the optimizer cannot tune inline literals.
+
+  Required format:
+    # === PART PARAMETERS (tunable) ===
+    LENGTH_MM = 60.0       # overall length
+    WIDTH_MM = 12.0        # overall width
+    THICKNESS_MM = 6.0     # overall thickness
+    PIVOT_HOLE_DIA_MM = 6.0
+    PIVOT_OFFSET_MM = 22.0
+    NOSE_RADIUS_MM = 6.0
+    FILLET_MM = 0.5
+    # === END PARAMETERS ===
+
+    # geometry uses constants only, never inline numbers
+    result = cq.Workplane("XY").box(LENGTH_MM, WIDTH_MM, THICKNESS_MM)
+
+  Inline numbers that are NOT dimensions (like 0 for centering,
+  360 for full circle, number of holes) are allowed inline.
+
+  Every dimension from the part description must have its own constant.
+  Group them all at the top under the "PART PARAMETERS" comment block.
 
 Common CadQuery patterns:
   Box:      cq.Workplane("XY").box(length, width, height)
@@ -108,13 +167,79 @@ Common CadQuery patterns:
         .faces(">Z").workplane().hole(bore_dia))
     result = result.union(shoulder)
 
-Every generated script MUST end with these exact lines (STEP_PATH and STL_PATH are injected at runtime):
+  Asymmetric ratchet tooth (correct implementation):
+
+    # Tooth at angle 0, extending outward from ring
+    # drive_face_angle = 8 deg from radial (steep face)
+    # back_face_angle = 60 deg from radial (gradual face)
+    import math
+    root_r = OUTER_DIAMETER_MM / 2
+    tip_r = root_r + TOOTH_HEIGHT_MM
+
+    drive_rad = math.radians(DRIVE_ANGLE_DEG)
+    back_rad = math.radians(BACK_ANGLE_DEG)
+
+    # Tooth tip width creates angular offset at tip
+    tip_half_angle = math.atan2(TOOTH_TIP_WIDTH_MM/2, tip_r)
+
+    # Drive face (steep, 8 deg): nearly radial
+    drive_root_angle = 0.0
+    drive_root = (root_r * math.cos(drive_root_angle),
+                  root_r * math.sin(drive_root_angle))
+
+    # Drive face tip point: offset by tip flat half-angle (near radial)
+    drive_tip_angle = drive_root_angle + tip_half_angle
+    drive_tip = (tip_r * math.cos(drive_tip_angle),
+                 tip_r * math.sin(drive_tip_angle))
+
+    # Back face (gradual, 60 deg from radial)
+    back_angular_width = (TOOTH_HEIGHT_MM * math.tan(back_rad)) / root_r
+    back_root_angle = drive_root_angle - back_angular_width
+    back_root = (root_r * math.cos(back_root_angle),
+                 root_r * math.sin(back_root_angle))
+
+    # Back face tip: other side of tip flat
+    back_tip_angle = drive_tip_angle - 2 * tip_half_angle
+    back_tip = (tip_r * math.cos(back_tip_angle),
+                tip_r * math.sin(back_tip_angle))
+
+    # Build tooth profile from these 4 points (asymmetric)
+    tooth_profile = (cq.Workplane("XY")
+        .moveTo(*back_root)
+        .lineTo(*back_tip)
+        .lineTo(*drive_tip)
+        .lineTo(*drive_root)
+        .close()
+        .extrude(THICKNESS_MM))
+
+    # Then rotate+union loop as before:
+    # for i in range(N_TEETH):
+    #   angle = i*360.0/N_TEETH
+    #   result = result.union(tooth_profile.rotate((0,0,0),(0,0,1), angle))
+
+Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and PART_NAME are injected at runtime):
   bb = result.val().BoundingBox()
   print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
   exporters.export(result, STEP_PATH, exporters.ExportTypes.STEP)
   exporters.export(result, STL_PATH, exporters.ExportTypes.STL)
 
-The variable 'result' must be the final Workplane or solid. Do not define STEP_PATH or STL_PATH; they are provided."""
+  # === META JSON (required for optimizer and CEM) ===
+  import json as _json, pathlib as _pathlib
+  _meta = {{
+      "part_name": PART_NAME,
+      "bbox_mm": {{"x": round(bb.xlen, 3), "y": round(bb.ylen, 3), "z": round(bb.zlen, 3)}},
+      "dims_mm": {{}}
+  }}
+  # Collect all _MM constants automatically
+  import sys as _sys
+  _frame_vars = {{k: v for k, v in globals().items() if k.endswith('_MM') and isinstance(v, (int, float))}}
+  _meta["dims_mm"] = _frame_vars
+  _json_path = _pathlib.Path(STEP_PATH).parent.parent / "meta" / (_pathlib.Path(STEP_PATH).stem + ".json")
+  _json_path.parent.mkdir(parents=True, exist_ok=True)
+  _json_path.write_text(_json.dumps(_meta, indent=2))
+  print(f\"META:{{_json_path}}\")
+
+The variable 'result' must be the final Workplane or solid. Do not define STEP_PATH, STL_PATH or PARTNAME; they are provided."""
 
 
 def _build_user_prompt(
