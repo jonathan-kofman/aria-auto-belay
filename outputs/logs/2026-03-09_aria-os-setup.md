@@ -252,3 +252,43 @@ Full environment setup and ARIA-OS v1 were completed. The system can load contex
 **Goal:** generate a bearing retainer plate: circular plate 80mm diameter, 5mm thick, center hole 47.2mm diameter (bearing OD clearance), shoulder ring on one face: 55mm OD, 3mm tall, 3mm wall (matches bearing shoulder), 6x M4 holes on 68mm bolt circle evenly spaced, fillet outer edge 1mm
 **Attempts:** 3
 **Diagnosis:** Shape could not be reduced to a circle
+
+## Session 2026-03-09T21:28:56.607901
+
+**Status:** Success
+**Goal:** generate the ARIA rope spool: cylindrical spool, outer diameter 120mm, inner bore 47.2mm bearing fit, flange diameter 160mm, flange thickness 8mm on each end, barrel length 80mm between flanges, total length 96mm, 4x M6 holes on 90mm bolt circle through flanges, keyway on bore: 14mm wide 5mm deep full length
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_spool.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_spool.stl
+
+## Session 2026-03-09T21:29:44.960557
+
+**Status:** Success
+**Goal:** generate the ARIA cam collar with helical ramp: outer diameter 55mm, inner bore 25mm, length 40mm, helical ramp on outer surface: starts at z=0 degrees, rises 5mm over 90 degrees rotation, ramp width 8mm, 2mm proud of surface, 2x M4 set screw holes radially at 180 degrees apart at z=20mm
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_cam_collar.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_cam_collar.stl
+
+## Session 2026-03-09T21:30:00.639418
+
+**Status:** Success
+**Goal:** generate the ARIA blocker bar: 120mm long, 15mm wide, 10mm tall, chamfer both ends 45 degrees 3mm deep, 2x M5 through holes at 20mm from each end centered, 1x M4 hole 4.2mm diameter centered top face midpoint, fillet vertical edges only 0.5mm
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_blocker_bar_tall_chamfer.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_blocker_bar_tall_chamfer.stl
+
+## Session 2026-03-09T21:30:21.899975
+
+**Status:** Success
+**Goal:** generate ARIA bearing retainer plate: circular plate 80mm diameter 5mm thick, center hole 47.2mm diameter, 6x M4 holes on 68mm bolt circle evenly spaced, shoulder ring on top face: 55mm outer diameter 3mm tall 3mm wall, fillet outer edge 1mm
+**Attempts:** 2
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_bearing_retainer_plate_circular.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_bearing_retainer_plate_circular.stl
+
+## Session 2026-03-09T21:31:10.627940
+
+**Status:** Success
+**Goal:** generate the ARIA housing shell
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_housing.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_housing.stl

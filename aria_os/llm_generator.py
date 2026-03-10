@@ -47,6 +47,11 @@ def _build_system_prompt(context: dict[str, str]) -> str:
 - Always work on EXISTING FACE of the body: .faces(">Z").workplane(), not new planes.
 - Do not reference faces by index (e.g. faces[0]); use direction: faces(">Z"), faces("<Z").
 - Ensure base solid is built and valid before any cut or hole.
+- NEVER apply .chamfer() and .fillet() to the same part in sequence without selecting specific edges — use edge selectors.
+- Apply chamfer BEFORE fillet, never after.
+- For end chamfers use: .faces(">X").chamfer(depth) not .edges().chamfer()
+- For selective edges: .edges("|Z").fillet(r) for vertical edges only.
+- After adding raised features (bosses, shoulders, rings), the original face selector may point to the raised feature face, not the base plate. Always add holes BEFORE raised features, or use explicit workplane construction.
 """
     return f"""You are a CadQuery expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
 
@@ -83,6 +88,25 @@ Common CadQuery patterns:
         .lineTo(0, w/2)
         .close()
         .extrude(thickness))
+  Chamfer on end face (correct): chamfer BEFORE fillet, use face selectors for chamfer:
+    result = (cq.Workplane("XY")
+        .box(L, W, H)
+        .faces(">X").chamfer(depth)   # chamfer +X end
+        .faces("<X").chamfer(depth)   # chamfer -X end
+        .edges("|Z").fillet(r))       # fillet only vertical edges
+  Holes on plate with raised boss (correct order): add ALL holes BEFORE raised features:
+    result = (cq.Workplane("XY")
+        .cylinder(H, OD/2)            # base cylinder
+        .faces(">Z").workplane()
+        .hole(bore_dia)               # center bore FIRST
+        .faces(">Z").workplane()
+        .polarArray(bcd/2, 0, 360, n_holes)
+        .hole(hole_dia))              # bolt holes SECOND
+    # Add shoulder LAST — after all holes
+    shoulder = (cq.Workplane("XY")
+        .cylinder(shoulder_H, shoulder_OD/2)
+        .faces(">Z").workplane().hole(bore_dia))
+    result = result.union(shoulder)
 
 Every generated script MUST end with these exact lines (STEP_PATH and STL_PATH are injected at runtime):
   bb = result.val().BoundingBox()

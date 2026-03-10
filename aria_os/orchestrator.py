@@ -21,10 +21,23 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
         session["attempts"] = attempt
         plan = planner_plan(goal, context)
         plan_text = plan.get("text", str(plan)) if isinstance(plan, dict) else plan
+        part_id = plan.get("part_id", "") if isinstance(plan, dict) else ""
+        route_reason = plan.get("route_reason", "")
+        force_llm = plan.get("force_llm", False) or bool(route_reason)
+        use_llm = part_id not in KNOWN_PART_IDS or force_llm
+
+        # FIX 4: Route logging — always show which path was taken
+        if use_llm:
+            if route_reason:
+                print(f"[LLM] {route_reason}")
+            elif part_id not in KNOWN_PART_IDS:
+                print("[LLM] Unknown part -> LLM route")
+            else:
+                print("[LLM] Forced LLM route")
+        else:
+            print(f"[TEMPLATE] Using validated template: {part_id}")
         print(plan_text)
 
-        part_id = plan.get("part_id", "") if isinstance(plan, dict) else ""
-        use_llm = part_id not in KNOWN_PART_IDS
         expected_bbox = plan.get("expected_bbox") if isinstance(plan, dict) else None
 
         try:

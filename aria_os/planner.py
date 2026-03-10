@@ -1,6 +1,54 @@
 """Read goal + context, output operation plan as structured dict with build order (and plain-text for display)."""
+import re
 from .context_loader import load_context, get_mechanical_constants
 from typing import Any
+
+# Template default dimensions per part_id. Used by has_dimensional_overrides.
+TEMPLATE_DIMS = {
+    "aria_spool": {"diameter": 600.0, "height": 50.0, "bore": 47.2},
+    "aria_cam_collar": {"diameter": 55.0, "height": 40.0, "bore": 25.0},
+    "aria_housing": {"width": 700.0, "height": 680.0, "depth": 344.0},
+    "aria_rope_guide": {"width": 80.0, "height": 40.0, "depth": 10.0},
+    "aria_motor_mount": {"width": 120.0, "height": 120.0, "depth": 8.0},
+}
+
+# Keywords that indicate a feature not in the template (force LLM)
+OVERRIDE_FEATURE_KEYWORDS = {
+    "aria_spool": ["flange", "keyway", "bolt circle", "m6", "90mm"],
+    "aria_cam_collar": ["helical", "ramp", "set screw", "m4"],
+}
+
+
+def has_dimensional_overrides(goal: str, template_dims: dict, part_id: str = "") -> bool:
+    """
+    Returns True if the goal string contains explicit dimensions that differ from
+    the template defaults by >5%, or mentions features not in the template.
+    """
+    goal_lower = goal.lower()
+
+    # Feature keywords that indicate spec beyond template
+    for pid, keywords in OVERRIDE_FEATURE_KEYWORDS.items():
+        if part_id == pid and any(kw in goal_lower for kw in keywords):
+            return True
+
+    for key, template_val in template_dims.items():
+        synonyms = {
+            "diameter": ["outer diameter", "outer dia", "flange diameter", "diameter"],
+            "height": ["height", "length", "thick", "thickness", "tall"],
+            "bore": ["inner bore", "inner diameter", "bore", "bearing fit"],
+            "width": ["width", "wide"],
+            "depth": ["depth", "deep"],
+        }
+        patterns = synonyms.get(key, [key])
+        for pat in patterns:
+            m = re.search(rf"{re.escape(pat)}[^\d]*(\d+(?:\.\d+)?)\s*mm", goal_lower)
+            if not m:
+                m = re.search(rf"(\d+(?:\.\d+)?)\s*mm[^\d]*{re.escape(pat)}", goal_lower)
+            if m:
+                n = float(m.group(1))
+                if template_val > 0 and abs(n - template_val) / template_val > 0.05:
+                    return True
+    return False
 
 
 def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
@@ -67,6 +115,9 @@ def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
 
     # ---------- ARIA rope spool ----------
     if "spool" in goal_lower:
+        template_dims = TEMPLATE_DIMS["aria_spool"]
+        if has_dimensional_overrides(goal, template_dims, "aria_spool"):
+            return _plan_generic(goal, constants, route_reason="Dimensional overrides detected (e.g. 120mm/160mm vs 600mm template) -> LLM route")
         dia = constants.get("rope_spool_dia", 600.0)
         for k, v in constants.items():
             if "spool" in k and "dia" in k:
@@ -93,6 +144,9 @@ def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
 
     # ---------- ARIA Cam Collar ----------
     if "cam collar" in goal_lower or "cam_collar" in goal_lower:
+        template_dims = TEMPLATE_DIMS["aria_cam_collar"]
+        if has_dimensional_overrides(goal, template_dims, "aria_cam_collar"):
+            return _plan_generic(goal, constants, route_reason="Dimensional/feature overrides (helical ramp, set screw) -> LLM route")
         shoulder_od = constants.get("bearing_shoulder_od", 55.0)
         return {
             "text": "\n".join([
@@ -168,7 +222,7 @@ def plan(goal: str, context: dict[str, str] | None = None) -> dict[str, Any]:
     return _plan_generic(goal, constants)
 
 
-def _plan_generic(goal: str, constants: dict[str, float]) -> dict[str, Any]:
+def _plan_generic(goal: str, constants: dict[str, float], route_reason: str = "") -> dict[str, Any]:
     """Parse unknown goal into base_shape, hollow, features, build_order."""
     goal_lower = goal.lower()
     base_shape = {"type": "box", "width": 100.0, "height": 100.0, "depth": 100.0}
@@ -181,12 +235,12 @@ def _plan_generic(goal: str, constants: dict[str, float]) -> dict[str, Any]:
     # Heuristic: try to infer dimensions from goal text (very simple)
     if "box" in goal_lower or "plate" in goal_lower:
         base_shape["type"] = "box"
-    if "cylind" in goal_lower or "round" in goal_lower or "bore" in goal_lower:
+    if "cylind" in goal_lower or "round" in goal_lower or "bore" in goal_lower or "spool" in goal_lower:
         base_shape["type"] = "cylinder"
         base_shape["diameter"] = 50.0
         base_shape["height"] = 30.0
 
-    return {
+    out = {
         "text": goal,
         "part_id": part_id,
         "base_shape": base_shape,
@@ -198,3 +252,6 @@ def _plan_generic(goal: str, constants: dict[str, float]) -> dict[str, Any]:
         "material": None,
         "export_formats": ["step", "stl"],
     }
+    if route_reason:
+        out["route_reason"] = route_reason
+    return out

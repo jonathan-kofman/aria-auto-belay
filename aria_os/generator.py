@@ -71,7 +71,8 @@ def generate(
         plan = _plan_text_to_struct(plan, context)
     part_id = plan.get("part_id", "aria_part")
     is_generic = part_id not in KNOWN_PART_IDS
-    use_llm = FORCE_LLM or is_generic
+    force_llm = plan.get("force_llm", False) or bool(plan.get("route_reason"))
+    use_llm = FORCE_LLM or is_generic or force_llm
 
     if use_llm:
         from . import llm_generator
