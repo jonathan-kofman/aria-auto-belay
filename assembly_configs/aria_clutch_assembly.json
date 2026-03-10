@@ -1,0 +1,17 @@
+{
+  "name": "aria_clutch_assembly",
+  "parts": [
+    {
+      "name": "ratchet_ring",
+      "step_path": "outputs/cad/step/llm_aria_ratchet_ring_outer_inner.step",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "name": "cam_collar",
+      "step_path": "outputs/cad/step/aria_cam_collar.step",
+      "position": [0, 0, 21],
+      "rotation": [0, 0, 0]
+    }
+  ]
+}

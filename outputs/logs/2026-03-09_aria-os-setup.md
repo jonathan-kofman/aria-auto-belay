@@ -214,3 +214,41 @@ Full environment setup and ARIA-OS v1 were completed. The system can load contex
 **Attempts:** 1
 **Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_ratchet_ring_outer_inner.step
 **Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_ratchet_ring_outer_inner.stl
+
+## Session 2026-03-09T21:18:20.572054
+
+**Status:** Success
+**Goal:** generate the ARIA flyweight sector plate: fan-shaped sector, outer radius 85mm, inner radius 25mm, sector angle 120 degrees, thickness 8mm, material 6061 aluminum, pivot hole 10mm diameter at the inner arc center point, weight pocket on outer face: 40mm x 15mm x 4mm deep rectangular pocket centered at 65mm radius, mounting hole 6mm diameter at 50mm radius centered in sector
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_flyweight_sector_plate_fan.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_flyweight_sector_plate_fan.stl
+
+## Session 2026-03-09T21:18:58.106652
+
+**Status:** Failure
+**Goal:** generate the ARIA blocker bar: rectangular bar 120mm long, 15mm wide, 10mm tall, chamfer both ends at 45 degrees 3mm deep, 2x M5 through holes centered at 20mm from each end, 1x M4 tapped hole (4.2mm drill dia) centered on top face at midpoint, fillet all non-chamfered edges 0.5mm
+**Attempts:** 3
+**Diagnosis:** BRep_API: command not done
+
+## Session 2026-03-09T21:19:06.964816
+
+**Status:** Success
+**Goal:** generate the ARIA rope spool: cylindrical spool, outer diameter 120mm, inner bore 47.2mm (bearing fit), flange diameter 160mm, flange thickness 8mm on each end, barrel length 80mm between flanges, total length 96mm including flanges, 4x M6 holes on 90mm bolt circle through flanges, keyway on bore: 14mm wide, 5mm deep, full length
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_spool.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_spool.stl
+
+## Session 2026-03-09T21:19:08.742446
+
+**Status:** Success
+**Goal:** generate the ARIA cam collar: cylindrical collar, outer diameter 55mm, inner bore 25mm, length 40mm, helical ramp feature on outer surface: ramp starts at 0 degrees at z=0, rises 5mm over 90 degrees of rotation, ramp width 8mm, ramp is a raised feature proud of surface by 2mm, 2x M4 set screw holes radially through collar wall at 180 degrees apart at z=20mm midpoint
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_cam_collar.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_cam_collar.stl
+
+## Session 2026-03-09T21:19:34.933002
+
+**Status:** Failure
+**Goal:** generate a bearing retainer plate: circular plate 80mm diameter, 5mm thick, center hole 47.2mm diameter (bearing OD clearance), shoulder ring on one face: 55mm OD, 3mm tall, 3mm wall (matches bearing shoulder), 6x M4 holes on 68mm bolt circle evenly spaced, fillet outer edge 1mm
+**Attempts:** 3
+**Diagnosis:** Shape could not be reduced to a circle
