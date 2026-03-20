@@ -18,7 +18,7 @@ def create_tube_along_arc(
     end_angle,
     arc_radius,
     tube_radius,
-    depth,
+    center_z,
     n_arc=24,
     n_tube=8,
 ):
@@ -55,7 +55,7 @@ def create_tube_along_arc(
             oy = (ny * math.cos(angle_tube) + by * math.sin(angle_tube)) * tube_radius
             oz = (nz * math.cos(angle_tube) + bz * math.sin(angle_tube)) * tube_radius
 
-            v = bm.verts.new((px + ox, py + oy, oz))
+            v = bm.verts.new((px + ox, py + oy, center_z + oz))
             ring.append(v)
 
         all_rings.append(ring)
@@ -97,6 +97,8 @@ def run(params_path):
     frame = p["frame_thickness"]
     form = p["form"]
     skin = p.get("skin_thickness", 2.0)
+    interlaced = bool(p.get("interlaced", False))
+    weave_offset_req = float(p.get("weave_offset_mm", 0.0))
 
     tube_r = strut_d / 2.0
     arc_r = cell / 2.0
@@ -114,6 +116,13 @@ def run(params_path):
     cell_h = inner_H / rows
     cell_actual = min(cell_w, cell_h)
     arc_r = cell_actual / 2.0
+    z_mid = D / 2.0
+    max_safe_offset = max(0.0, (D / 2.0) - (tube_r * 1.05))
+    if interlaced:
+        weave_offset = weave_offset_req if weave_offset_req > 0.0 else min(cell_actual * 0.12, max_safe_offset)
+        weave_offset = min(weave_offset, max_safe_offset)
+    else:
+        weave_offset = 0.0
 
     all_objects = []
 
@@ -130,6 +139,13 @@ def run(params_path):
             ]
 
             for cx, cy, sa, ea in configs:
+                family = 0 if sa in (0.0, 180.0) else 1
+                if interlaced:
+                    parity = (col + row) % 2
+                    sign = 1.0 if ((family == 0) ^ (parity == 1)) else -1.0
+                    center_z = z_mid + sign * weave_offset
+                else:
+                    center_z = z_mid
                 bm = create_tube_along_arc(
                     cx,
                     cy,
@@ -137,7 +153,7 @@ def run(params_path):
                     ea,
                     arc_r,
                     tube_r,
-                    depth=D,
+                    center_z=center_z,
                     n_arc=20,
                     n_tube=6,
                 )
@@ -228,6 +244,8 @@ def run(params_path):
     print(f"SUCCESS: Exported arc weave to {output_stl}")
     print(f"  Grid: {cols}x{rows} = {cell_count} cells")
     print(f"  Arcs: {cell_count * 4} tubes")
+    if interlaced:
+        print(f"  Interlaced: ON (weave_offset={weave_offset:.3f}mm)")
 
 
 argv = sys.argv

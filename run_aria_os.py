@@ -592,6 +592,14 @@ def run_lattice(args: list[str]):
         except (ValueError, IndexError):
             return default
 
+    def get_bool_arg(flag: str, default: bool = False) -> bool:
+        if flag in args:
+            return True
+        neg = f"--no-{flag.lstrip('-')}"
+        if neg in args:
+            return False
+        return default
+
     params = LatticeParams(
         pattern=get_arg("--pattern", "honeycomb"),
         form=get_arg("--form", "volumetric"),
@@ -602,6 +610,8 @@ def run_lattice(args: list[str]):
         strut_diameter_mm=float(get_arg("--strut", "1.5")),
         skin_thickness_mm=float(get_arg("--skin", "2.0")),
         frame_thickness_mm=float(get_arg("--frame", "5.0")),
+        interlaced=get_bool_arg("--interlaced", default=False),
+        weave_offset_mm=float(get_arg("--weave-offset", "0.0")),
         process=get_arg("--process", "both"),
         part_name=get_arg("--name", "lattice_panel"),
     )

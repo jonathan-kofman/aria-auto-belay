@@ -1,9 +1,9 @@
 {
   "part_name": "lattice_test_honeycomb",
   "bbox_mm": {
-    "x": 40.0,
-    "y": 40.0,
-    "z": 5.0
+    "x": 40,
+    "y": 40,
+    "z": 5
   },
   "dims_mm": {
     "WIDTH_MM": 40,

@@ -154,6 +154,8 @@ def generate_lattice(params: LatticeParams) -> LatticeResult:
         "strut_diameter": params.strut_diameter_mm,
         "skin_thickness": params.skin_thickness_mm,
         "frame_thickness": params.frame_thickness_mm,
+        "interlaced": params.interlaced,
+        "weave_offset_mm": params.weave_offset_mm,
         "process": params.process,
         "part_name": params.part_name,
         "output_stl": stl_path,
@@ -213,6 +215,8 @@ def generate_lattice(params: LatticeParams) -> LatticeResult:
         "lattice": {
             "pattern": params.pattern,
             "form": params.form,
+            "interlaced": params.interlaced,
+            "weave_offset_mm": params.weave_offset_mm,
             "generator": "blender_headless",
         },
     }

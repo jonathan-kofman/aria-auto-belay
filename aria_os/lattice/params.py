@@ -27,6 +27,10 @@ class LatticeParams:
     # Frame (border around panel)
     frame_thickness_mm: float = 5.0
 
+    # Interlaced weave controls (arc_weave only)
+    interlaced: bool = False
+    weave_offset_mm: float = 0.0
+
     # Process
     process: Literal["fdm", "dmls", "both"] = "both"
 

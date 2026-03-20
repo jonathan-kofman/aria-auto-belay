@@ -1,15 +1,17 @@
 {
   "pattern": "arc_weave",
   "form": "volumetric",
-  "width": 120.0,
-  "height": 80.0,
-  "depth": 6.0,
-  "cell_size": 9.0,
-  "strut_diameter": 1.2,
+  "width": 152.4,
+  "height": 304.8,
+  "depth": 8.0,
+  "cell_size": 7.25,
+  "strut_diameter": 1.6,
   "skin_thickness": 2.0,
-  "frame_thickness": 4.0,
-  "process": "dmls",
-  "part_name": "arc_weave_v3",
-  "output_stl": "outputs\\cad\\stl\\arc_weave_v3.stl",
-  "output_step": "outputs\\cad\\step\\arc_weave_v3.step"
+  "frame_thickness": 50.8,
+  "interlaced": true,
+  "weave_offset_mm": 0.9,
+  "process": "both",
+  "part_name": "arc_weave_7repeat_interlaced",
+  "output_stl": "outputs\\cad\\stl\\arc_weave_7repeat_interlaced.stl",
+  "output_step": "outputs\\cad\\step\\arc_weave_7repeat_interlaced.step"
 }

@@ -1,0 +1,20 @@
+{
+  "part_name": "arc_weave_7repeat_fdm",
+  "bbox_mm": {
+    "x": 152.4,
+    "y": 304.8,
+    "z": 8.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 152.4,
+    "HEIGHT_MM": 304.8,
+    "DEPTH_MM": 8.0,
+    "CELL_SIZE_MM": 7.25,
+    "STRUT_DIAMETER_MM": 1.6
+  },
+  "lattice": {
+    "pattern": "arc_weave",
+    "form": "volumetric",
+    "generator": "blender_headless"
+  }
+}
