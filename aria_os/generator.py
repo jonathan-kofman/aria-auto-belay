@@ -5,7 +5,12 @@ from pathlib import Path
 
 # When True, route all parts through LLM (for testing). When False, only generic parts use LLM.
 FORCE_LLM = False
-KNOWN_PART_IDS = frozenset({"aria_housing", "aria_spool", "aria_cam_collar", "aria_rope_guide", "aria_motor_mount"})
+KNOWN_PART_IDS = frozenset({
+    "aria_housing", "aria_spool", "aria_cam_collar",
+    "aria_rope_guide", "aria_motor_mount",
+    "aria_ratchet_ring", "aria_catch_pawl", "aria_flyweight",
+    "aria_brake_drum", "aria_spool_hub", "aria_trip_lever", "aria_shaft_collar",
+})
 
 
 # CadQuery best practices and failure patterns for system prompt
@@ -165,13 +170,27 @@ def _generate_from_structured_plan(plan: dict[str, Any], context: dict[str, str]
     if part_id == "aria_housing":
         return _code_housing(constants)
     if part_id == "aria_spool":
-        return _code_spool(constants)
+        return _code_spool(constants, plan)
     if part_id == "aria_cam_collar":
         return _code_cam_collar(constants)
     if part_id == "aria_rope_guide":
         return _code_rope_guide(constants)
     if part_id == "aria_motor_mount":
         return _code_motor_mount(constants)
+    if part_id == "aria_ratchet_ring":
+        return _code_ratchet_ring(plan, context)
+    if part_id == "aria_catch_pawl":
+        return _code_catch_pawl(plan, context)
+    if part_id == "aria_flyweight":
+        return _code_flyweight(plan, context)
+    if part_id == "aria_brake_drum":
+        return _code_brake_drum(plan, context)
+    if part_id == "aria_spool_hub":
+        return _code_spool_hub(plan, context)
+    if part_id == "aria_trip_lever":
+        return _code_trip_lever(plan, context)
+    if part_id == "aria_shaft_collar":
+        return _code_shaft_collar(plan, context)
     return _code_generic(base, hollow, wall_mm, features)
 
 
@@ -207,11 +226,17 @@ print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
 '''
 
 
-def _code_spool(c: dict[str, float]) -> str:
-    dia = c.get("rope_spool_dia", 600.0)
+def _code_spool(c: dict[str, float], plan: Optional[dict[str, Any]] = None) -> str:
+    base = (plan or {}).get("base_shape", {}) if isinstance(plan, dict) else {}
+    features = (plan or {}).get("features", []) if isinstance(plan, dict) else []
+    dia = float(base.get("diameter", c.get("rope_spool_dia", 600.0)))
+    height = float(base.get("height", 50.0))
     bore = c.get("bearing_od", 47.2)
+    for f in features:
+        if isinstance(f, dict) and f.get("type") == "bore":
+            bore = float(f.get("diameter", bore))
+            break
     wall = 10.0
-    height = 50.0
     return f'''import cadquery as cq
 
 outer = cq.Workplane("XY").circle({dia/2}).extrude({height})
@@ -266,6 +291,114 @@ for x, y in {bolt_pos!r}:
     result = result.faces(">Z").workplane().center(x, y).hole(6.5)
 for x, y in {corners!r}:
     result = result.faces(">Z").workplane().center(x, y).hole(6.5)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_ratchet_ring(plan: dict[str, Any], context: dict[str, str]) -> str:
+    base = plan.get("base_shape", {})
+    od = float(base.get("od", 240.0))
+    bore = float(base.get("bore", 120.0))
+    h = float(base.get("height", 187.79))
+    n = 66
+    for f in plan.get("features", []) or []:
+        if isinstance(f, dict) and f.get("type") == "teeth":
+            n = int(f.get("count", 66))
+            break
+    tooth_h = 4.0
+    tooth_w = round((3.14159 * od / max(n, 1)) * 0.45, 2)
+    return f'''import cadquery as cq
+import math
+OD = {od}
+BORE = {bore}
+H = {h}
+N = {n}
+TOOTH_H = {tooth_h}
+TOOTH_W = {tooth_w}
+outer = cq.Workplane("XY").circle(OD / 2).extrude(H)
+result = outer.faces(">Z").workplane().circle(BORE / 2).cutThruAll()
+pitch = 360.0 / N
+for i in range(N):
+    a = math.radians(i * pitch)
+    cx = math.cos(a) * (OD / 2 - TOOTH_H / 2)
+    cy = math.sin(a) * (OD / 2 - TOOTH_H / 2)
+    result = result.faces(">Z").workplane().center(cx, cy).rect(TOOTH_W, TOOTH_H).cutBlind(-H)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_catch_pawl(plan: dict[str, Any], context: dict[str, str]) -> str:
+    return '''import cadquery as cq
+result = cq.Workplane("XY").box(55, 9, 22)
+result = result.faces(">Z").workplane().center(-20, 0).hole(6)
+bb = result.val().BoundingBox()
+print(f"BBOX:{bb.xlen:.2f},{bb.ylen:.2f},{bb.zlen:.2f}")
+'''
+
+
+def _code_flyweight(plan: dict[str, Any], context: dict[str, str]) -> str:
+    base = plan.get("base_shape", {})
+    r = float(base.get("diameter", 120.0)) / 2.0
+    h = float(base.get("height", 20.0))
+    return f'''import cadquery as cq
+result = cq.Workplane("XY").circle({r}).extrude({h})
+result = result.faces(">Z").workplane().hole(8)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_brake_drum(plan: dict[str, Any], context: dict[str, str]) -> str:
+    base = plan.get("base_shape", {})
+    od = float(base.get("od", 200.0))
+    wall = float(plan.get("wall_mm", 3.0) or 3.0)
+    h = float(base.get("height", 50.0))
+    inner_r = max(od / 2 - wall, 0.5)
+    return f'''import cadquery as cq
+outer = cq.Workplane("XY").circle({od / 2}).extrude({h})
+result = outer.faces(">Z").workplane().circle({inner_r}).cutThruAll()
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_spool_hub(plan: dict[str, Any], context: dict[str, str]) -> str:
+    base = plan.get("base_shape", {})
+    dia = float(base.get("diameter", 120.0))
+    h = float(base.get("height", 50.0))
+    return f'''import cadquery as cq
+result = cq.Workplane("XY").circle({dia / 2}).extrude({h})
+result = result.faces(">Z").workplane().hole(47.2)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_trip_lever(plan: dict[str, Any], context: dict[str, str]) -> str:
+    """Prismatic trip lever — planner uses width/height/depth as L/H/W."""
+    base = plan.get("base_shape", {})
+    w = float(base.get("width", 60.0))
+    h = float(base.get("height", 22.0))
+    d = float(base.get("depth", 6.0))
+    return f'''import cadquery as cq
+result = cq.Workplane("XY").box({w}, {h}, {d})
+result = result.faces(">Z").workplane().center(-15, 0).hole(4.2)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
+'''
+
+
+def _code_shaft_collar(plan: dict[str, Any], context: dict[str, str]) -> str:
+    """Simple annular collar; defaults if plan has no base_shape."""
+    base = plan.get("base_shape", {})
+    od = float(base.get("od", base.get("diameter", 40.0)))
+    h = float(base.get("height", 12.0))
+    bore = float(base.get("bore", 20.0))
+    return f'''import cadquery as cq
+outer = cq.Workplane("XY").circle({od / 2}).extrude({h})
+result = outer.faces(">Z").workplane().circle({bore / 2}).cutThruAll()
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.2f}},{{bb.ylen:.2f}},{{bb.zlen:.2f}}")
 '''
