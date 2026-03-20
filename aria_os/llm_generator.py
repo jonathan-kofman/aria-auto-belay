@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .context_loader import get_mechanical_constants, load_context
+from .cem_context import load_cem_geometry, format_cem_block
+from .cad_learner import get_few_shot_examples, format_few_shot_block, get_failure_patterns
 
 
 def _get_api_key(repo_root: Optional[Path] = None) -> str:
@@ -36,10 +38,20 @@ def _get_api_key(repo_root: Optional[Path] = None) -> str:
     )
 
 
-def _build_system_prompt(context: dict[str, str]) -> str:
+def _build_system_prompt(
+    context: dict[str, str],
+    plan: dict[str, Any],
+    repo_root: Optional[Path] = None,
+) -> str:
     """Build system prompt: CadQuery expert, constants, failures, patterns, required ending."""
     constants = get_mechanical_constants(context)
     constants_block = "\n".join(f"#   {k}: {v}" for k, v in sorted(constants.items()))
+    cem = load_cem_geometry(repo_root)
+    cem_block = format_cem_block(cem)
+    examples = get_few_shot_examples(plan.get("text", ""), plan.get("part_id", ""), repo_root)
+    few_shot_block = format_few_shot_block(examples)
+    part_failures = get_failure_patterns(plan.get("part_id", ""), repo_root)
+    learned_failures = "\n".join(f"- {e}" for e in part_failures) if part_failures else ""
     failures_raw = context.get("aria_failures", "")
     # Summarize failure patterns (avoid these)
     avoid = """
@@ -97,6 +109,10 @@ Rules:
 
 Mechanical constants (from aria_mechanical.md) — use these when relevant:
 {constants_block}
+
+{cem_block}
+{few_shot_block}
+{f"# Known recent failures for this part:\\n# {learned_failures.replace(chr(10), chr(10) + '# ')}" if learned_failures else ""}
 
 Avoid these patterns (from aria_failures.md):
 {avoid}
@@ -248,12 +264,25 @@ def _build_user_prompt(
     previous_error: Optional[str] = None,
 ) -> str:
     """Build user prompt from plan dict; optionally include previous attempt and error."""
-    lines = [
-        "Plan (structured):",
-        plan.get("text", str(plan)),
-        "",
-        "Build order:",
-    ]
+    lines: list[str] = []
+    brief = plan.get("engineering_brief")
+    if brief:
+        lines.extend(
+            [
+                "=== ENGINEERING BRIEF (authoritative — follow this over the short user phrase) ===",
+                str(brief).strip(),
+                "",
+                "=== STRUCTURED PLAN (summary) ===",
+            ]
+        )
+    lines.extend(
+        [
+            "Plan (structured):",
+            plan.get("text", str(plan)),
+            "",
+            "Build order:",
+        ]
+    )
     for s in plan.get("build_order", []):
         lines.append(f"  - {s}")
     lines.append("")
@@ -291,7 +320,7 @@ def generate(
     Raises on API error or if no code could be extracted.
     """
     api_key = _get_api_key(repo_root)
-    system = _build_system_prompt(context)
+    system = _build_system_prompt(context, plan, repo_root=repo_root)
     user = _build_user_prompt(plan, previous_code, previous_error)
 
     try:

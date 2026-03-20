@@ -1,0 +1,23 @@
+{
+  "goal": "cam collar helical ramp",
+  "part_id": "aria_cam_collar",
+  "base_shape": {
+    "type": "cylinder",
+    "diameter": 55.0,
+    "height": 40.0
+  },
+  "features": [
+    {
+      "type": "bore",
+      "face": ">Z",
+      "diameter": 25.0,
+      "through": true
+    },
+    {
+      "type": "ramp",
+      "description": "15\u00b0 helical ramp, 5mm rise over 90\u00b0"
+    }
+  ],
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_cam_collar.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_cam_collar.stl"
+}

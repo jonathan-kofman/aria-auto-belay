@@ -140,6 +140,9 @@ def simulate_static_pawl(
     housing_wall_mm: float | None = None,
     shaft_d_mm: float | None = None,
     shaft_span_mm: float | None = None,
+    yield_pawl_mpa: float = YIELD_PAWL_MPA,
+    yield_housing_mpa: float = YIELD_HOUSING_MPA,
+    yield_shaft_mpa: float = YIELD_SHAFT_MPA,
 ) -> pd.DataFrame:
     """
     Run virtual Setup 1 static tests for each load step.
@@ -178,10 +181,10 @@ def simulate_static_pawl(
         sh  = _housing_wall_stress_mpa(F, wall_mm=wall)
         ss  = _shaft_bending_stress_mpa(F, shaft_d_mm=sd, span_mm=span)
 
-        sf_c = YIELD_PAWL_MPA    / sc  if sc  > 0 else 999
-        sf_b = YIELD_PAWL_MPA    / sb  if sb  > 0 else 999
-        sf_h = YIELD_HOUSING_MPA / sh  if sh  > 0 else 999
-        sf_s = YIELD_SHAFT_MPA   / ss  if ss  > 0 else 999
+        sf_c = yield_pawl_mpa    / sc  if sc  > 0 else 999
+        sf_b = yield_pawl_mpa    / sb  if sb  > 0 else 999
+        sf_h = yield_housing_mpa / sh  if sh  > 0 else 999
+        sf_s = yield_shaft_mpa   / ss  if ss  > 0 else 999
 
         min_sf = min(sf_c, sf_b, sf_h, sf_s)
 

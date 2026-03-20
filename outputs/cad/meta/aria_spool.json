@@ -1,0 +1,14 @@
+{
+  "part_name": "aria spool",
+  "bbox_mm": {
+    "x": 240.0,
+    "y": 240.0,
+    "z": 187.0
+  },
+  "dims_mm": {
+    "SPOOL_FLANGE_DIAMETER_MM": 240.0,
+    "SPOOL_WIDTH_MM": 187.0,
+    "WALL_THICKNESS_MM": 10.0,
+    "HUB_DIAMETER_MM": 120.0
+  }
+}

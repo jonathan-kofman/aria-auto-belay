@@ -1,0 +1,21 @@
+{
+  "part_name": "ratchet ring 66 teeth",
+  "bbox_mm": {
+    "x": 240.0,
+    "y": 240.0,
+    "z": 187.79
+  },
+  "dims_mm": {
+    "RATCHET_FACE_WIDTH_MM": 187.79,
+    "SPOOL_FLANGE_D_MM": 240.0,
+    "SPOOL_HUB_D_MM": 120.0,
+    "OUTER_DIAMETER_MM": 240.0,
+    "INNER_DIAMETER_MM": 120.0,
+    "RING_HEIGHT_MM": 187.79,
+    "TOOTH_HEIGHT_MM": 4.0,
+    "TOOTH_TIP_WIDTH_MM": 2.0,
+    "CENTER_BORE_DIA_MM": 120.0,
+    "BOLT_CIRCLE_DIA_MM": 180.0,
+    "BOLT_HOLE_DIA_MM": 10.0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "goal": "cam collar helical ramp",
+  "part_id": "aria_part",
+  "base_shape": {
+    "type": "box",
+    "width": 100.0,
+    "height": 100.0,
+    "depth": 100.0
+  },
+  "features": [],
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_part.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_part.stl"
+}

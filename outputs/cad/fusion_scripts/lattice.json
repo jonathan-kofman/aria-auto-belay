@@ -1,0 +1,8 @@
+{
+  "goal": "aria energy absorber lattice",
+  "part_id": "lattice",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_lattice.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_lattice.stl",
+  "features": [],
+  "base_shape": "panel"
+}

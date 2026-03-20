@@ -53,6 +53,8 @@ def render_cem_tab():
         st.markdown("**Geometry**")
         drum_d_mm        = st.number_input("Brake drum diameter (mm)", 150.0, 300.0, 200.0, 10.0)
         spool_d_mm       = st.number_input("Spool hub diameter (mm)", 80.0, 200.0, 120.0, 10.0)
+        spool_od_mm      = st.number_input("Spool OD (mm)", 200.0, 700.0, 600.0, 10.0,
+                                            help="Outer diameter of rope spool where rope wraps (affects motor torque and clutch RPM)")
         housing_od_mm    = st.number_input("Housing OD (mm)", 200.0, 400.0, 260.0, 10.0)
         rope_d_mm        = st.number_input("Rope diameter (mm)", 8.5, 11.0, 10.0, 0.5)
         rope_cap_m       = st.number_input("Rope capacity (m)", 20.0, 60.0, 40.0, 5.0)
@@ -84,7 +86,8 @@ def render_cem_tab():
                     target_tension_N        = tension_N,
                     motor_voltage_V         = motor_v,
                     brake_drum_diameter_mm  = drum_d_mm,
-                    rope_spool_diameter_mm  = spool_d_mm,
+                    rope_spool_hub_diameter_mm = spool_d_mm,
+                    rope_spool_od_mm        = spool_od_mm,
                     housing_od_mm           = housing_od_mm,
                     wall_mount_bolt_pattern_mm = bolt_pattern_mm,
                     safety_factor_structural= SF_struct,
@@ -178,19 +181,26 @@ def render_cem_tab():
         st.markdown("### Test Data vs CEM Prediction")
         st.caption(f"From test: **{c.get('test_id','unknown')}** ({c.get('test_date','')})")
         col_t1, col_t2, col_t3 = st.columns(3)
-        if 'eta_cstar' in c:
-            delta = (float(c['eta_cstar']) - 1.0) * 100
-            col_t1.metric("c* efficiency", f"{float(c['eta_cstar']):.4f}",
-                          f"{delta:+.1f}% vs prediction")
-        if 'eta_Isp' in c:
-            delta = (float(c['eta_Isp']) - 1.0) * 100
-            col_t2.metric("Isp efficiency", f"{float(c['eta_Isp']):.4f}",
-                          f"{delta:+.1f}% vs prediction")
-        if 'Pc_rms_pct' in c:
-            col_t3.metric("Pc stability", f"{float(c['Pc_rms_pct']):.2f}% RMS",
-                          "Stable" if c.get('combustion_stable') else "Check")
-        if c.get('hard_start'):
-            st.warning("Hard start detected in test data — consider injector timing changes.")
+
+        if 'measured_arrest_distance_m' in c:
+            predicted = float(st.session_state['aria_geom'].predicted_arrest_distance_m) if 'aria_geom' in st.session_state else None
+            measured = float(c['measured_arrest_distance_m'])
+            delta = f"{((measured - predicted) / predicted * 100):+.1f}% vs CEM" if predicted else "—"
+            col_t1.metric("Arrest distance (measured)", f"{measured:.3f} m", delta)
+
+        if 'measured_peak_force_kN' in c:
+            predicted = float(st.session_state['aria_geom'].predicted_peak_force_kN) if 'aria_geom' in st.session_state else None
+            measured = float(c['measured_peak_force_kN'])
+            delta = f"{((measured - predicted) / predicted * 100):+.1f}% vs CEM" if predicted else "—"
+            col_t2.metric("Peak force (measured)", f"{measured:.2f} kN", delta)
+
+        if 'measured_catch_time_ms' in c:
+            col_t3.metric("Catch time (measured)", f"{float(c['measured_catch_time_ms']):.1f} ms")
+
+        if c.get('clutch_false_trigger'):
+            st.warning("False clutch trigger detected — consider increasing fall_detection_v_m_s.")
+        if c.get('ansi_fail'):
+            st.error("Test FAILED ANSI Z359.14 limits — redesign required before next drop test.")
         if st.button("Clear test corrections", key="clear_corr_cem"):
             del st.session_state['cem_corrections']
             st.rerun()

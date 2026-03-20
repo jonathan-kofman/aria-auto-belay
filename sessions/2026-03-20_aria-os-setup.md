@@ -119,3 +119,128 @@
 **Attempts:** 1
 **Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_aria_bearing_retainer.step
 **Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_aria_bearing_retainer.stl
+
+## Session 2026-03-20T18:18:09.214087
+
+**Status:** Success
+**Goal:** aria spool
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_spool.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_spool.stl
+
+## Session 2026-03-20T18:18:26.470205
+
+**Status:** Failure
+**Goal:** aria spool
+**Attempts:** 1
+**Diagnosis:** Bbox axis 0: got 600.00, expected 240.00 ±0.5; Bbox axis 1: got 600.00, expected 240.00 ±0.5; Bbox axis 2: got 50.00, expected 187.00 ±0.5
+
+## Session 2026-03-20T18:18:54.225970
+
+**Status:** Success
+**Goal:** aria spool
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_spool.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_spool.stl
+
+## Session 2026-03-20T18:22:56.985516
+
+**Status:** Failure
+**Goal:** aria spool
+**Attempts:** 3
+**Diagnosis:** System CEM FAIL
+
+## Session 2026-03-20T18:32:52.744713
+
+**Status:** Success
+**Goal:** aria cam collar with helical ramp
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_part.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_part.stl
+
+## Session 2026-03-20T18:32:54.932694
+
+**Status:** Success
+**Goal:** aria energy absorber lattice
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_lattice.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_lattice.stl
+
+## Session 2026-03-20T18:48:10.549372
+
+**Status:** Success
+**Goal:** cam collar helical ramp
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_part.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_part.stl
+
+## Session 2026-03-20T18:49:57.618593
+
+**Status:** Success
+**Goal:** cam collar helical ramp
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_cam_collar.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_cam_collar.stl
+
+## Session 2026-03-20T18:54:19.847506
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_ratchet_ring_teeth.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_ratchet_ring_teeth.stl
+
+## Session 2026-03-20T19:00:38.489480
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 2
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_ratchet_ring_teeth.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_ratchet_ring_teeth.stl
+
+## Session 2026-03-20T19:02:46.310638
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 2
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_ratchet_ring_teeth.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_ratchet_ring_teeth.stl
+
+## Session 2026-03-20T19:03:49.412246
+
+**Status:** Failure
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 3
+**Diagnosis:** Bbox axis 2: got 281.69, expected 187.79 ±0.5
+
+## Session 2026-03-20T19:05:11.225330
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 2
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_ratchet_ring_teeth.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_ratchet_ring_teeth.stl
+
+## Session 2026-03-20T19:10:46.818641
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\llm_ratchet_ring_teeth.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\llm_ratchet_ring_teeth.stl
+
+## Session 2026-03-20T19:13:06.633056
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_ratchet_ring.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_ratchet_ring.stl
+
+## Session 2026-03-20T19:15:15.829331
+
+**Status:** Success
+**Goal:** ratchet ring 66 teeth
+**Attempts:** 1
+**Output STEP:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\step\aria_ratchet_ring.step
+**Output STL:** C:\Users\jonko\Downloads\aria-auto-belay\outputs\cad\stl\aria_ratchet_ring.stl

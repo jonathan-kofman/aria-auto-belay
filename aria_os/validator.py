@@ -19,6 +19,42 @@ class ValidationResult:
     errors: List[str] = field(default_factory=list)
     stdout_capture: str = ""
 
+
+def check_feature_completeness(code: str, plan: dict) -> tuple[bool, str]:
+    """
+    Verify that required plan features are present in generated code.
+    This is a heuristic string-based check to catch missing critical operations.
+    """
+    if not isinstance(plan, dict):
+        return True, ""
+
+    features = plan.get("features", []) or []
+    code_lower = (code or "").lower()
+
+    if plan.get("hollow"):
+        if ".cut(" not in code_lower:
+            return False, "missing: interior void cut for hollow part"
+
+    for f in features:
+        if not isinstance(f, dict):
+            continue
+        ftype = str(f.get("type", "")).lower()
+        if ftype == "bore":
+            if ".hole(" not in code_lower and ".cutblind(" not in code_lower:
+                return False, "missing: bore operation (.hole or .cutBlind)"
+        elif ftype == "slot":
+            has_rect = ".rect(" in code_lower
+            has_cut = ".cutblind(" in code_lower or ".cutthruall(" in code_lower
+            if not (has_rect and has_cut):
+                return False, "missing: slot operation (.rect with cut)"
+        elif ftype == "bolt_circle":
+            has_polar = ".polararray(" in code_lower
+            has_loop_holes = ("for " in code_lower and ".hole(" in code_lower)
+            if not (has_polar or has_loop_holes):
+                return False, "missing: bolt circle hole pattern (polarArray or looped holes)"
+
+    return True, ""
+
 def validate_mesh_integrity(stl_path: str) -> dict:
     """
     Check STL for common mesh errors before printing.

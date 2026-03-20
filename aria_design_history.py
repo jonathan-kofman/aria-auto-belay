@@ -54,7 +54,7 @@ def _geom_to_dict(geom, inputs) -> dict:
                 'rope_diameter_mm':       i.rope_diameter_mm,
                 'max_rope_capacity_m':    i.max_rope_capacity_m,
                 'brake_drum_diameter_mm': i.brake_drum_diameter_mm,
-                'rope_spool_diameter_mm': i.rope_spool_diameter_mm,
+                'rope_spool_hub_diameter_mm': i.rope_spool_hub_diameter_mm,
                 'housing_od_mm':          i.housing_od_mm,
                 'safety_factor_structural': i.safety_factor_structural,
                 'safety_factor_fatigue':  i.safety_factor_fatigue,

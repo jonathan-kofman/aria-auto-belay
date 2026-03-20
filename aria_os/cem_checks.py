@@ -88,14 +88,8 @@ def _run_static_checks(part_id: str, meta: Dict[str, Any], context: dict) -> tup
             housing_wall_mm=housing_wall,
         )
     elif any(x in lid for x in ("ratchet", "ring", "gear", "tooth")):
-        df = st.simulate_static_pawl(
-            load_steps=load_steps,
-            pawl_tip_width_mm=get_dim(dims, "TOOTH", "FACE", "WIDTH", default=20.0),
-            pawl_engagement_mm=get_dim(dims, "TOOTH_HEIGHT", "HEIGHT", default=8.0),
-            pawl_thickness_mm=get_dim(dims, "THICKNESS", default=21.0),
-            pawl_arm_mm=get_dim(dims, "OUTER", "OD", default=106.5),
-            housing_wall_mm=housing_wall,
-        )
+        sf = _ratchet_tooth_shear_sf(dims, _st_mod.YIELD_RATCHET_MPA)
+        return (sf >= 2.0), float(sf), "tooth_shear"
     elif any(x in lid for x in ("housing", "shell", "enclosure")):
         df = st.simulate_static_pawl(
             load_steps=load_steps,
@@ -123,14 +117,9 @@ def _run_static_checks(part_id: str, meta: Dict[str, Any], context: dict) -> tup
     return static_passed, min_sf, failure_mode
 
 
-def _run_dynamic_checks(part_id: str) -> tuple[Optional[bool], Optional[float], Optional[float]]:
-    """Run dynamic drop test where applicable (currently housing-level only)."""
+def _run_dynamic_checks() -> tuple[Optional[bool], Optional[float], Optional[float]]:
+    """Run system-level dynamic drop test once."""
     from aria_models import dynamic_drop as dd
-
-    lid = part_id.lower()
-    if "housing" not in lid:
-        return None, None, None
-
     _, summary = dd.simulate_drop_test()
     return (
         bool(summary.get("passed")),
@@ -174,7 +163,7 @@ def _body_bending_sf(dims: Dict[str, Any], yield_mpa: float, load_n: float = 160
     pivot_offset = get(["PIVOT_OFFSET", "PIVOT"], 8.0)    # mm from end
     b = get(["WIDTH"], 12.0)                              # mm
     h = get(["THICKNESS"], 6.0)                           # mm
-    n = 2.0                                               # pawls
+    n = float(_st_mod.N_PAWLS)
 
     # Moment arm from pivot to tooth tip
     moment_arm_mm = total_length - pivot_offset
@@ -235,42 +224,69 @@ def run_static_check_with_material(part_id: str, meta: dict, yield_mpa: float, c
     Run static check using specified yield strength.
     Approximates new SF by scaling the default SF by (yield_mpa / base_yield_mpa).
     """
-    # First run with default materials
-    default_passed, default_min_sf, failure_mode = _run_static_checks(part_id, meta, context)
-    if default_min_sf is None or default_min_sf <= 0.0:
-        return None, failure_mode or ""
-
     lid = part_id.lower()
+    dims = (meta.get("dims_mm") or {}) if meta else {}
+    if any(x in lid for x in ("ratchet", "ring", "gear", "tooth")):
+        return _ratchet_tooth_shear_sf(dims, yield_mpa), "tooth_shear"
+
+    mech = get_mechanical_constants(context)
+    pawl_tip_default = float(mech.get("pawl_tip_width_mm", 6.0))
+    pawl_thick_default = float(mech.get("pawl_thickness_mm", 9.0))
+    pawl_arm_default = float(mech.get("pawl_arm_mm", 45.0))
+    pawl_body_h_default = float(mech.get("pawl_body_h_mm", 22.0))
+    housing_wall_default = float(mech.get("housing_wall_mm", 10.0))
+    shaft_d_default = float(mech.get("shaft_d_mm", 20.0))
+
+    def get_dim(d: Dict[str, Any], *keys: str, default: Optional[float] = None) -> Optional[float]:
+        for key in keys:
+            up = key.upper()
+            for dk, dv in d.items():
+                if up in str(dk).upper():
+                    try:
+                        return float(dv)
+                    except (TypeError, ValueError):
+                        continue
+        return default
+
+    pawl_tip_width = get_dim(dims, "WIDTH", "TIP_WIDTH", default=pawl_tip_default)
+    pawl_thickness = get_dim(dims, "THICKNESS", default=pawl_thick_default)
+    pawl_arm = get_dim(dims, "ARM", "LENGTH", default=pawl_arm_default)
+    pawl_body_h = get_dim(dims, "HEIGHT", "BODY_H", default=pawl_body_h_default)
+    housing_wall = get_dim(dims, "WALL", default=housing_wall_default)
+    shaft_d = get_dim(dims, "SHAFT", "BORE", "ID", default=shaft_d_default)
+
+    load_steps = [2000, 4000, 8000, 12000, 16000]
+    y_pawl = _st_mod.YIELD_PAWL_MPA
+    y_housing = _st_mod.YIELD_HOUSING_MPA
+    y_shaft = _st_mod.YIELD_SHAFT_MPA
     if any(x in lid for x in ("pawl", "lever", "trip", "blocker")):
-        base_yield = getattr(_st_mod, "YIELD_PAWL_MPA", yield_mpa)
-    elif any(x in lid for x in ("ratchet", "ring", "gear", "tooth")):
-        base_yield = getattr(_st_mod, "YIELD_RATCHET_MPA", yield_mpa)
+        y_pawl = yield_mpa
     elif any(x in lid for x in ("housing", "shell", "enclosure")):
-        base_yield = getattr(_st_mod, "YIELD_HOUSING_MPA", yield_mpa)
+        y_housing = yield_mpa
     elif any(x in lid for x in ("shaft", "spool", "collar")):
-        base_yield = getattr(_st_mod, "YIELD_SHAFT_MPA", yield_mpa)
-    else:
-        base_yield = yield_mpa
-
-    if base_yield <= 0.0:
-        return default_min_sf, failure_mode or ""
-
-    # For catch-mechanism parts, always use calibrated bending / tooth-shear models.
-    lid = part_id.lower()
-    is_catch_part = any(x in lid for x in ("pawl", "lever", "trip", "blocker", "ratchet", "ring", "tooth", "gear"))
-    if is_catch_part:
-        dims = meta.get("dims_mm") or {}
-        if any(x in lid for x in ("ratchet", "ring", "gear", "tooth")):
-            sf = _ratchet_tooth_shear_sf(dims, yield_mpa)
-            return sf, "tooth_shear"
-        else:
-            sf = _body_bending_sf(dims, yield_mpa)
-            return sf, "bending"
-
-    # Otherwise scale from the known baseline yield.
-    scale = yield_mpa / float(base_yield)
-    new_min_sf = float(default_min_sf) * scale
-    return new_min_sf, failure_mode or ""
+        y_shaft = yield_mpa
+    df = _st_mod.simulate_static_pawl(
+        load_steps=load_steps,
+        pawl_tip_width_mm=pawl_tip_width,
+        pawl_thickness_mm=pawl_thickness,
+        pawl_arm_mm=pawl_arm,
+        pawl_body_h_mm=pawl_body_h,
+        housing_wall_mm=housing_wall,
+        shaft_d_mm=shaft_d,
+        yield_pawl_mpa=y_pawl,
+        yield_housing_mpa=y_housing,
+        yield_shaft_mpa=y_shaft,
+    )
+    min_sf = float(df["min_sf"].min())
+    worst_row = df.loc[df["load_N"].idxmax()]
+    sf_map = {
+        "sf_contact": worst_row["sf_contact"],
+        "sf_bending": worst_row["sf_bending"],
+        "sf_housing": worst_row["sf_housing"],
+        "sf_shaft": worst_row["sf_shaft"],
+    }
+    failure_mode = min(sf_map, key=sf_map.get)
+    return min_sf, failure_mode
 
 
 def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResult:
@@ -280,11 +296,10 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
     """
     meta = _load_meta(meta_path)
     static_passed, static_min_sf, static_failure_mode = _run_static_checks(part_id, meta, context)
-    dynamic_passed, peak_force, arrest_mm = _run_dynamic_checks(part_id)
     cem_passed, cem_warnings = _run_cem_system_check()
 
     overall = True
-    for flag in (static_passed, dynamic_passed, cem_passed):
+    for flag in (static_passed, cem_passed):
         if flag is False:
             overall = False
 
@@ -292,9 +307,6 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
     if static_passed is not None:
         status = "PASS" if static_passed else "FAIL"
         pieces.append(f"Static {status} (min SF={static_min_sf:.2f} @ {static_failure_mode})")
-    if dynamic_passed is not None:
-        status = "PASS" if dynamic_passed else "FAIL"
-        pieces.append(f"Dynamic {status} (peak={peak_force:.0f} N, dist={arrest_mm:.1f} mm)")
     if cem_passed is not None:
         status = "PASS" if cem_passed else "FAIL"
         pieces.append(f"System CEM {status}")
@@ -306,9 +318,9 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
         static_passed=static_passed,
         static_min_sf=static_min_sf,
         static_failure_mode=static_failure_mode,
-        dynamic_passed=dynamic_passed,
-        dynamic_peak_force_N=peak_force,
-        dynamic_arrest_dist_mm=arrest_mm,
+        dynamic_passed=None,
+        dynamic_peak_force_N=None,
+        dynamic_arrest_dist_mm=None,
         cem_passed=cem_passed,
         cem_warnings=cem_warnings,
         overall_passed=overall,
@@ -336,18 +348,29 @@ def run_full_system_cem(outputs_dir: str | Path, context: dict) -> dict:
             "results": {},
         }
 
+    meta_cache: dict[str, dict] = {}
     for meta_file in meta_dir.glob("*.json"):
         try:
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
         except Exception:
             meta = {}
         part_id = meta.get("part_name", meta_file.stem)
+        meta_cache[part_id] = meta
         result = run_cem_checks(part_id, meta_file, context)
         results[part_id] = (result, meta.get("part_name", part_id))
+
+    dyn_passed, dyn_peak, dyn_arrest = _run_dynamic_checks()
+    dynamic = {
+        "passed": dyn_passed,
+        "peak_force_N": dyn_peak,
+        "arrest_distance_mm": dyn_arrest,
+    }
 
     total = len(results)
     passed = sum(1 for r, _ in results.values() if r.overall_passed)
     failed = [name for name, (r, _) in results.items() if not r.overall_passed]
+    if dyn_passed is False:
+        failed.append("__dynamic_system__")
 
     weakest_part = None
     weakest_sf = None
@@ -358,13 +381,26 @@ def run_full_system_cem(outputs_dir: str | Path, context: dict) -> dict:
         weakest_part, (weakest, _) = min(results.items(), key=lambda x: sf_or_big(x[1][0]))
         weakest_sf = weakest.static_min_sf
 
-    return {
+    report = {
         "total_parts": total,
         "passed": passed,
         "failed": failed,
         "weakest_part": weakest_part,
         "weakest_sf": weakest_sf,
         "system_passed": len(failed) == 0,
+        "dynamic": dynamic,
         "results": {k: {**vars(v), "display_name": (disp[:45] if disp else k)} for k, (v, disp) in results.items()},
     }
+    try:
+        from .cad_router import route_cad_request, CADIterationStore, _run_async
+        store = CADIterationStore()
+        for part_id, (res, _disp) in results.items():
+            sf = res.static_min_sf if res.static_min_sf is not None else 999.0
+            if (res.overall_passed is False) or (sf < 3.0):
+                hist = store.get_history(part_id, n=5)
+                routing = _run_async(route_cad_request(part_id, meta_cache.get(part_id, {}), res, context, hist))
+                report["results"][part_id]["cad_routing"] = routing
+    except Exception:
+        pass
+    return report
 
