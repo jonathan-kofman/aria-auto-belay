@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ARIA Gym Dashboard Tour</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #020617;
+        --panel: #020617;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.14);
+        --accent-2: #a855f7;
+        --text-main: #e5e7eb;
+        --text-muted: #9ca3af;
+        --border-subtle: rgba(148, 163, 184, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(120% 180% at 10% -10%, #1f2937, #020617 50%)
+            fixed,
+          radial-gradient(120% 180% at 110% 110%, #0f172a, #020617 40%) fixed;
+        color: var(--text-main);
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        padding: 2.2rem 1.3rem;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 1160px;
+        background: linear-gradient(145deg, #020617, #020617 50%, #020617 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 32px 110px rgba(15, 23, 42, 1);
+        padding: 1.4rem 1.4rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-main h1 {
+        margin: 0 0 0.2rem;
+        font-size: 1.35rem;
+      }
+
+      .header-main p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .header-badge {
+        padding: 0.18rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.9);
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        font-size: 0.75rem;
+        box-shadow: 0 12px 28px rgba(56, 189, 248, 0.5);
+        white-space: nowrap;
+      }
+
+      @media (max-width: 900px) {
+        body {
+          padding: 1.5rem 0.9rem;
+        }
+
+        .shell {
+          border-radius: 22px;
+        }
+
+        .header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        gap: 0.9rem;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .panel {
+        border-radius: 18px;
+        padding: 0.85rem 0.9rem 0.8rem;
+        background: radial-gradient(
+            circle at 0% 0%,
+            rgba(56, 189, 248, 0.1),
+            rgba(15, 23, 42, 0.98)
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(56, 189, 248, 0.06),
+            rgba(15, 23, 42, 0.98)
+          );
+        border: 1px solid rgba(148, 163, 184, 0.45);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .panel-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .panel-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .panel-tag {
+        font-size: 0.72rem;
+        padding: 0.1rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        color: rgba(209, 213, 219, 0.96);
+        white-space: nowrap;
+      }
+
+      .mode-toggle {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 0.16rem;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: rgba(15, 23, 42, 0.96);
+        gap: 0.16rem;
+        font-size: 0.75rem;
+      }
+
+      .mode-toggle button {
+        border: none;
+        background: transparent;
+        color: rgba(148, 163, 184, 0.95);
+        padding: 0.2rem 0.7rem;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .mode-toggle button.active {
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        box-shadow: 0 10px 25px rgba(56, 189, 248, 0.5);
+      }
+
+      .device-grid {
+        margin-top: 0.5rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+      }
+
+      @media (max-width: 700px) {
+        .device-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .device-card {
+        border-radius: 12px;
+        padding: 0.38rem 0.35rem 0.3rem;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(15, 23, 42, 0.98),
+          rgba(15, 23, 42, 1)
+        );
+        border: 1px solid rgba(30, 64, 175, 0.95);
+        cursor: pointer;
+        transition: transform 0.08s ease, box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+
+      .device-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.95);
+        border-color: rgba(56, 189, 248, 0.9);
+      }
+
+      .device-card.active {
+        border-color: rgba(56, 189, 248, 0.98);
+        box-shadow: 0 12px 40px rgba(56, 189, 248, 0.4);
+      }
+
+      .device-name {
+        font-size: 0.78rem;
+      }
+
+      .device-meta {
+        font-size: 0.68rem;
+        color: rgba(148, 163, 184, 0.95);
+        margin-top: 0.06rem;
+      }
+
+      .device-row {
+        margin-top: 0.18rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.18rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 30%, #22c55e, #16a34a);
+        box-shadow: 0 0 14px rgba(34, 197, 94, 0.9);
+      }
+
+      .status-dot.warn {
+        background: radial-gradient(circle at 30% 30%, #eab308, #ca8a04);
+        box-shadow: 0 0 14px rgba(234, 179, 8, 0.9);
+      }
+
+      .status-dot.bad {
+        background: radial-gradient(circle at 30% 30%, #ef4444, #b91c1c);
+        box-shadow: 0 0 14px rgba(248, 113, 113, 0.95);
+      }
+
+      .status-text {
+        font-size: 0.68rem;
+        color: rgba(148, 163, 184, 0.95);
+      }
+
+      .status-pill {
+        font-size: 0.68rem;
+        padding: 0.08rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(34, 197, 94, 0.9);
+        color: #bbf7d0;
+        background: rgba(22, 163, 74, 0.3);
+        white-space: nowrap;
+      }
+
+      .status-pill.warn {
+        border-color: rgba(250, 204, 21, 0.9);
+        color: #fef9c3;
+        background: rgba(180, 83, 9, 0.35);
+      }
+
+      .status-pill.bad {
+        border-color: rgba(248, 113, 113, 0.9);
+        color: #fee2e2;
+        background: rgba(185, 28, 28, 0.4);
+      }
+
+      .legend {
+        margin-top: 0.55rem;
+        font-size: 0.7rem;
+        color: rgba(148, 163, 184, 0.92);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.28rem;
+      }
+
+      .legend-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        display: inline-block;
+        margin-right: 0.16rem;
+      }
+
+      .legend-dot.green {
+        background: #22c55e;
+      }
+
+      .legend-dot.amber {
+        background: #eab308;
+      }
+
+      .legend-dot.red {
+        background: #ef4444;
+      }
+
+      .detail-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.16rem;
+      }
+
+      .detail-sub {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-bottom: 0.4rem;
+      }
+
+      .calibration {
+        border-radius: 14px;
+        padding: 0.35rem 0.4rem 0.3rem;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(15, 23, 42, 0.98),
+          rgba(15, 23, 42, 1)
+        );
+        border: 1px solid rgba(30, 64, 175, 0.95);
+        margin-bottom: 0.5rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cal-grid {
+        position: absolute;
+        inset: 0.3rem 0.4rem 0.4rem;
+        background-image: linear-gradient(
+            to right,
+            rgba(30, 64, 175, 0.26) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(30, 64, 175, 0.22) 1px,
+            transparent 1px
+          );
+        background-size: 13px 13px;
+        opacity: 0.65;
+      }
+
+      .cal-band {
+        position: absolute;
+        inset: 0.5rem 0.5rem 0.5rem;
+        border-radius: 999px;
+        background: linear-gradient(
+          115deg,
+          rgba(56, 189, 248, 0.1),
+          rgba(56, 189, 248, 0.6),
+          rgba(168, 85, 247, 0.7)
+        );
+        opacity: 0.85;
+        transform: skewX(-12deg);
+        box-shadow: 0 14px 36px rgba(56, 189, 248, 0.55);
+      }
+
+      .cal-overlay {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.96);
+      }
+
+      .cal-pill {
+        padding: 0.08rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.9);
+        color: #e0f2fe;
+        background: rgba(15, 23, 42, 0.96);
+        font-size: 0.72rem;
+      }
+
+      .cal-score {
+        padding: 0.08rem 0.35rem;
+        border-radius: 999px;
+        border: 1px solid rgba(34, 197, 94, 0.9);
+        color: #bbf7d0;
+        background: rgba(22, 163, 74, 0.3);
+        font-size: 0.72rem;
+      }
+
+      .cal-score.warn {
+        border-color: rgba(250, 204, 21, 0.95);
+        color: #fef9c3;
+        background: rgba(180, 83, 9, 0.4);
+      }
+
+      .cal-score.bad {
+        border-color: rgba(248, 113, 113, 0.95);
+        color: #fee2e2;
+        background: rgba(185, 28, 28, 0.4);
+      }
+
+      .alert-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 0.45rem;
+      }
+
+      .alert-row {
+        border-radius: 12px;
+        padding: 0.3rem 0.35rem;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(15, 23, 42, 0.98),
+          rgba(15, 23, 42, 1)
+        );
+        border: 1px solid rgba(30, 64, 175, 0.96);
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.72rem;
+      }
+
+      .alert-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.78rem;
+        border: 1px solid rgba(248, 113, 113, 0.95);
+        color: #fecaca;
+        background: rgba(185, 28, 28, 0.2);
+      }
+
+      .alert-main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.06rem;
+      }
+
+      .alert-label {
+        font-size: 0.76rem;
+      }
+
+      .alert-meta {
+        font-size: 0.7rem;
+        color: rgba(148, 163, 184, 0.96);
+      }
+
+      .alert-tag {
+        font-size: 0.7rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(252, 211, 77, 0.95);
+        color: #fef3c7;
+        background: rgba(180, 83, 9, 0.4);
+        white-space: nowrap;
+      }
+
+      .no-alert {
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.96);
+        text-align: center;
+        padding: 0.35rem 0.2rem 0.25rem;
+      }
+
+      .flow {
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.96);
+      }
+
+      .flow-steps {
+        margin-top: 0.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.26rem;
+      }
+
+      .flow-step {
+        padding: 0.1rem 0.42rem;
+        border-radius: 999px;
+        border: 1px solid rgba(31, 41, 55, 0.95);
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      .footer-note {
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div class="header-main">
+          <h1>ARIA gym dashboard tour</h1>
+          <p>
+            The gym‑side view: choose a device on the left, see calibration and
+            alerts on the right. Nothing is real data — this is purely for
+            thinking &amp; storytelling.
+          </p>
+        </div>
+        <div class="header-badge">Dashboard lens</div>
+      </header>
+
+      <section class="grid">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Devices by wall</div>
+              <div class="panel-sub">
+                One card per auto‑belay. The idea is: fast scan of health from
+                across the gym.
+              </div>
+            </div>
+            <div class="panel-tag">Simulated gym</div>
+          </div>
+
+          <div class="device-grid" id="deviceGrid"></div>
+
+          <div class="legend">
+            <span>
+              <span class="legend-dot green"></span> Healthy &amp; calibrated
+            </span>
+            <span>
+              <span class="legend-dot amber"></span> Needs attention soon
+            </span>
+            <span>
+              <span class="legend-dot red"></span> Locked out • inspect
+            </span>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" id="detailTitle">Device A‑01</div>
+              <div class="panel-sub" id="detailSub">
+                Lead wall • “Galaxy Route” • currently climbing.
+              </div>
+            </div>
+            <div class="mode-toggle" aria-label="Detail mode">
+              <button
+                class="mode-btn active"
+                data-mode="health"
+                type="button"
+              >
+                Health
+              </button>
+              <button class="mode-btn" data-mode="alerts" type="button">
+                Alerts
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-title">Calibration &amp; envelope</div>
+          <div class="detail-sub">
+            Very rough sketch of a “band” that shows where tension and cam
+            speed are allowed to sit most of the time.
+          </div>
+
+          <div class="calibration">
+            <div class="cal-grid"></div>
+            <div class="cal-band"></div>
+            <div class="cal-overlay">
+              <div>
+                <div class="cal-pill">Auto‑belay load envelope</div>
+                <div style="margin-top: 0.16rem">
+                  Live samples are expected to live inside this coloured
+                  region. Outliers are what trigger alarms.
+                </div>
+              </div>
+              <div id="calScore" class="cal-score">96% in‑band</div>
+            </div>
+          </div>
+
+          <div class="detail-title">Alerts &amp; history</div>
+          <div class="detail-sub">
+            This is where you imagine scrolling through lock‑outs, tension
+            spikes, or just “boring” clean days.
+          </div>
+
+          <div class="alert-list" id="alertList"></div>
+
+          <div class="flow" id="flowNote">
+            Data path for this view:
+            <div class="flow-steps">
+              <span class="flow-step">Sensor pack</span>
+              <span class="flow-step">BLE bridge</span>
+              <span class="flow-step">Cloud</span>
+              <span class="flow-step">Dashboard UI</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <p class="footer-note">
+        The code lives right in this file; if you want to rename devices or
+        routes to match a real gym, just edit the little JSON‑like array near
+        the top of the script.
+      </p>
+    </main>
+
+    <script>
+      const deviceGrid = document.getElementById("deviceGrid");
+      const detailTitle = document.getElementById("detailTitle");
+      const detailSub = document.getElementById("detailSub");
+      const calScore = document.getElementById("calScore");
+      const alertList = document.getElementById("alertList");
+      const flowNote = document.getElementById("flowNote");
+      const modeButtons = Array.from(
+        document.querySelectorAll(".mode-btn[data-mode]")
+      );
+
+      const state = {
+        selectedId: "A-01",
+        mode: "health",
+      };
+
+      const devices = [
+        {
+          id: "A-01",
+          wall: "Lead wall",
+          route: "Galaxy Route",
+          status: "good",
+          lastEvent: "In‑band load",
+          note: "Climb in progress",
+          calScore: 0.96,
+        },
+        {
+          id: "B-07",
+          wall: "Top‑rope",
+          route: "Intro Volume",
+          status: "warn",
+          lastEvent: "Calibration drift",
+          note: "Needs re‑run soon",
+          calScore: 0.82,
+        },
+        {
+          id: "C-12",
+          wall: "Training",
+          route: "Speed Lane",
+          status: "bad",
+          lastEvent: "Overspeed stop",
+          note: "Locked out",
+          calScore: 0.42,
+        },
+        {
+          id: "D-03",
+          wall: "Lead wall",
+          route: "Crux Ridge",
+          status: "good",
+          lastEvent: "Session complete",
+          note: "Idle, ready",
+          calScore: 0.93,
+        },
+        {
+          id: "E-09",
+          wall: "Kids",
+          route: "Asteroid Field",
+          status: "good",
+          lastEvent: "Checks passed",
+          note: "Low use",
+          calScore: 0.9,
+        },
+        {
+          id: "F-02",
+          wall: "Training",
+          route: "Endurance",
+          status: "warn",
+          lastEvent: "Minor anomaly",
+          note: "Watch next climb",
+          calScore: 0.76,
+        },
+      ];
+
+      const alertsByDevice = {
+        "A-01": [
+          {
+            label: "Clean day",
+            detail: "No recent alerts; last 20 sessions fully in‑band.",
+            time: "Today • 07:06",
+          },
+        ],
+        "B-07": [
+          {
+            label: "Drift outside sweet spot",
+            detail:
+              "Slow trend in tension readings suggests a calibration run would be smart.",
+            time: "Yesterday",
+          },
+        ],
+        "C-12": [
+          {
+            label: "Overspeed lock‑out",
+            detail:
+              "Climber descent exceeded allowed speed briefly; device hard‑stopped and locked.",
+            time: "3 days ago",
+          },
+          {
+            label: "Inspection overdue",
+            detail:
+              "A human needs to sign off a mechanical inspection before this can be re‑enabled.",
+            time: "2 days ago",
+          },
+        ],
+        "D-03": [],
+        "E-09": [],
+        "F-02": [
+          {
+            label: "Small tension spike",
+            detail:
+              "A short spike stayed inside hard safety limits, but is worth watching over time.",
+            time: "Last session",
+          },
+        ],
+      };
+
+      function renderDevices() {
+        deviceGrid.innerHTML = "";
+        devices.forEach((d) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className =
+            "device-card" + (d.id === state.selectedId ? " active" : "");
+
+          const statusClass =
+            d.status === "good" ? "" : d.status === "warn" ? " warn" : " bad";
+
+          card.innerHTML = `
+            <div class="device-name">${d.id}</div>
+            <div class="device-meta">${d.wall} • "${d.route}"</div>
+            <div class="device-row">
+              <div style="display:flex;align-items:center;gap:0.22rem;">
+                <span class="status-dot${statusClass}"></span>
+                <span class="status-text">${d.lastEvent}</span>
+              </div>
+              <span class="status-pill${statusClass}">
+                ${
+                  d.status === "good"
+                    ? "OK"
+                    : d.status === "warn"
+                    ? "Watch"
+                    : "Locked"
+                }
+              </span>
+            </div>
+          `;
+
+          card.addEventListener("click", () => {
+            state.selectedId = d.id;
+            renderDevices();
+            updateDetail();
+          });
+
+          deviceGrid.appendChild(card);
+        });
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        modeButtons.forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+        });
+        updateDetail();
+      }
+
+      function updateDetail() {
+        const d = devices.find((x) => x.id === state.selectedId);
+        if (!d) return;
+
+        detailTitle.textContent = `Device ${d.id}`;
+        detailSub.textContent = `${d.wall} • "${d.route}" • ${d.note}.`;
+
+        const percent = Math.round(d.calScore * 100);
+        calScore.textContent = `${percent}% in‑band`;
+        calScore.classList.remove("warn", "bad");
+        if (d.status === "warn") {
+          calScore.classList.add("warn");
+        } else if (d.status === "bad") {
+          calScore.classList.add("bad");
+        }
+
+        const alerts = alertsByDevice[d.id] || [];
+        alertList.innerHTML = "";
+
+        if (state.mode === "health") {
+          if (alerts.length === 0 && d.status === "good") {
+            alertList.innerHTML =
+              '<div class="no-alert">No active alerts for this device. This is the “everything is boring on purpose” ideal state.</div>';
+          } else if (alerts.length === 0 && d.status !== "good") {
+            alertList.innerHTML =
+              '<div class="no-alert">Soft health warnings only; nothing in the past few days has tripped a hard lock‑out.</div>';
+          } else {
+            alerts.slice(0, 1).forEach((a) => {
+              const row = document.createElement("div");
+              row.className = "alert-row";
+              row.innerHTML = `
+                <div class="alert-icon">!</div>
+                <div class="alert-main">
+                  <div class="alert-label">${a.label}</div>
+                  <div class="alert-meta">${a.detail}</div>
+                </div>
+                <div class="alert-tag">${a.time}</div>
+              `;
+              alertList.appendChild(row);
+            });
+          }
+
+          flowNote.innerHTML =
+            'Data path for this view:' +
+            '<div class="flow-steps">' +
+            '<span class="flow-step">Sensor pack →</span>' +
+            '<span class="flow-step">BLE bridge →</span>' +
+            '<span class="flow-step">Cloud →</span>' +
+            '<span class="flow-step">Health widgets</span>' +
+            "</div>";
+        } else {
+          if (alerts.length === 0) {
+            alertList.innerHTML =
+              '<div class="no-alert">No recorded incidents yet. When something interesting happens in the field, it would show up here with full context.</div>';
+          } else {
+            alerts.forEach((a) => {
+              const row = document.createElement("div");
+              row.className = "alert-row";
+              row.innerHTML = `
+                <div class="alert-icon">!</div>
+                <div class="alert-main">
+                  <div class="alert-label">${a.label}</div>
+                  <div class="alert-meta">${a.detail}</div>
+                </div>
+                <div class="alert-tag">${a.time}</div>
+              `;
+              alertList.appendChild(row);
+            });
+          }
+
+          flowNote.innerHTML =
+            'Data path for this view:' +
+            '<div class="flow-steps">' +
+            '<span class="flow-step">Sensor pack →</span>' +
+            '<span class="flow-step">Event detection →</span>' +
+            '<span class="flow-step">Cloud incident log →</span>' +
+            '<span class="flow-step">Alert history</span>' +
+            "</div>";
+        }
+      }
+
+      modeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const mode = btn.getAttribute("data-mode");
+          setMode(mode);
+        });
+      });
+
+      renderDevices();
+      updateDetail();
+    </script>
+  </body>
+</html>
+

@@ -1,0 +1,18 @@
+{
+  "part_name": "ARIA bearing retainer, 47.2mm bearing OD, 5mm thick",
+  "bbox_mm": {
+    "x": 55.0,
+    "y": 55.0,
+    "z": 5.0
+  },
+  "dims_mm": {
+    "BEARING_OD_MM": 47.2,
+    "RETAINER_THICKNESS_MM": 5.0,
+    "RETAINER_OD_MM": 55.0,
+    "BEARING_CLEARANCE_MM": 0.2,
+    "CENTER_HOLE_DIA_MM": 20.0,
+    "MOUNTING_HOLE_DIA_MM": 4.0,
+    "MOUNTING_HOLE_BCD_MM": 45.0,
+    "FILLET_MM": 1.0
+  }
+}

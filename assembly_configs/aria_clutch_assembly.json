@@ -13,37 +13,52 @@
       "type": "coaxial",
       "part_a": "ratchet_ring",
       "part_b": "cam_collar",
-      "params": {"axis": "Z"}
+      "params": {
+        "axis": "Z"
+      }
     },
     {
       "type": "face_contact",
       "part_a": "ratchet_ring",
       "part_b": "cam_collar",
-      "params": {"face_a": ">Z", "face_b": "<Z"}
+      "params": {
+        "face_a": ">Z",
+        "face_b": "<Z"
+      }
     },
     {
       "type": "coaxial",
       "part_a": "ratchet_ring",
       "part_b": "bearing_retainer_front",
-      "params": {"axis": "Z"}
+      "params": {
+        "axis": "Z"
+      }
     },
     {
       "type": "coaxial",
       "part_a": "ratchet_ring",
       "part_b": "bearing_retainer_rear",
-      "params": {"axis": "Z"}
+      "params": {
+        "axis": "Z"
+      }
     },
     {
       "type": "face_contact",
       "part_a": "ratchet_ring",
       "part_b": "pawl_lever_1",
-      "params": {"face_a": ">Z", "face_b": "<Z"}
+      "params": {
+        "face_a": ">Z",
+        "face_b": "<Z"
+      }
     },
     {
       "type": "face_contact",
       "part_a": "ratchet_ring",
       "part_b": "pawl_lever_2",
-      "params": {"face_a": ">Z", "face_b": "<Z"}
+      "params": {
+        "face_a": ">Z",
+        "face_b": "<Z"
+      }
     }
   ],
   "parts": [
@@ -179,6 +194,36 @@
         0.0,
         0.0,
         0.0
+      ],
+      "notes": "auto-added by --generate-and-assemble"
+    },
+    {
+      "name": "pawl_lever_1",
+      "step_path": "outputs/cad/step/llm_aria_pawl_lever_t6_aluminum.step",
+      "position": [
+        106.5,
+        0.0,
+        8.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "notes": "auto-added by --generate-and-assemble"
+    },
+    {
+      "name": "pawl_lever_2",
+      "step_path": "outputs/cad/step/llm_aria_pawl_lever_t6_aluminum.step",
+      "position": [
+        -106.5,
+        0.0,
+        8.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        180.0
       ],
       "notes": "auto-added by --generate-and-assemble"
     }

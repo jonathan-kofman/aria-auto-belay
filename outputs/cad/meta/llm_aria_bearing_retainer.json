@@ -1,0 +1,16 @@
+{
+  "part_name": "ARIA bearing retainer",
+  "bbox_mm": {
+    "x": 55.0,
+    "y": 55.0,
+    "z": 3.0
+  },
+  "dims_mm": {
+    "OUTER_DIAMETER_MM": 55.0,
+    "INNER_DIAMETER_MM": 47.2,
+    "HEIGHT_MM": 3.0,
+    "WALL_THICKNESS_MM": 2.0,
+    "RETAINER_SLOT_WIDTH_MM": 4.0,
+    "RETAINER_SLOT_DEPTH_MM": 1.5
+  }
+}

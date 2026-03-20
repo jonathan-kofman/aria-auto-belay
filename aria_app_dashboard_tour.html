@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ARIA Tours • Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #050816;
+        --bg-alt: #0b1020;
+        --bg-soft: #10172a;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.1);
+        --accent-strong: rgba(56, 189, 248, 0.25);
+        --accent-2: #a855f7;
+        --accent-3: #22c55e;
+        --border-subtle: rgba(148, 163, 184, 0.35);
+        --text-main: #e5e7eb;
+        --text-muted: #9ca3af;
+        --danger: #f97373;
+        --warning: #facc15;
+        --good: #4ade80;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.7);
+        --radius-lg: 18px;
+        --radius-xl: 26px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(120% 180% at 10% -10%, #1f2937, #020617 50%)
+            fixed,
+          radial-gradient(120% 180% at 110% 110%, #0f172a, #020617 40%) fixed;
+        color: var(--text-main);
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        padding: 2.5rem 1.5rem;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 720px;
+        background: #020617;
+        border-radius: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 30px 100px rgba(15, 23, 42, 0.95);
+        padding: 1.5rem 1.5rem 1.3rem;
+      }
+
+      .title {
+        font-size: 1.3rem;
+        margin: 0 0 0.35rem;
+      }
+
+      .subtitle {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin: 0 0 1.2rem;
+      }
+
+      .card-grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .card {
+        border-radius: 18px;
+        padding: 1rem 1rem 0.9rem;
+        background: radial-gradient(
+            circle at 0% 0%,
+            rgba(56, 189, 248, 0.08),
+            rgba(15, 23, 42, 0.96)
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(168, 85, 247, 0.08),
+            rgba(15, 23, 42, 0.98)
+          );
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      .card-main h2 {
+        margin: 0 0 0.3rem;
+        font-size: 1rem;
+      }
+
+      .card-main p {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        margin-bottom: 0.7rem;
+      }
+
+      .pill {
+        font-size: 0.7rem;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        color: rgba(209, 213, 219, 0.96);
+      }
+
+      .card-cta a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.9);
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        font-size: 0.8rem;
+        text-decoration: none;
+        box-shadow: 0 12px 32px rgba(56, 189, 248, 0.5);
+        min-width: 7.5rem;
+        text-align: center;
+      }
+
+      .card-cta a.secondary {
+        margin-top: 0.35rem;
+        background: rgba(15, 23, 42, 0.98);
+        color: rgba(148, 163, 184, 0.96);
+        border-color: rgba(148, 163, 184, 0.6);
+        box-shadow: none;
+      }
+
+      .hint {
+        margin-top: 1rem;
+        font-size: 0.75rem;
+        color: rgba(148, 163, 184, 0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <h1 class="title">ARIA tours</h1>
+      <p class="subtitle">
+        Simple split: one page shows how the climber app feels, one shows how
+        the gym dashboard behaves, and one is just for your internal testing
+        console.
+      </p>
+
+      <div class="card-grid">
+        <article class="card">
+          <div class="card-main">
+            <h2>Climber app tour</h2>
+            <p>
+              Phone‑style mock of the ARIA mobile experience: login, role
+              selection, sessions, leaderboards, profile &amp; safety.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Mobile navigation</span>
+              <span class="pill">Session list &amp; detail</span>
+              <span class="pill">Leaderboard &amp; history</span>
+            </div>
+          </div>
+          <div class="card-cta">
+            <a href="./aria_app_tour.html">Open app tour</a>
+            <a href="./aria_dashboard_tour.html" class="secondary">Dashboard instead</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-main">
+            <h2>Gym dashboard tour</h2>
+            <p>
+              Wall‑by‑wall view of devices, calibration envelope, and alert /
+              incident history — from a gym operator’s perspective.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Device health grid</span>
+              <span class="pill">Calibration band</span>
+              <span class="pill">Alerts &amp; lockouts</span>
+            </div>
+          </div>
+          <div class="card-cta">
+            <a href="./aria_dashboard_tour.html">Open dashboard tour</a>
+            <a href="./aria_app_tour.html" class="secondary">App instead</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-main">
+            <h2>Testing dashboard tour</h2>
+            <p>
+              A sandbox view for bring‑up and experiments: simulated devices,
+              test runs, firmware versions, and failure modes without touching
+              production.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Device bring‑up</span>
+              <span class="pill">Test runs &amp; outcomes</span>
+              <span class="pill">Firmware &amp; logs</span>
+            </div>
+          </div>
+          <div class="card-cta">
+            <a href="./aria_testing_dashboard_tour.html">Open testing tour</a>
+            <a href="./aria_dashboard_tour.html" class="secondary">Gym dashboard</a>
+          </div>
+        </article>
+      </div>
+
+      <p class="hint">
+        You can bookmark the individual pages (`aria_app_tour.html`,
+        `aria_dashboard_tour.html` and `aria_testing_dashboard_tour.html`) if
+        you want to jump straight into one view.
+      </p>
+  </body>
+</html>
+

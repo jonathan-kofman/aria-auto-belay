@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ARIA Testing Dashboard Tour</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #020617;
+        --panel: #020617;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.14);
+        --accent-2: #a855f7;
+        --text-main: #e5e7eb;
+        --text-muted: #9ca3af;
+        --border-subtle: rgba(148, 163, 184, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(120% 180% at 10% -10%, #1f2937, #020617 50%)
+            fixed,
+          radial-gradient(120% 180% at 110% 110%, #0f172a, #020617 40%) fixed;
+        color: var(--text-main);
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        padding: 2.2rem 1.3rem;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 1200px;
+        background: linear-gradient(145deg, #020617, #020617 50%, #020617 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 32px 110px rgba(15, 23, 42, 1);
+        padding: 1.4rem 1.4rem 1.2rem;
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 1rem;
+      }
+
+      @media (max-width: 900px) {
+        body {
+          padding: 1.5rem 0.9rem;
+        }
+
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          border-radius: 22px;
+        }
+      }
+
+      .header {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-main h1 {
+        margin: 0 0 0.2rem;
+        font-size: 1.35rem;
+      }
+
+      .header-main p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .header-badge {
+        padding: 0.18rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.9);
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        font-size: 0.75rem;
+        box-shadow: 0 12px 28px rgba(56, 189, 248, 0.5);
+        white-space: nowrap;
+      }
+
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .panel {
+        border-radius: 18px;
+        padding: 0.85rem 0.9rem 0.8rem;
+        background: radial-gradient(
+            circle at 0% 0%,
+            rgba(56, 189, 248, 0.1),
+            rgba(15, 23, 42, 0.98)
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(56, 189, 248, 0.06),
+            rgba(15, 23, 42, 0.98)
+          );
+        border: 1px solid rgba(148, 163, 184, 0.45);
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .panel-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .panel-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .panel-tag {
+        font-size: 0.72rem;
+        padding: 0.1rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        color: rgba(209, 213, 219, 0.96);
+        white-space: nowrap;
+      }
+
+      .mode-toggle {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 0.16rem;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        background: rgba(15, 23, 42, 0.96);
+        gap: 0.16rem;
+        font-size: 0.75rem;
+      }
+
+      .mode-toggle button {
+        border: none;
+        background: transparent;
+        color: rgba(148, 163, 184, 0.95);
+        padding: 0.2rem 0.7rem;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+
+      .mode-toggle button.active {
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        box-shadow: 0 10px 25px rgba(56, 189, 248, 0.5);
+      }
+
+      .table {
+        margin-top: 0.4rem;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(30, 64, 175, 0.9);
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      .table-header,
+      .table-row {
+        display: grid;
+        grid-template-columns: 0.6fr 0.9fr 0.7fr 0.5fr;
+        gap: 0.4rem;
+        padding: 0.32rem 0.45rem;
+        font-size: 0.74rem;
+        align-items: center;
+      }
+
+      .table-header {
+        background: rgba(15, 23, 42, 1);
+        border-bottom: 1px solid rgba(30, 64, 175, 0.9);
+        color: rgba(148, 163, 184, 0.98);
+      }
+
+      .table-row:nth-child(odd) {
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      .table-row:nth-child(even) {
+        background: rgba(15, 23, 42, 0.94);
+      }
+
+      .badge {
+        display: inline-flex;
+        padding: 0.08rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.8);
+        font-size: 0.68rem;
+        color: rgba(209, 213, 219, 0.96);
+      }
+
+      .badge.pass {
+        border-color: rgba(34, 197, 94, 0.9);
+        color: #bbf7d0;
+        background: rgba(22, 163, 74, 0.25);
+      }
+
+      .badge.fail {
+        border-color: rgba(248, 113, 113, 0.9);
+        color: #fecaca;
+        background: rgba(185, 28, 28, 0.3);
+      }
+
+      .badge.running {
+        border-color: rgba(59, 130, 246, 0.95);
+        color: #bfdbfe;
+        background: rgba(30, 64, 175, 0.4);
+      }
+
+      .badge.warn {
+        border-color: rgba(250, 204, 21, 0.95);
+        color: #fef9c3;
+        background: rgba(180, 83, 9, 0.3);
+      }
+
+      .small {
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.96);
+        margin-top: 0.55rem;
+      }
+
+      .device-grid {
+        margin-top: 0.4rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.35rem;
+      }
+
+      @media (max-width: 700px) {
+        .device-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .device-card {
+        border-radius: 12px;
+        padding: 0.4rem 0.35rem 0.3rem;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(15, 23, 42, 0.98),
+          rgba(15, 23, 42, 1)
+        );
+        border: 1px solid rgba(30, 64, 175, 0.95);
+        cursor: pointer;
+        transition: transform 0.08s ease, box-shadow 0.12s ease,
+          border-color 0.12s ease;
+      }
+
+      .device-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.95);
+        border-color: rgba(56, 189, 248, 0.9);
+      }
+
+      .device-card.active {
+        border-color: rgba(56, 189, 248, 0.98);
+        box-shadow: 0 12px 40px rgba(56, 189, 248, 0.4);
+      }
+
+      .device-name {
+        font-size: 0.78rem;
+      }
+
+      .device-meta {
+        font-size: 0.68rem;
+        color: rgba(148, 163, 184, 0.95);
+        margin-top: 0.06rem;
+      }
+
+      .device-row {
+        margin-top: 0.18rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.18rem;
+        font-size: 0.7rem;
+      }
+
+      .pill {
+        font-size: 0.68rem;
+        padding: 0.08rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.8);
+        color: rgba(209, 213, 219, 0.96);
+      }
+
+      .detail-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.16rem;
+      }
+
+      .detail-sub {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-bottom: 0.4rem;
+      }
+
+      .log-box {
+        border-radius: 12px;
+        padding: 0.4rem 0.45rem 0.35rem;
+        background: rgba(15, 23, 42, 0.98);
+        border: 1px solid rgba(30, 64, 175, 0.9);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 0.7rem;
+        max-height: 150px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .log-line {
+        color: rgba(148, 163, 184, 0.96);
+        white-space: nowrap;
+      }
+
+      .log-line span.tag {
+        color: rgba(56, 189, 248, 0.9);
+      }
+
+      .log-line span.warn {
+        color: rgba(250, 204, 21, 0.95);
+      }
+
+      .log-line span.err {
+        color: rgba(248, 113, 113, 0.95);
+      }
+
+      .log-fade {
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 22px;
+        background: linear-gradient(
+          to bottom,
+          rgba(15, 23, 42, 0),
+          rgba(15, 23, 42, 0.98)
+        );
+      }
+
+      .timeline {
+        margin-top: 0.45rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.72rem;
+      }
+
+      .timeline-step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.4rem;
+        align-items: flex-start;
+      }
+
+      .timeline-marker {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.16rem;
+        padding-top: 0.06rem;
+      }
+
+      .timeline-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        border: 2px solid rgba(56, 189, 248, 0.9);
+        background: rgba(15, 23, 42, 1);
+      }
+
+      .timeline-line {
+        flex: 1;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          rgba(56, 189, 248, 0.8),
+          rgba(148, 163, 184, 0.3)
+        );
+        border-radius: 999px;
+      }
+
+      .timeline-title {
+        font-size: 0.78rem;
+      }
+
+      .timeline-meta {
+        font-size: 0.72rem;
+        color: rgba(148, 163, 184, 0.96);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div class="header-main">
+          <h1>ARIA testing dashboard tour</h1>
+          <p>
+            This is not meant to match any specific tool exactly — it’s a mental
+            model of your bring‑up / testing console: devices on the left, test
+            runs and logs on the right.
+          </p>
+        </div>
+        <div class="header-badge">Testing lens</div>
+      </header>
+
+      <section class="col">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Firmware &amp; test matrix</div>
+              <div class="panel-sub">
+                Think of this table as, “what firmware is on what hardware, and
+                which test suites have we run recently?”
+              </div>
+            </div>
+            <div class="panel-tag">Simulated data</div>
+          </div>
+
+          <div class="table">
+            <div class="table-header">
+              <div>Target</div>
+              <div>Firmware</div>
+              <div>Suite</div>
+              <div>Status</div>
+            </div>
+            <div class="table-row">
+              <div>ESP32 dev‑kit</div>
+              <div>aria‑esp32 0.9.3‑alpha</div>
+              <div>BLE bring‑up</div>
+              <div><span class="badge pass">pass</span></div>
+            </div>
+            <div class="table-row">
+              <div>Wearable</div>
+              <div>aria‑wearable 0.5.1</div>
+              <div>Sensor noise</div>
+              <div><span class="badge warn">flaky</span></div>
+            </div>
+            <div class="table-row">
+              <div>STM32 main</div>
+              <div>aria‑stm 1.2.0‑rc2</div>
+              <div>Safety regressions</div>
+              <div><span class="badge running">running</span></div>
+            </div>
+            <div class="table-row">
+              <div>Test stand</div>
+              <div>aria‑lab 0.3.0</div>
+              <div>Drop tests</div>
+              <div><span class="badge fail">fail</span></div>
+            </div>
+          </div>
+
+          <p class="small">
+            This is a sketch only. If you want, you can later wire it up to real
+            JSON files from your test rigs.
+          </p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Test devices</div>
+              <div class="panel-sub">
+                Each tile is a physical thing in the lab — a dev‑board, a full
+                test stand, or a prototype unit.
+              </div>
+            </div>
+          </div>
+
+          <div class="device-grid" id="deviceGrid"></div>
+
+          <p class="small">
+            Click a device to the right to change the “focus” of the log view
+            and the little test timeline.
+          </p>
+        </article>
+      </section>
+
+      <section class="col">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" id="detailTitle">
+                STM32 main board
+              </div>
+              <div class="panel-sub" id="detailSub">
+                Prototype unit on the test stand, running <code>aria‑stm
+                1.2.0‑rc2</code>.
+              </div>
+            </div>
+            <div class="mode-toggle" aria-label="View mode">
+              <button
+                class="mode-btn active"
+                data-mode="logs"
+                type="button"
+              >
+                Logs
+              </button>
+              <button class="mode-btn" data-mode="timeline" type="button">
+                Test timeline
+              </button>
+            </div>
+          </div>
+
+          <div id="logsView" class="logs-view">
+            <div class="detail-title">Streaming logs (simulated)</div>
+            <div class="detail-sub">
+              Just enough structure to remind you: serial output is where you
+              debug bring‑up and weird edge cases.
+            </div>
+
+            <div class="log-box" id="logBox">
+              <div class="log-line">
+                [18:02:11.203] <span class="tag">ble</span>: init ok, advertising
+                as <span>ARIA‑DEV‑A01</span>
+              </div>
+              <div class="log-line">
+                [18:02:11.742] <span class="tag">safety</span>:
+                rope_tension=3.2kN cam_rpm=122
+              </div>
+              <div class="log-line">
+                [18:02:12.014] <span class="tag">sensor</span>: accel=(0.01,
+                0.98, 0.05) gyro=(0.0, 0.1, 0.0)
+              </div>
+              <div class="log-line">
+                [18:02:12.231] <span class="tag">test</span>: step=3/8
+                "mid‑weight descent"
+              </div>
+              <div class="log-line">
+                [18:02:12.457] <span class="tag warn">safety</span>:
+                tension_spike=3.9kN (within hard limit)
+              </div>
+              <div class="log-line">
+                [18:02:13.010] <span class="tag">cam</span>: rpm=135
+                window_ok=true
+              </div>
+              <div class="log-line">
+                [18:02:13.642] <span class="tag err">test</span>:
+                assertion_failed phase="retract" reason="rpm drift too high"
+              </div>
+              <div class="log-line">
+                [18:02:13.645] <span class="tag err">safety</span>:
+                entering LOCKOUT state, reason=TEST_FAIL
+              </div>
+              <div class="log-fade"></div>
+            </div>
+          </div>
+
+          <div id="timelineView" style="display: none">
+            <div class="detail-title">Last few runs</div>
+            <div class="detail-sub">
+              Narrative‑style: what you did to this device today, and what it
+              did back.
+            </div>
+            <div class="timeline" id="timeline"></div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const deviceGrid = document.getElementById("deviceGrid");
+      const detailTitle = document.getElementById("detailTitle");
+      const detailSub = document.getElementById("detailSub");
+      const logsView = document.getElementById("logsView");
+      const timelineView = document.getElementById("timelineView");
+      const timelineEl = document.getElementById("timeline");
+      const modeButtons = Array.from(
+        document.querySelectorAll(".mode-btn[data-mode]")
+      );
+
+      const state = {
+        selectedId: "stm32",
+        mode: "logs",
+      };
+
+      const devices = [
+        {
+          id: "esp32",
+          label: "ESP32 dev‑kit",
+          meta: "BLE bridge • bench",
+          firmware: "aria‑esp32 0.9.3‑alpha",
+          status: "pass",
+        },
+        {
+          id: "wearable",
+          label: "Wearable proto",
+          meta: "IMU + BLE • wrist",
+          firmware: "aria‑wearable 0.5.1",
+          status: "warn",
+        },
+        {
+          id: "stm32",
+          label: "STM32 main board",
+          meta: "Core safety loop",
+          firmware: "aria‑stm 1.2.0‑rc2",
+          status: "running",
+        },
+        {
+          id: "stand",
+          label: "Full test stand",
+          meta: "Drop rig",
+          firmware: "aria‑lab 0.3.0",
+          status: "fail",
+        },
+        {
+          id: "sim",
+          label: "Simulator",
+          meta: "Virtual device",
+          firmware: "aria‑sim 0.1.0",
+          status: "pass",
+        },
+        {
+          id: "spare",
+          label: "Spare board",
+          meta: "On shelf",
+          firmware: "aria‑stm 1.1.4",
+          status: "pass",
+        },
+      ];
+
+      const timelines = {
+        stm32: [
+          {
+            title: "Safety regression suite",
+            meta: "8 scripted scenarios • 7 passed • 1 failed for rpm drift.",
+          },
+          {
+            title: "Manual lever test",
+            meta: "You pulled on the rope to simulate a hard fall; device hard‑stopped correctly.",
+          },
+          {
+            title: "Overnight idle",
+            meta: "Used to watch for slow thermal drift in sensors.",
+          },
+        ],
+        stand: [
+          {
+            title: "Drop series #12",
+            meta: "Deliberately nasty tests; multiple lock‑outs expected.",
+          },
+          {
+            title: "Camera alignment",
+            meta: "Testing combined vision + mechanical sanity checks.",
+          },
+        ],
+      };
+
+      function renderDevices() {
+        deviceGrid.innerHTML = "";
+        devices.forEach((d) => {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className =
+            "device-card" + (d.id === state.selectedId ? " active" : "");
+
+          const statusText =
+            d.status === "pass"
+              ? "green"
+              : d.status === "fail"
+              ? "red"
+              : d.status === "warn"
+              ? "amber"
+              : "blue";
+
+          card.innerHTML = `
+            <div class="device-name">${d.label}</div>
+            <div class="device-meta">${d.meta}</div>
+            <div class="device-row">
+              <span class="pill">${d.firmware}</span>
+              <span class="pill">${statusText}</span>
+            </div>
+          `;
+
+          card.addEventListener("click", () => {
+            state.selectedId = d.id;
+            renderDevices();
+            updateDetail();
+          });
+
+          deviceGrid.appendChild(card);
+        });
+      }
+
+      function setMode(mode) {
+        state.mode = mode;
+        modeButtons.forEach((btn) => {
+          btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+        });
+        logsView.style.display = mode === "logs" ? "block" : "none";
+        timelineView.style.display = mode === "timeline" ? "block" : "none";
+        if (mode === "timeline") {
+          renderTimeline();
+        }
+      }
+
+      function updateDetail() {
+        const d = devices.find((x) => x.id === state.selectedId);
+        if (!d) return;
+
+        detailTitle.textContent = d.label;
+        detailSub.innerHTML = `${d.meta}, running <code>${d.firmware}</code>.`;
+
+        if (state.mode === "timeline") {
+          renderTimeline();
+        }
+      }
+
+      function renderTimeline() {
+        const entries = timelines[state.selectedId] || [];
+        timelineEl.innerHTML = "";
+
+        if (!entries.length) {
+          timelineEl.innerHTML =
+            '<div class="timeline-meta">No special history sketched for this device yet. In a real tool, this would be where you scroll back through experiment runs.</div>';
+          return;
+        }
+
+        entries.forEach((e, idx) => {
+          const step = document.createElement("div");
+          step.className = "timeline-step";
+          step.innerHTML = `
+            <div class="timeline-marker">
+              <div class="timeline-dot"></div>
+              ${idx < entries.length - 1 ? '<div class="timeline-line"></div>' : ""}
+            </div>
+            <div>
+              <div class="timeline-title">${e.title}</div>
+              <div class="timeline-meta">${e.meta}</div>
+            </div>
+          `;
+          timelineEl.appendChild(step);
+        });
+      }
+
+      modeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const mode = btn.getAttribute("data-mode");
+          setMode(mode);
+        });
+      });
+
+      renderDevices();
+      updateDetail();
+    </script>
+  </body>
+</html>
+

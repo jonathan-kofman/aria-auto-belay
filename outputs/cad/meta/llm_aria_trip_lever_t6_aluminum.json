@@ -1,20 +1,17 @@
 {
-  "part_name": "generate the ARIA trip lever: 80mm long, 8mm wide, 6mm thick, 6061-T6 aluminum, hook feature at one end: 4mm tall 6mm long rectangular protrusion on top face, pivot hole 4mm diameter centered at 10mm from hook end, spring pin hole 3mm diameter at 60mm from hook end, fillet all edges 0.5mm",
+  "part_name": "ARIA trip lever t6 aluminum, simple solid only, no fillets, no chamfers",
   "bbox_mm": {
-    "x": 80.0,
-    "y": 8.0,
-    "z": 6.0
+    "x": 120.0,
+    "y": 25.0,
+    "z": 8.0
   },
   "dims_mm": {
-    "LENGTH_MM": 80.0,
-    "WIDTH_MM": 8.0,
-    "THICKNESS_MM": 6.0,
-    "HOOK_HEIGHT_MM": 4.0,
-    "HOOK_LENGTH_MM": 6.0,
-    "PIVOT_HOLE_DIA_MM": 4.0,
-    "PIVOT_HOLE_OFFSET_MM": 10.0,
-    "SPRING_PIN_HOLE_DIA_MM": 3.0,
-    "SPRING_PIN_HOLE_OFFSET_MM": 60.0,
-    "FILLET_MM": 0.5
+    "LENGTH_MM": 120.0,
+    "WIDTH_MM": 25.0,
+    "THICKNESS_MM": 8.0,
+    "PIVOT_HOLE_DIA_MM": 10.0,
+    "PIVOT_OFFSET_MM": 30.0,
+    "TIP_HOLE_DIA_MM": 6.0,
+    "TIP_OFFSET_MM": 15.0
   }
 }

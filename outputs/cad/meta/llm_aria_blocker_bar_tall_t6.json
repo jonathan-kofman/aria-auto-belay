@@ -1,20 +1,13 @@
 {
-  "part_name": "generate the ARIA blocker bar: 120mm long, 15mm wide, 10mm tall, 6061-T6 aluminum, chamfer both ends at 45 degrees 3mm deep, 2x M5 through holes centered at 20mm from each end, 1x M4 hole 4.2mm diameter centered on top face at midpoint, notch on one long face: 8mm wide 3mm deep centered at midpoint for trip lever engagement, fillet vertical edges only 0.5mm",
+  "part_name": "ARIA blocker bar tall t6, 15x10mm cross section, 100mm long",
   "bbox_mm": {
-    "x": 120.0,
+    "x": 100.0,
     "y": 15.0,
     "z": 10.0
   },
   "dims_mm": {
-    "LENGTH_MM": 120.0,
+    "LENGTH_MM": 100.0,
     "WIDTH_MM": 15.0,
-    "HEIGHT_MM": 10.0,
-    "CHAMFER_DEPTH_MM": 3.0,
-    "M5_HOLE_DIA_MM": 5.0,
-    "M5_HOLE_OFFSET_MM": 20.0,
-    "M4_HOLE_DIA_MM": 4.2,
-    "NOTCH_WIDTH_MM": 8.0,
-    "NOTCH_DEPTH_MM": 3.0,
-    "FILLET_MM": 0.5
+    "HEIGHT_MM": 10.0
   }
 }

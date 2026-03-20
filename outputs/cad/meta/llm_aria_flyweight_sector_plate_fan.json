@@ -1,23 +1,18 @@
 {
-  "part_name": "generate the ARIA flyweight sector plate: fan-shaped sector, outer radius 85mm, inner radius 25mm, sector angle 120 degrees, thickness 8mm, 6061-T6 aluminum, pivot hole 10mm diameter at the inner arc center point, trip pin hole 2mm diameter at 75mm radius at sector midpoint, weight pocket on outer face: 40mm long 15mm wide 4mm deep rectangular pocket centered at 65mm radius, mounting hole 6mm diameter at 50mm radius centered in sector, fillet inner arc edges 0.5mm",
+  "part_name": "ARIA flyweight sector plate fan, simple extruded solid only, no fillets, no chamfers",
   "bbox_mm": {
-    "x": 72.319,
-    "y": 146.856,
-    "z": 8.0
+    "x": 448.66,
+    "y": 269.808,
+    "z": 15.0
   },
   "dims_mm": {
-    "OUTER_RADIUS_MM": 85.0,
-    "INNER_RADIUS_MM": 25.0,
-    "THICKNESS_MM": 8.0,
-    "PIVOT_HOLE_DIA_MM": 10.0,
-    "TRIP_PIN_HOLE_DIA_MM": 2.0,
-    "TRIP_PIN_RADIUS_MM": 75.0,
-    "WEIGHT_POCKET_LENGTH_MM": 40.0,
-    "WEIGHT_POCKET_WIDTH_MM": 15.0,
-    "WEIGHT_POCKET_DEPTH_MM": 4.0,
-    "WEIGHT_POCKET_RADIUS_MM": 65.0,
-    "MOUNTING_HOLE_DIA_MM": 6.0,
-    "MOUNTING_HOLE_RADIUS_MM": 50.0,
-    "FILLET_MM": 0.5
+    "OUTER_RADIUS_MM": 300.0,
+    "INNER_RADIUS_MM": 50.0,
+    "THICKNESS_MM": 15.0,
+    "CENTER_HOLE_DIA_MM": 20.0,
+    "BOLT_CIRCLE_RADIUS_MM": 80.0,
+    "BOLT_HOLE_DIA_MM": 8.0,
+    "BLADE_WIDTH_MM": 20.0,
+    "BLADE_HEIGHT_MM": 8.0
   }
 }

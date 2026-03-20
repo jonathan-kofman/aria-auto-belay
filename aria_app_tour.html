@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ARIA Climber App Tour</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #020617;
+        --panel: #020617;
+        --panel-soft: #020617;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.12);
+        --accent-2: #a855f7;
+        --text-main: #e5e7eb;
+        --text-muted: #9ca3af;
+        --border-subtle: rgba(148, 163, 184, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          "Segoe UI", sans-serif;
+        background: radial-gradient(120% 180% at 10% -10%, #1f2937, #020617 50%)
+            fixed,
+          radial-gradient(120% 180% at 110% 110%, #0f172a, #020617 40%) fixed;
+        color: var(--text-main);
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        padding: 2.2rem 1.3rem;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 1100px;
+        background: linear-gradient(145deg, #020617, #020617 50%, #020617 100%);
+        border-radius: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: 0 32px 110px rgba(15, 23, 42, 1);
+        padding: 1.4rem 1.4rem 1.2rem;
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 1.3rem;
+      }
+
+      @media (max-width: 900px) {
+        body {
+          padding: 1.5rem 0.9rem;
+        }
+
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          border-radius: 22px;
+        }
+      }
+
+      .header {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-main h1 {
+        margin: 0 0 0.2rem;
+        font-size: 1.35rem;
+      }
+
+      .header-main p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .header-badge {
+        padding: 0.18rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.9);
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        font-size: 0.75rem;
+        box-shadow: 0 12px 28px rgba(56, 189, 248, 0.5);
+        white-space: nowrap;
+      }
+
+      .col {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .panel {
+        border-radius: 18px;
+        padding: 0.85rem 0.9rem 0.8rem;
+        background: radial-gradient(
+            circle at 0% 0%,
+            rgba(56, 189, 248, 0.1),
+            rgba(15, 23, 42, 0.98)
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(56, 189, 248, 0.06),
+            rgba(15, 23, 42, 0.98)
+          );
+        border: 1px solid rgba(148, 163, 184, 0.45);
+      }
+
+      .panel-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.15rem;
+      }
+
+      .panel-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+      }
+
+      .step-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.55rem;
+        align-items: flex-start;
+        padding: 0.32rem 0.3rem;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.12s ease, transform 0.08s ease,
+          border-color 0.12s ease;
+        border: 1px solid transparent;
+      }
+
+      .step:hover {
+        transform: translateY(-1px);
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      .step.active {
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(56, 189, 248, 0.16),
+          rgba(15, 23, 42, 1)
+        );
+        border-color: rgba(56, 189, 248, 0.8);
+        box-shadow: 0 14px 38px rgba(15, 23, 42, 1);
+      }
+
+      .step-marker {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        padding-top: 0.1rem;
+      }
+
+      .step-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        border: 2px solid rgba(148, 163, 184, 0.9);
+        background: rgba(15, 23, 42, 1);
+      }
+
+      .step.active .step-dot {
+        border-color: var(--accent);
+        box-shadow: 0 0 18px rgba(56, 189, 248, 0.9);
+      }
+
+      .step-line {
+        flex: 1;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          rgba(56, 189, 248, 0.8),
+          rgba(148, 163, 184, 0.3)
+        );
+        border-radius: 999px;
+        opacity: 0.7;
+      }
+
+      .step-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.06rem;
+      }
+
+      .step-title {
+        font-size: 0.86rem;
+      }
+
+      .step-meta {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .step-tags {
+        margin-top: 0.12rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.26rem;
+      }
+
+      .step-tag {
+        font-size: 0.68rem;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.7);
+        color: rgba(209, 213, 219, 0.96);
+      }
+
+      .note {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+      }
+
+      .phone-wrap {
+        border-radius: 20px;
+        padding: 0.6rem;
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0b1120);
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.95);
+        max-width: 280px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .phone {
+        border-radius: 22px;
+        padding: 0.55rem 0.52rem 0.6rem;
+        background: radial-gradient(
+            circle at 0% 0%,
+            rgba(56, 189, 248, 0.2),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(56, 189, 248, 0.16),
+            rgba(15, 23, 42, 1)
+          );
+        border: 1px solid rgba(148, 163, 184, 0.7);
+      }
+
+      .phone-notch {
+        margin: 0 auto 0.4rem;
+        width: 60%;
+        height: 9px;
+        border-radius: 0 0 999px 999px;
+        background: rgba(15, 23, 42, 0.98);
+      }
+
+      .phone-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.65rem;
+        color: rgba(226, 232, 240, 0.9);
+      }
+
+      .phone-tabs {
+        margin-top: 0.35rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.18rem;
+        padding: 0.12rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.9);
+      }
+
+      .phone-tab {
+        border-radius: 999px;
+        padding: 0.22rem 0.2rem;
+        font-size: 0.7rem;
+        text-align: center;
+        color: rgba(148, 163, 184, 0.95);
+        cursor: pointer;
+      }
+
+      .phone-tab.active {
+        background: radial-gradient(circle at 0% 0%, #38bdf8, #0ea5e9);
+        color: #0b1120;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(56, 189, 248, 0.6);
+      }
+
+      .phone-body {
+        margin-top: 0.4rem;
+        border-radius: 14px;
+        padding: 0.4rem 0.35rem 0.32rem;
+        background: radial-gradient(circle at 0% 0%, #020617, #020617);
+        border: 1px solid rgba(30, 64, 175, 0.9);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+        min-height: 170px;
+      }
+
+      .phone-title {
+        font-size: 0.78rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.14rem;
+      }
+
+      .phone-pill {
+        font-size: 0.62rem;
+        padding: 0.08rem 0.35rem;
+        border-radius: 999px;
+        border: 1px solid rgba(56, 189, 248, 0.8);
+        color: #e0f2fe;
+        background: rgba(15, 23, 42, 0.9);
+      }
+
+      .phone-sub {
+        font-size: 0.7rem;
+        color: rgba(148, 163, 184, 0.96);
+        margin-bottom: 0.3rem;
+      }
+
+      .row-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.22rem;
+      }
+
+      .row {
+        padding: 0.22rem 0.3rem;
+        border-radius: 10px;
+        background: radial-gradient(
+          circle at 0% 0%,
+          rgba(15, 23, 42, 0.98),
+          rgba(15, 23, 42, 1)
+        );
+        border: 1px solid rgba(30, 64, 175, 0.9);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.7rem;
+      }
+
+      .row-main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.08rem;
+      }
+
+      .row-meta {
+        font-size: 0.62rem;
+        color: rgba(148, 163, 184, 0.96);
+      }
+
+      .row-pill {
+        font-size: 0.62rem;
+        padding: 0.08rem 0.32rem;
+        border-radius: 999px;
+        border: 1px solid rgba(34, 197, 94, 0.9);
+        color: #bbf7d0;
+        background: rgba(22, 163, 74, 0.3);
+        white-space: nowrap;
+      }
+
+      .row-pill.warn {
+        border-color: rgba(250, 204, 21, 0.9);
+        color: #fef9c3;
+        background: rgba(180, 83, 9, 0.3);
+      }
+
+      .row-pill.bad {
+        border-color: rgba(248, 113, 113, 0.9);
+        color: #fee2e2;
+        background: rgba(185, 28, 28, 0.35);
+      }
+
+      .phone-footer {
+        margin-top: 0.3rem;
+        font-size: 0.62rem;
+        color: rgba(148, 163, 184, 0.96);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .crumbs {
+        display: flex;
+        gap: 0.16rem;
+      }
+
+      .crumb {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.75);
+      }
+
+      .crumb.active {
+        background: #e5e7eb;
+      }
+
+      .footer-note {
+        font-size: 0.7rem;
+        color: rgba(148, 163, 184, 0.9);
+        margin-top: 0.35rem;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div class="header-main">
+          <h1>ARIA climber app tour</h1>
+          <p>
+            Left: a simple list of the main flows. Right: a phone‑style mock
+            that updates as you click around.
+          </p>
+        </div>
+        <div class="header-badge">App lens</div>
+      </header>
+
+      <section class="col">
+        <article class="panel">
+          <div class="panel-title">High‑level flows</div>
+          <div class="panel-sub">
+            Think of this as a storyboard. Each step is something you’d
+            verbally talk through in a demo.
+          </div>
+
+          <div class="step-list">
+            <button class="step active" data-step="login" type="button">
+              <div class="step-marker">
+                <div class="step-dot"></div>
+                <div class="step-line"></div>
+              </div>
+              <div class="step-content">
+                <div class="step-title">1. Login &amp; role choice</div>
+                <div class="step-meta">
+                  Email‑based auth, then pick climber vs. gym operator.
+                </div>
+                <div class="step-tags">
+                  <span class="step-tag">Auth</span>
+                  <span class="step-tag">Routing</span>
+                </div>
+              </div>
+            </button>
+
+            <button class="step" data-step="home" type="button">
+              <div class="step-marker">
+                <div class="step-dot"></div>
+                <div class="step-line"></div>
+              </div>
+              <div class="step-content">
+                <div class="step-title">2. Climber home</div>
+                <div class="step-meta">
+                  Shows whether the device you’re clipped into is ready,
+                  current sessions, and quick actions.
+                </div>
+                <div class="step-tags">
+                  <span class="step-tag">Overview</span>
+                  <span class="step-tag">Device state</span>
+                </div>
+              </div>
+            </button>
+
+            <button class="step" data-step="session" type="button">
+              <div class="step-marker">
+                <div class="step-dot"></div>
+                <div class="step-line"></div>
+              </div>
+              <div class="step-content">
+                <div class="step-title">3. Single session</div>
+                <div class="step-meta">
+                  One climb, with rope tension, phases, and any safety‑relevant
+                  events.
+                </div>
+                <div class="step-tags">
+                  <span class="step-tag">Telemetry</span>
+                  <span class="step-tag">Review</span>
+                </div>
+              </div>
+            </button>
+
+            <button class="step" data-step="history" type="button">
+              <div class="step-marker">
+                <div class="step-dot"></div>
+              </div>
+              <div class="step-content">
+                <div class="step-title">4. History &amp; leaderboard</div>
+                <div class="step-meta">
+                  All‑time climbs plus a fun “who’s active at this gym” view.
+                </div>
+                <div class="step-tags">
+                  <span class="step-tag">Engagement</span>
+                  <span class="step-tag">Retention</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <p class="note">
+            Click a step to see a rough version of that screen. Nothing is live
+            here; it’s just so you can visualise and explain the app quickly.
+          </p>
+        </article>
+
+        <article class="panel">
+          <div class="panel-title">Notes for future‑you</div>
+          <div class="panel-sub">
+            This page is intentionally simple to scan. When you add real
+            screenshots later, you can paste them in place of the stylised
+            widgets.
+          </div>
+          <p class="note">
+            The separate dashboard tour lives in
+            <code>aria_dashboard_tour.html</code>. The small index that links
+            them is in <code>aria_app_dashboard_tour.html</code>.
+          </p>
+        </article>
+      </section>
+
+      <section class="col">
+        <article class="panel">
+          <div class="panel-title">Phone mock</div>
+          <div class="panel-sub">
+            Tabs roughly map to navigation in your real app. The content
+            changes as you click steps on the left.
+          </div>
+
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="phone-notch"></div>
+              <div class="phone-top">
+                <span>18:09</span>
+                <span>BLE • Cloud • Safe</span>
+              </div>
+
+              <div class="phone-tabs">
+                <button
+                  class="phone-tab active"
+                  data-screen="sessions"
+                  type="button"
+                >
+                  Sessions
+                </button>
+                <button class="phone-tab" data-screen="leaderboard" type="button">
+                  Leaderboard
+                </button>
+                <button class="phone-tab" data-screen="profile" type="button">
+                  Profile
+                </button>
+              </div>
+
+              <div class="phone-body" id="phoneBody"></div>
+
+              <div class="phone-footer">
+                <span id="phoneHint">Viewing: Today’s sessions</span>
+                <div class="crumbs">
+                  <div class="crumb active"></div>
+                  <div class="crumb"></div>
+                  <div class="crumb"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-note">
+            If you want, you can swap text labels here to match real route
+            names / walls.
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const phoneBody = document.getElementById("phoneBody");
+      const phoneHint = document.getElementById("phoneHint");
+      const phoneTabs = Array.from(
+        document.querySelectorAll(".phone-tab[data-screen]")
+      );
+      const steps = Array.from(document.querySelectorAll(".step[data-step]"));
+
+      const state = {
+        step: "login",
+        screen: "sessions",
+      };
+
+      function renderPhone() {
+        let html = "";
+        let hint = "";
+
+        if (state.screen === "sessions") {
+          html = `
+            <div class="phone-title">
+              <span>Today’s sessions</span>
+              <span class="phone-pill">Linked to A‑01</span>
+            </div>
+            <div class="phone-sub">
+              Recent climbs for this climber on this device. Tap a row to dive
+              into one climb.
+            </div>
+            <div class="row-list">
+              <div class="row">
+                <div class="row-main">
+                  <div>Lead • “Galaxy Route”</div>
+                  <div class="row-meta">10:12 • 24m • clean</div>
+                </div>
+                <span class="row-pill">In progress</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>Top‑rope • “Crux Ridge”</div>
+                  <div class="row-meta">09:24 • 18m • 1 rest</div>
+                </div>
+                <span class="row-pill">OK</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>Training • “Endurance”</div>
+                  <div class="row-meta">Yesterday • 15m • pumpy</div>
+                </div>
+                <span class="row-pill warn">Watch</span>
+              </div>
+            </div>
+          `;
+          hint = "Viewing: Today’s sessions";
+        } else if (state.screen === "leaderboard") {
+          html = `
+            <div class="phone-title">
+              <span>Gym leaderboard</span>
+              <span class="phone-pill">This week</span>
+            </div>
+            <div class="phone-sub">
+              Lightweight ranking based on sessions, sends, and consistency – not
+              just hardest grade.
+            </div>
+            <div class="row-list">
+              <div class="row">
+                <div class="row-main">
+                  <div>1. You</div>
+                  <div class="row-meta">6 sessions • 18 sends</div>
+                </div>
+                <span class="row-pill">on form</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>2. Riley</div>
+                  <div class="row-meta">4 sessions • 11 sends</div>
+                </div>
+                <span class="row-pill">pushing</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>3. Sam</div>
+                  <div class="row-meta">3 sessions • 9 sends</div>
+                </div>
+                <span class="row-pill">steady</span>
+              </div>
+            </div>
+          `;
+          hint = "Viewing: Leaderboard";
+        } else {
+          html = `
+            <div class="phone-title">
+              <span>Profile &amp; safety</span>
+              <span class="phone-pill">Climber</span>
+            </div>
+            <div class="phone-sub">
+              Identity, emergency contact, and a log of all safety‑relevant
+              events tied to this person.
+            </div>
+            <div class="row-list">
+              <div class="row">
+                <div class="row-main">
+                  <div>Profile</div>
+                  <div class="row-meta">Name, contact, custom notes</div>
+                </div>
+                <span class="row-pill">Up to date</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>Safety record</div>
+                  <div class="row-meta">0 device lockouts • 0 incidents</div>
+                </div>
+                <span class="row-pill">Clear</span>
+              </div>
+              <div class="row">
+                <div class="row-main">
+                  <div>Gym memberships</div>
+                  <div class="row-meta">1 active • 2 past</div>
+                </div>
+                <span class="row-pill warn">1 waiver expiring</span>
+              </div>
+            </div>
+          `;
+          hint = "Viewing: Profile & safety";
+        }
+
+        phoneBody.innerHTML = html;
+        phoneHint.textContent = hint;
+      }
+
+      function setStep(step) {
+        state.step = step;
+        steps.forEach((s) => {
+          s.classList.toggle("active", s.getAttribute("data-step") === step);
+        });
+
+        if (step === "login") {
+          state.screen = "profile";
+        } else if (step === "home") {
+          state.screen = "sessions";
+        } else if (step === "session") {
+          state.screen = "sessions";
+        } else if (step === "history") {
+          state.screen = "leaderboard";
+        }
+
+        phoneTabs.forEach((tab) => {
+          tab.classList.toggle(
+            "active",
+            tab.getAttribute("data-screen") === state.screen
+          );
+        });
+
+        renderPhone();
+      }
+
+      steps.forEach((step) => {
+        step.addEventListener("click", () => {
+          const key = step.getAttribute("data-step");
+          setStep(key);
+        });
+      });
+
+      phoneTabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const screen = tab.getAttribute("data-screen");
+          state.screen = screen;
+          phoneTabs.forEach((t) => {
+            t.classList.toggle(
+              "active",
+              t.getAttribute("data-screen") === screen
+            );
+          });
+          renderPhone();
+        });
+      });
+
+      renderPhone();
+    </script>
+  </body>
+</html>
+

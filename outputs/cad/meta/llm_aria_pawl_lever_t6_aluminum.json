@@ -1,0 +1,18 @@
+{
+  "part_name": "ARIA pawl lever, 6061-T6 aluminum, 8x6mm cross section, 60mm length, M4 pivot bore 4.2mm through, trip face angled 15 degrees, spring tab 8mm long 2mm thick on tail end, face contact mate to ratchet ring top face, static load 500N at trip face, SF>=2.0 target",
+  "bbox_mm": {
+    "x": 68.0,
+    "y": 8.0,
+    "z": 6.0
+  },
+  "dims_mm": {
+    "LENGTH_MM": 60.0,
+    "WIDTH_MM": 8.0,
+    "HEIGHT_MM": 6.0,
+    "PIVOT_HOLE_DIA_MM": 4.2,
+    "PIVOT_OFFSET_MM": 22.0,
+    "SPRING_TAB_LENGTH_MM": 8.0,
+    "SPRING_TAB_THICKNESS_MM": 2.0,
+    "FILLET_MM": 0.5
+  }
+}
