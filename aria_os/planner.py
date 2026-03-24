@@ -4,6 +4,7 @@ from .context_loader import load_context, get_mechanical_constants
 from typing import Any
 from pathlib import Path
 from .cem_context import load_cem_geometry, get_part_dimensions
+from . import event_bus
 
 # Template default dimensions per part_id. Used by has_dimensional_overrides.
 TEMPLATE_DIMS = {
@@ -140,11 +141,12 @@ def plan(goal: str, context: dict[str, str] | None = None, repo_root: Path | Non
       - build_order: list of step descriptions
       - material, tolerances, export_formats (optional)
     """
+    event_bus.emit("step", f"Planning: {goal[:60]}", {"goal": goal})
     if context is None:
         context = load_context()
     constants = get_mechanical_constants(context)
     goal_lower = goal.lower()
-    cem = load_cem_geometry(repo_root)
+    cem = load_cem_geometry(repo_root, goal=goal, part_id="")
     cem_nums = _planner_cem_floats(context, cem)
 
     def _inject_cem_guidance(out: dict[str, Any]) -> dict[str, Any]:

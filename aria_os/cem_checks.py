@@ -8,6 +8,7 @@ import json
 
 from .context_loader import get_mechanical_constants
 from aria_models import static_tests as _st_mod
+from . import event_bus
 
 
 @dataclass
@@ -128,10 +129,19 @@ def _run_dynamic_checks() -> tuple[Optional[bool], Optional[float], Optional[flo
     )
 
 
-def _run_cem_system_check() -> tuple[Optional[bool], List[str]]:
-    """Run aria_cem ARIAModule.validate(). Uses default ARIAInputs for now."""
+def _run_cem_system_check(goal: str = "", part_id: str = "") -> tuple[Optional[bool], List[str]]:
+    """Run resolved CEM module's ARIAModule.validate() (default cem_aria)."""
     try:
-        from aria_cem import ARIAInputs, ARIAModule
+        import importlib
+
+        from cem_registry import resolve_cem_module
+
+        mod_name = resolve_cem_module(goal or "", part_id or "")
+        cem_mod = importlib.import_module(mod_name)
+        ARIAInputs = getattr(cem_mod, "ARIAInputs", None)
+        ARIAModule = getattr(cem_mod, "ARIAModule", None)
+        if ARIAInputs is None or ARIAModule is None:
+            return None, []
     except ImportError:
         return None, []
     inputs = ARIAInputs()
@@ -296,7 +306,10 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
     """
     meta = _load_meta(meta_path)
     static_passed, static_min_sf, static_failure_mode = _run_static_checks(part_id, meta, context)
-    cem_passed, cem_warnings = _run_cem_system_check()
+    cem_passed, cem_warnings = _run_cem_system_check(
+        str(context.get("goal", "") or ""),
+        part_id,
+    )
 
     overall = True
     for flag in (static_passed, cem_passed):
@@ -313,7 +326,7 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
 
     summary = "; ".join(pieces) if pieces else "No CEM checks applicable"
 
-    return CEMCheckResult(
+    result = CEMCheckResult(
         part_id=part_id,
         static_passed=static_passed,
         static_min_sf=static_min_sf,
@@ -326,6 +339,16 @@ def run_cem_checks(part_id: str, meta_path: Path, context: dict) -> CEMCheckResu
         overall_passed=overall,
         summary=summary,
     )
+    event_bus.emit(
+        "cem",
+        summary,
+        {
+            "part_id": part_id,
+            "sf": static_min_sf,
+            "passed": overall,
+        },
+    )
+    return result
 
 
 def run_full_system_cem(outputs_dir: str | Path, context: dict) -> dict:

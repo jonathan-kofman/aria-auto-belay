@@ -1,6 +1,7 @@
 """
-LLM-based CadQuery code generator for arbitrary parts.
+LLM-based Grasshopper/RhinoCommon script generator for arbitrary parts.
 Calls Anthropic API; builds system/user prompts from plan + context.
+CadQuery-specific prompt removed 2026-03-23 — now generates RhinoCommon Python.
 """
 import os
 import re
@@ -42,70 +43,46 @@ def _build_system_prompt(
     context: dict[str, str],
     plan: dict[str, Any],
     repo_root: Optional[Path] = None,
+    *,
+    goal: Optional[str] = None,
 ) -> str:
-    """Build system prompt: CadQuery expert, constants, failures, patterns, required ending."""
+    """Build system prompt: RhinoCommon expert, constants, failures, patterns, required ending."""
     constants = get_mechanical_constants(context)
     constants_block = "\n".join(f"#   {k}: {v}" for k, v in sorted(constants.items()))
-    cem = load_cem_geometry(repo_root)
+    g = (goal or "").strip()
+    pid = (plan.get("part_id") or "") if isinstance(plan.get("part_id"), str) else ""
+    cem = load_cem_geometry(repo_root, goal=g, part_id=pid)
     cem_block = format_cem_block(cem)
     examples = get_few_shot_examples(plan.get("text", ""), plan.get("part_id", ""), repo_root)
     few_shot_block = format_few_shot_block(examples)
     part_failures = get_failure_patterns(plan.get("part_id", ""), repo_root)
     learned_failures = "\n".join(f"- {e}" for e in part_failures) if part_failures else ""
-    failures_raw = context.get("aria_failures", "")
-    # Summarize failure patterns (avoid these)
+
     avoid = """
-- Never use annular/donut profile for initial extrusion. Solid first, then cut interior.
-- Always work on EXISTING FACE of the body: .faces(">Z").workplane(), not new planes.
-- Do not reference faces by index (e.g. faces[0]); use direction: faces(">Z"), faces("<Z").
-- Ensure base solid is built and valid before any cut or hole.
-- NEVER apply .chamfer() and .fillet() to the same part in sequence without selecting specific edges — use edge selectors.
-- Apply chamfer BEFORE fillet, never after.
-- For end chamfers use: .faces(">X").chamfer(depth) not .edges().chamfer()
-- For selective edges: .edges("|Z").fillet(r) for vertical edges only.
-- After adding raised features (bosses, shoulders, rings), the original face selector may point to the raised feature face, not the base plate. Always add holes BEFORE raised features, or use explicit workplane construction.
-
-- NEVER use .union() on a bare Workplane() object.
-  Union must always be: existing_result = existing_result.union(new_shape)
-  where existing_result already has a solid on the stack.
-
-- NEVER use the same angle for both drive face and back face
-  of an asymmetric tooth. The asymmetry is the entire purpose
-  of the ratchet profile — drive face must be nearly radial
-  (8 deg) and back face must be gradual (60 deg).
-
-  Correct tooth pattern for circular arrays:
-    # Build ring body first
-    result = (cq.Workplane("XY")
-        .cylinder(HEIGHT_MM, OD_MM/2)
-        .cylinder(HEIGHT_MM, ID_MM/2, combine="cut"))
-
-    # Build ONE tooth as a separate solid
-    tooth_base = (cq.Workplane("XY")
-        ... tooth profile geometry ...
-        .extrude(HEIGHT_MM))
-
-    # Pattern the tooth using rotate + union in a loop
-    import math
-    for i in range(N_TEETH):
-        angle = i * 360.0 / N_TEETH
-        rotated = tooth_base.rotate((0,0,0),(0,0,1), angle)
-        result = result.union(rotated)
-
-  Never do:
-    cq.Workplane("XY").union(tooth_base)  # WRONG - empty stack
-    result.union(cq.Workplane("XY").box(...))  # WRONG - union with workplane not solid
+- Never use annular profile as first operation. Build solid cylinder/box first, then remove interior.
+- Always call rs.AddPlanarSrf or rg.Brep.CreateFromBox before cutting; never operate on an empty scene.
+- For hollow parts: create outer solid, then Boolean difference the inner void.
+- Use rs.BooleanDifference / rg.Brep.BooleanDifference for all cut operations.
+- Do not apply fillet/chamfer (rs.FilletEdge) in the first attempt — add only after base solid validates.
+- Revolve profiles must be closed curves. Ensure polyline is closed before revolving.
+- Asymmetric teeth: drive face ~8 deg from radial (steep), back face ~60 deg (gradual). Never identical angles.
+- For polar arrays use rs.RotateObject in a loop; do not rely on rs.ArrayPolar (not always available).
+- All print(f"BBOX:...") calls must use exact format: BBOX:xlen,ylen,zlen (no spaces).
 """
-    return f"""You are a CadQuery expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
+
+    return f"""You are a Grasshopper/RhinoCommon Python expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
 
 Imports (use exactly):
-  import cadquery as cq
-  from cadquery import exporters
+  import rhinoscriptsyntax as rs
+  import Rhino.Geometry as rg
+  import math
 
 Rules:
-- Always start from cq.Workplane("XY").
-- Build order: base shape first, then shell/hollow, then additive features, then subtractive cuts last.
 - All dimensions in mm.
+- Build order: base solid first, then Boolean cuts, then additive features, then holes last.
+- Use rg.Brep operations for geometry; rs.* helpers for scene manipulation.
+- The script runs inside Rhino Compute (headless). Do not call rs.GetObject or any interactive command.
+- Write STEP via Rhino.FileIO.FileWriteOptions or via scriptcontext; write STL via rs.ExportObjects.
 
 Mechanical constants (from aria_mechanical.md) — use these when relevant:
 {constants_block}
@@ -114,139 +91,70 @@ Mechanical constants (from aria_mechanical.md) — use these when relevant:
 {few_shot_block}
 {f"# Known recent failures for this part:\\n# {learned_failures.replace(chr(10), chr(10) + '# ')}" if learned_failures else ""}
 
-Avoid these patterns (from aria_failures.md):
+Avoid these patterns:
 {avoid}
-- NEVER union a cylinder to create a rounded end — use a 2D profile with .threePointArc() instead.
 
 Required code structure:
 
   ## REQUIRED: All numeric dimensions must be module-level constants
 
-  EVERY dimension that appears in the geometry must be declared as
-  a module-level ALL_CAPS constant BEFORE it is used.
-  This is mandatory — the optimizer cannot tune inline literals.
+  Every dimension must be declared as an ALL_CAPS module-level constant before use.
 
   Required format:
     # === PART PARAMETERS (tunable) ===
-    LENGTH_MM = 60.0       # overall length
-    WIDTH_MM = 12.0        # overall width
-    THICKNESS_MM = 6.0     # overall thickness
+    LENGTH_MM = 60.0
+    WIDTH_MM = 12.0
+    THICKNESS_MM = 6.0
     PIVOT_HOLE_DIA_MM = 6.0
-    PIVOT_OFFSET_MM = 22.0
-    NOSE_RADIUS_MM = 6.0
-    FILLET_MM = 0.5
     # === END PARAMETERS ===
 
     # geometry uses constants only, never inline numbers
-    result = cq.Workplane("XY").box(LENGTH_MM, WIDTH_MM, THICKNESS_MM)
 
-  Inline numbers that are NOT dimensions (like 0 for centering,
-  360 for full circle, number of holes) are allowed inline.
-
-  Every dimension from the part description must have its own constant.
-  Group them all at the top under the "PART PARAMETERS" comment block.
-
-Common CadQuery patterns:
-  Box:      cq.Workplane("XY").box(length, width, height)
-  Cylinder: cq.Workplane("XY").cylinder(height, radius)   # radius in mm
-  Hollow:   build solid then .cut(inner_solid) or cut inner volume
-  Hole:     .faces(">Z").workplane().center(x,y).hole(diameter)   # through
-  Blind:    .faces(">Z").workplane().center(x,y).circle(radius).cutBlind(-depth)
-  Slot:     .faces(">Z").workplane().center(x,y).rect(length, width).cutBlind(-depth) or .cutThruAll()
-  Fillet:   .edges("|Z").fillet(radius)
-  Bolt circle: use .faces(">Z").workplane() then .polarArray(radius, count) or place holes at (r*cos(a), r*sin(a)) for a in angles
-  Rounded end tip (correct way): use a 2D profile with semicircle at one end via .threePointArc(), do NOT union a cylinder:
-    result = (cq.Workplane("XY")
-        .moveTo(0, -w/2)
-        .lineTo(L-r, -w/2)
-        .threePointArc((L, 0), (L-r, w/2))
-        .lineTo(0, w/2)
-        .close()
-        .extrude(thickness))
-  Chamfer on end face (correct): chamfer BEFORE fillet, use face selectors for chamfer:
-    result = (cq.Workplane("XY")
-        .box(L, W, H)
-        .faces(">X").chamfer(depth)   # chamfer +X end
-        .faces("<X").chamfer(depth)   # chamfer -X end
-        .edges("|Z").fillet(r))       # fillet only vertical edges
-  Holes on plate with raised boss (correct order): add ALL holes BEFORE raised features:
-    result = (cq.Workplane("XY")
-        .cylinder(H, OD/2)            # base cylinder
-        .faces(">Z").workplane()
-        .hole(bore_dia)               # center bore FIRST
-        .faces(">Z").workplane()
-        .polarArray(bcd/2, 0, 360, n_holes)
-        .hole(hole_dia))              # bolt holes SECOND
-    # Add shoulder LAST — after all holes
-    shoulder = (cq.Workplane("XY")
-        .cylinder(shoulder_H, shoulder_OD/2)
-        .faces(">Z").workplane().hole(bore_dia))
-    result = result.union(shoulder)
-
-  Asymmetric ratchet tooth (correct implementation):
-
-    # Tooth at angle 0, extending outward from ring
-    # drive_face_angle = 8 deg from radial (steep face)
-    # back_face_angle = 60 deg from radial (gradual face)
-    import math
-    root_r = OUTER_DIAMETER_MM / 2
-    tip_r = root_r + TOOTH_HEIGHT_MM
-
-    drive_rad = math.radians(DRIVE_ANGLE_DEG)
-    back_rad = math.radians(BACK_ANGLE_DEG)
-
-    # Tooth tip width creates angular offset at tip
-    tip_half_angle = math.atan2(TOOTH_TIP_WIDTH_MM/2, tip_r)
-
-    # Drive face (steep, 8 deg): nearly radial
-    drive_root_angle = 0.0
-    drive_root = (root_r * math.cos(drive_root_angle),
-                  root_r * math.sin(drive_root_angle))
-
-    # Drive face tip point: offset by tip flat half-angle (near radial)
-    drive_tip_angle = drive_root_angle + tip_half_angle
-    drive_tip = (tip_r * math.cos(drive_tip_angle),
-                 tip_r * math.sin(drive_tip_angle))
-
-    # Back face (gradual, 60 deg from radial)
-    back_angular_width = (TOOTH_HEIGHT_MM * math.tan(back_rad)) / root_r
-    back_root_angle = drive_root_angle - back_angular_width
-    back_root = (root_r * math.cos(back_root_angle),
-                 root_r * math.sin(back_root_angle))
-
-    # Back face tip: other side of tip flat
-    back_tip_angle = drive_tip_angle - 2 * tip_half_angle
-    back_tip = (tip_r * math.cos(back_tip_angle),
-                tip_r * math.sin(back_tip_angle))
-
-    # Build tooth profile from these 4 points (asymmetric)
-    tooth_profile = (cq.Workplane("XY")
-        .moveTo(*back_root)
-        .lineTo(*back_tip)
-        .lineTo(*drive_tip)
-        .lineTo(*drive_root)
-        .close()
-        .extrude(THICKNESS_MM))
-
-    # Then rotate+union loop as before:
-    # for i in range(N_TEETH):
-    #   angle = i*360.0/N_TEETH
-    #   result = result.union(tooth_profile.rotate((0,0,0),(0,0,1), angle))
+Common RhinoCommon patterns:
+  Box:       rg.Box(rg.Plane.WorldXY, rg.Interval(0, L), rg.Interval(0, W), rg.Interval(0, H))
+             brep = box.ToBrep()
+  Cylinder:  circle = rg.Circle(rg.Plane.WorldXY, RADIUS_MM)
+             cyl = rg.Cylinder(circle, HEIGHT_MM).ToBrep(True, True)
+  Hollow:    result = rg.Brep.BooleanDifference([outer], [inner], 0.001)[0]
+  Revolve:   profile = rg.Polyline(pts).ToNurbsCurve()
+             axis = rg.Line(rg.Point3d(0,0,0), rg.Point3d(0,0,1))
+             revolved = rg.Brep.CreateFromRevSurface(
+                 rg.RevSurface.Create(profile, axis, 0, 2*math.pi), True, True)
+  Polar array + union:
+             result = base_brep
+             for i in range(N):
+                 angle = i * 2 * math.pi / N
+                 xform = rg.Transform.Rotation(angle, rg.Vector3d(0,0,1), rg.Point3d.Origin)
+                 tooth_copy = tooth_brep.Duplicate()
+                 tooth_copy.Transform(xform)
+                 joined = rg.Brep.BooleanUnion([result, tooth_copy], 0.001)
+                 if joined:
+                     result = joined[0]
 
 Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and PART_NAME are injected at runtime):
-  bb = result.val().BoundingBox()
-  print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
-  exporters.export(result, STEP_PATH, exporters.ExportTypes.STEP)
-  exporters.export(result, STL_PATH, exporters.ExportTypes.STL)
+  bb = result.GetBoundingBox(True)
+  xlen = bb.Max.X - bb.Min.X
+  ylen = bb.Max.Y - bb.Min.Y
+  zlen = bb.Max.Z - bb.Min.Z
+  print(f"BBOX:{{xlen:.3f}},{{ylen:.3f}},{{zlen:.3f}}")
+
+  # Export STEP
+  import scriptcontext as sc
+  import Rhino
+  _obj_id = sc.doc.Objects.AddBrep(result)
+  Rhino.RhinoDoc.ActiveDoc.Objects.Select(_obj_id)
+  rs.Command(f'_-Export "{{STEP_PATH}}" _Enter', False)
+
+  # Export STL
+  rs.Command(f'_-Export "{{STL_PATH}}" _Enter _Enter', False)
 
   # === META JSON (required for optimizer and CEM) ===
   import json as _json, pathlib as _pathlib
   _meta = {{
       "part_name": PART_NAME,
-      "bbox_mm": {{"x": round(bb.xlen, 3), "y": round(bb.ylen, 3), "z": round(bb.zlen, 3)}},
+      "bbox_mm": {{"x": round(xlen, 3), "y": round(ylen, 3), "z": round(zlen, 3)}},
       "dims_mm": {{}}
   }}
-  # Collect all _MM constants automatically
   import sys as _sys
   _frame_vars = {{k: v for k, v in globals().items() if k.endswith('_MM') and isinstance(v, (int, float))}}
   _meta["dims_mm"] = _frame_vars
@@ -255,7 +163,7 @@ Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and 
   _json_path.write_text(_json.dumps(_meta, indent=2))
   print(f\"META:{{_json_path}}\")
 
-The variable 'result' must be the final Workplane or solid. Do not define STEP_PATH, STL_PATH or PARTNAME; they are provided."""
+The variable 'result' must be the final rg.Brep. Do not define STEP_PATH, STL_PATH or PART_NAME; they are provided."""
 
 
 def _build_user_prompt(
@@ -286,7 +194,7 @@ def _build_user_prompt(
     for s in plan.get("build_order", []):
         lines.append(f"  - {s}")
     lines.append("")
-    lines.append("Generate CadQuery Python for this part. Output code only.")
+    lines.append("Generate Grasshopper/RhinoCommon Python for this part. Output code only.")
     if previous_error and previous_code:
         lines.append("")
         lines.append(f"Previous attempt failed with: {previous_error}")
@@ -303,26 +211,18 @@ def _extract_code(response: str) -> Optional[str]:
     m = re.search(r"```(?:python)?\s*\n(.*?)```", response, re.DOTALL)
     if m:
         return m.group(1).strip()
-    if "import cadquery" in response or "cq.Workplane" in response:
+    # Accept any response containing rhinoscriptsyntax or Rhino.Geometry imports
+    if "import rhinoscriptsyntax" in response or "import Rhino.Geometry" in response or "Rhino.Geometry" in response:
         return response.strip()
     return None
 
 
-def generate(
-    plan: dict[str, Any],
-    context: dict[str, str],
-    repo_root: Optional[Path] = None,
-    previous_code: Optional[str] = None,
-    previous_error: Optional[str] = None,
+def _call_anthropic(
+    api_key: str,
+    system: str,
+    user: str,
 ) -> str:
-    """
-    Call Anthropic API to generate CadQuery code. Returns code string.
-    Raises on API error or if no code could be extracted.
-    """
-    api_key = _get_api_key(repo_root)
-    system = _build_system_prompt(context, plan, repo_root=repo_root)
-    user = _build_user_prompt(plan, previous_code, previous_error)
-
+    """Shared Anthropic call; returns raw response text."""
     try:
         import anthropic
     except ImportError:
@@ -330,9 +230,11 @@ def generate(
             "anthropic package required for LLM generation. Install with: pip install anthropic"
         ) from None
 
+    from . import event_bus
+
     client = anthropic.Anthropic(api_key=api_key)
-    # Use latest Claude model; fallback to claude-sonnet-4-5 or similar
-    model = "claude-sonnet-4-20250514"
+    model = "claude-sonnet-4-6"
+    event_bus.emit("llm_output", "Calling LLM...", {"model": model})
     try:
         msg = client.messages.create(
             model=model,
@@ -342,8 +244,9 @@ def generate(
             messages=[{"role": "user", "content": user}],
         )
     except Exception as e:
-        if "claude-sonnet-4-20250514" in str(e) or "model" in str(e).lower():
+        if "model" in str(e).lower():
             model = "claude-3-5-sonnet-20241022"
+            event_bus.emit("llm_output", "Calling LLM (fallback model)...", {"model": model})
             msg = client.messages.create(
                 model=model,
                 max_tokens=2000,
@@ -357,9 +260,71 @@ def generate(
     for b in msg.content:
         if hasattr(b, "text"):
             text += b.text
+    return text
+
+
+def generate(
+    plan: dict[str, Any],
+    context: dict[str, str],
+    repo_root: Optional[Path] = None,
+    previous_code: Optional[str] = None,
+    previous_error: Optional[str] = None,
+    goal: Optional[str] = None,
+) -> str:
+    """
+    Call Anthropic API to generate Grasshopper/RhinoCommon code. Returns code string.
+    Raises on API error or if no code could be extracted.
+    """
+    api_key = _get_api_key(repo_root)
+    system = _build_system_prompt(context, plan, repo_root=repo_root, goal=goal)
+    user = _build_user_prompt(plan, previous_code, previous_error)
+    text = _call_anthropic(api_key, system, user)
     code = _extract_code(text)
     if not code:
-        raise RuntimeError("LLM did not return valid CadQuery code. No code block or cadquery import found.")
+        raise RuntimeError("LLM did not return valid RhinoCommon code. No code block or Rhino import found.")
+    return code
+
+
+def generate_rhino_python(
+    plan: dict[str, Any],
+    goal: str,
+    step_path: str,
+    stl_path: str,
+    repo_root: Optional[Path] = None,
+) -> str:
+    """
+    Generate a standalone RhinoCommon Python script via LLM for an arbitrary part.
+
+    Injects STEP_PATH and STL_PATH as constants at the top of the user prompt so
+    the generated script can export without placeholder substitution.
+
+    Returns code string. Raises on API error or missing code block.
+    """
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent
+
+    api_key = _get_api_key(repo_root)
+    context = load_context(repo_root)
+    system  = _build_system_prompt(context, plan, repo_root=repo_root, goal=goal)
+
+    # Extend user prompt with concrete export paths so the script is self-contained
+    base_user = _build_user_prompt(plan)
+    sp = step_path.replace("\\", "\\\\")
+    st = stl_path.replace("\\", "\\\\")
+    path_block = (
+        f'\nExport constants (use exactly these in your script):\n'
+        f'  STEP_PATH = r"{sp}"\n'
+        f'  STL_PATH  = r"{st}"\n'
+    )
+    user = base_user + path_block
+
+    text = _call_anthropic(api_key, system, user)
+    code = _extract_code(text)
+    if not code:
+        raise RuntimeError(
+            f"LLM did not return valid RhinoCommon code for '{plan.get('part_id', goal)}'. "
+            "No code block or Rhino import found."
+        )
     return code
 
 
