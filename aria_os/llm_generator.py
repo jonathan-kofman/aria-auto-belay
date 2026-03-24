@@ -62,12 +62,20 @@ def _build_system_prompt(
 - Never use annular profile as first operation. Build solid cylinder/box first, then remove interior.
 - Always call rs.AddPlanarSrf or rg.Brep.CreateFromBox before cutting; never operate on an empty scene.
 - For hollow parts: create outer solid, then Boolean difference the inner void.
-- Use rs.BooleanDifference / rg.Brep.BooleanDifference for all cut operations.
+- WRONG: rg.BooleanDifference(a, b) — this does not exist; do NOT use it.
+- WRONG: rg.BooleanUnion(a, b) — this does not exist; do NOT use it.
+- CORRECT: rg.Brep.CreateBooleanDifference([a], [b], 0.001) — always returns list or None; guard with [0] if result else fallback.
+- CORRECT: rg.Brep.CreateBooleanUnion([a, b], 0.001) — always returns list or None; guard with [0] if result else fallback.
+- WRONG: rg.Cylinder(plane, radius, height) used directly as a Brep — Cylinder is NOT a Brep.
+- CORRECT: circle = rg.Circle(plane, radius); cyl = rg.Cylinder(circle, height).ToBrep(True, True)
+- WRONG: rg.Box(plane, x, y, z) used directly as a Brep — Box is NOT a Brep.
+- CORRECT: box = rg.Box(plane, rg.Interval(0,x), rg.Interval(0,y), rg.Interval(0,z)); brep = box.ToBrep()
 - Do not apply fillet/chamfer (rs.FilletEdge) in the first attempt — add only after base solid validates.
 - Revolve profiles must be closed curves. Ensure polyline is closed before revolving.
 - Asymmetric teeth: drive face ~8 deg from radial (steep), back face ~60 deg (gradual). Never identical angles.
 - For polar arrays use rs.RotateObject in a loop; do not rely on rs.ArrayPolar (not always available).
-- All print(f"BBOX:...") calls must use exact format: BBOX:xlen,ylen,zlen (no spaces).
+- All print("BBOX:...") calls must use exact format: BBOX:xlen,ylen,zlen (no spaces).
+- File paths in STEP_PATH/STL_PATH use forward slashes (already provided); do not add backslashes.
 """
 
     return f"""You are a Grasshopper/RhinoCommon Python expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
@@ -115,7 +123,12 @@ Common RhinoCommon patterns:
              brep = box.ToBrep()
   Cylinder:  circle = rg.Circle(rg.Plane.WorldXY, RADIUS_MM)
              cyl = rg.Cylinder(circle, HEIGHT_MM).ToBrep(True, True)
-  Hollow:    result = rg.Brep.BooleanDifference([outer], [inner], 0.001)[0]
+  Difference: _r = rg.Brep.CreateBooleanDifference([solid_a], [solid_b], 0.001)
+              result = _r[0] if _r else solid_a   # always guard — returns list or None
+  Union:      _r = rg.Brep.CreateBooleanUnion([brep_a, brep_b], 0.001)
+              result = _r[0] if _r else brep_a
+  Intersect:  _r = rg.Brep.CreateBooleanIntersection([solid_a], [solid_b], 0.001)
+              result = _r[0] if _r else None
   Revolve:   profile = rg.Polyline(pts).ToNurbsCurve()
              axis = rg.Line(rg.Point3d(0,0,0), rg.Point3d(0,0,1))
              revolved = rg.Brep.CreateFromRevSurface(
@@ -127,9 +140,9 @@ Common RhinoCommon patterns:
                  xform = rg.Transform.Rotation(angle, rg.Vector3d(0,0,1), rg.Point3d.Origin)
                  tooth_copy = tooth_brep.Duplicate()
                  tooth_copy.Transform(xform)
-                 joined = rg.Brep.BooleanUnion([result, tooth_copy], 0.001)
-                 if joined:
-                     result = joined[0]
+                 _u = rg.Brep.CreateBooleanUnion([result, tooth_copy], 0.001)
+                 if _u:
+                     result = _u[0]
 
 Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and PART_NAME are injected at runtime):
   bb = result.GetBoundingBox(True)
@@ -308,13 +321,14 @@ def generate_rhino_python(
     system  = _build_system_prompt(context, plan, repo_root=repo_root, goal=goal)
 
     # Extend user prompt with concrete export paths so the script is self-contained
+    # Use forward slashes — Rhino accepts them and they avoid escape issues
     base_user = _build_user_prompt(plan)
-    sp = step_path.replace("\\", "\\\\")
-    st = stl_path.replace("\\", "\\\\")
+    sp = step_path.replace("\\", "/")
+    st = stl_path.replace("\\", "/")
     path_block = (
         f'\nExport constants (use exactly these in your script):\n'
-        f'  STEP_PATH = r"{sp}"\n'
-        f'  STL_PATH  = r"{st}"\n'
+        f'  STEP_PATH = "{sp}"\n'
+        f'  STL_PATH  = "{st}"\n'
     )
     user = base_user + path_block
 

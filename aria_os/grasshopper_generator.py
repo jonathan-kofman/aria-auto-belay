@@ -34,8 +34,9 @@ _SCRIPT_HEADER = (
 
 def _script_footer(step_path: str, stl_path: str) -> str:
     """Return BBOX print + STEP/STL export block."""
-    sp = step_path.replace("\\", "\\\\")
-    st = stl_path.replace("\\", "\\\\")
+    # Use forward slashes — Rhino accepts them and they avoid escape issues
+    sp = step_path.replace("\\", "/")
+    st = stl_path.replace("\\", "/")
     return "\n".join([
         "",
         "# === BBOX + EXPORT ===",
@@ -45,14 +46,14 @@ def _script_footer(step_path: str, stl_path: str) -> str:
         "zlen = bb.Max.Z - bb.Min.Z",
         'print("BBOX:{:.3f},{:.3f},{:.3f}".format(xlen, ylen, zlen))',
         "",
-        f'STEP_PATH = r"{sp}"',
-        f'STL_PATH  = r"{st}"',
+        f'STEP_PATH = "{sp}"',
+        f'STL_PATH  = "{st}"',
         "os.makedirs(os.path.dirname(STEP_PATH) or '.', exist_ok=True)",
         "os.makedirs(os.path.dirname(STL_PATH) or '.', exist_ok=True)",
         "_obj_id = sc.doc.Objects.AddBrep(result)",
         "sc.doc.Objects.Select(_obj_id)",
-        "rs.Command('_-Export \"' + STEP_PATH + '\" _Enter', False)",
-        "rs.Command('_-Export \"' + STL_PATH + '\" _Enter _Enter', False)",
+        'rs.Command(\'_-Export "\' + STEP_PATH + \'" _Enter\', False)',
+        'rs.Command(\'_-Export "\' + STL_PATH  + \'" _Enter _Enter\', False)',
         'print("STEP: " + STEP_PATH)',
         'print("STL:  " + STL_PATH)',
         "",
@@ -88,7 +89,7 @@ def _script_cam_collar(plan: dict[str, Any], step_path: str, stl_path: str) -> s
         "# --- Bore ---",
         "bore_circle = rg.Circle(rg.Plane.WorldXY, BORE_MM / 2.0)",
         "bore_cyl    = rg.Cylinder(bore_circle, HEIGHT_MM * 1.1).ToBrep(True, True)",
-        "hollowed    = rg.Brep.BooleanDifference([outer_cyl], [bore_cyl], 0.001)",
+        "hollowed    = rg.Brep.CreateBooleanDifference([outer_cyl], [bore_cyl], 0.001)",
         "result      = hollowed[0] if hollowed else outer_cyl",
         "",
         "# --- Helical ramp (90-deg sweep on top face) ---",
@@ -108,7 +109,7 @@ def _script_cam_collar(plan: dict[str, Any], step_path: str, stl_path: str) -> s
         "    if rev_srf:",
         "        ramp_brep = rg.Brep.CreateFromRevSurface(rev_srf, True, True)",
         "        if ramp_brep:",
-        "            cut = rg.Brep.BooleanDifference([result], [ramp_brep], 0.001)",
+        "            cut = rg.Brep.CreateBooleanDifference([result], [ramp_brep], 0.001)",
         "            if cut:",
         "                result = cut[0]",
         "",
@@ -118,7 +119,7 @@ def _script_cam_collar(plan: dict[str, Any], step_path: str, stl_path: str) -> s
         "    ss_plane  = rg.Plane(ss_origin, rg.Vector3d(1, 0, 0))",
         "    ss_circle = rg.Circle(ss_plane, SET_SCREW_DIA_MM / 2.0)",
         "    ss_cyl    = rg.Cylinder(ss_circle, OD_MM * 0.6).ToBrep(True, True)",
-        "    cut2 = rg.Brep.BooleanDifference([result], [ss_cyl], 0.001)",
+        "    cut2 = rg.Brep.CreateBooleanDifference([result], [ss_cyl], 0.001)",
         "    if cut2:",
         "        result = cut2[0]",
     ]
@@ -165,7 +166,7 @@ def _script_ratchet_ring(plan: dict[str, Any], step_path: str, stl_path: str) ->
         "outer_cyl    = rg.Cylinder(outer_circle, THICK_MM).ToBrep(True, True)",
         "bore_circle  = rg.Circle(rg.Plane.WorldXY, BORE_MM / 2.0)",
         "bore_cyl     = rg.Cylinder(bore_circle, THICK_MM * 1.01).ToBrep(True, True)",
-        "ring_body    = rg.Brep.BooleanDifference([outer_cyl], [bore_cyl], 0.001)",
+        "ring_body    = rg.Brep.CreateBooleanDifference([outer_cyl], [bore_cyl], 0.001)",
         "result       = ring_body[0] if ring_body else outer_cyl",
         "",
         "# --- Asymmetric tooth (drive ~8 deg, back ~60 deg) ---",
@@ -187,7 +188,7 @@ def _script_ratchet_ring(plan: dict[str, Any], step_path: str, stl_path: str) ->
         "        xform  = rg.Transform.Rotation(angle, rg.Vector3d(0, 0, 1), rg.Point3d.Origin)",
         "        t_copy = tooth_brep.DuplicateBrep()",
         "        t_copy.Transform(xform)",
-        "        united = rg.Brep.BooleanUnion([result, t_copy], 0.001)",
+        "        united = rg.Brep.CreateBooleanUnion([result, t_copy], 0.001)",
         "        if united:",
         "            result = united[0]",
     ]
@@ -234,7 +235,7 @@ def _script_housing(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
         "               rg.Interval(WALL_MM, W_MM - WALL_MM),",
         "               rg.Interval(WALL_MM, H_MM - WALL_MM),",
         "               rg.Interval(WALL_MM, D_MM - WALL_MM)).ToBrep()",
-        "hollowed = rg.Brep.BooleanDifference([outer], [inner], 0.001)",
+        "hollowed = rg.Brep.CreateBooleanDifference([outer], [inner], 0.001)",
         "result   = hollowed[0] if hollowed else outer",
         "",
         "# --- Front bearing bore ---",
@@ -242,7 +243,7 @@ def _script_housing(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
         "                       rg.Vector3d(0, 0, 1))",
         "brg_f = rg.Cylinder(rg.Circle(brg_plane_f, BEARING_OD_MM / 2.0),",
         "                    WALL_MM * 2.0).ToBrep(True, True)",
-        "cut = rg.Brep.BooleanDifference([result], [brg_f], 0.001)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [brg_f], 0.001)",
         "if cut: result = cut[0]",
         "",
         "# --- Rear bearing bore ---",
@@ -250,7 +251,7 @@ def _script_housing(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
         "                       rg.Vector3d(0, 0, 1))",
         "brg_r = rg.Cylinder(rg.Circle(brg_plane_r, BEARING_OD_MM / 2.0),",
         "                    WALL_MM * 2.0).ToBrep(True, True)",
-        "cut = rg.Brep.BooleanDifference([result], [brg_r], 0.001)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [brg_r], 0.001)",
         "if cut: result = cut[0]",
         "",
         "# --- Ratchet pocket (rear face) ---",
@@ -258,7 +259,7 @@ def _script_housing(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
         "                    rg.Vector3d(0, 0, 1))",
         "rp_cyl   = rg.Cylinder(rg.Circle(rp_plane, RATCHET_POCKET_DIA / 2.0),",
         "                       WALL_MM).ToBrep(True, True)",
-        "cut = rg.Brep.BooleanDifference([result], [rp_cyl], 0.001)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [rp_cyl], 0.001)",
         "if cut: result = cut[0]",
         "",
         "# --- Rope slot (top face) ---",
@@ -268,7 +269,7 @@ def _script_housing(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
         "              rg.Interval(H_MM - WALL_MM * 0.5, H_MM + 1),",
         "              rg.Interval(D_MM / 2 - ROPE_SLOT_D_MM / 2,",
         "                          D_MM / 2 + ROPE_SLOT_D_MM / 2)).ToBrep()",
-        "cut = rg.Brep.BooleanDifference([result], [slot], 0.001)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [slot], 0.001)",
         "if cut: result = cut[0]",
     ]
     lines.append(_script_footer(step_path, stl_path))
@@ -311,7 +312,7 @@ def _script_catch_pawl(plan: dict[str, Any], step_path: str, stl_path: str) -> s
         "                       rg.Vector3d(0, 0, 1))",
         "pivot_cyl   = rg.Cylinder(rg.Circle(pivot_plane, PIVOT_HOLE_DIA / 2.0),",
         "                          THICK_MM + 2.0).ToBrep(True, True)",
-        "cut = rg.Brep.BooleanDifference([result], [pivot_cyl], 0.001)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [pivot_cyl], 0.001)",
         "if cut: result = cut[0]",
         "",
         "# --- Tip bevel (diagonal cut at free end) ---",
@@ -327,8 +328,299 @@ def _script_catch_pawl(plan: dict[str, Any], step_path: str, stl_path: str) -> s
         "    bevel_extr    = rg.Extrusion.Create(bevel_profile, THICK_MM + 2.0, True)",
         "    bevel_brep    = bevel_extr.ToBrep() if bevel_extr else None",
         "    if bevel_brep:",
-        "        cut2 = rg.Brep.BooleanDifference([result], [bevel_brep], 0.001)",
+        "        cut2 = rg.Brep.CreateBooleanDifference([result], [bevel_brep], 0.001)",
         "        if cut2: result = cut2[0]",
+    ]
+    lines.append(_script_footer(step_path, stl_path))
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Template: aria_brake_drum
+# --------------------------------------------------------------------------- #
+
+def _script_brake_drum(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
+    params    = plan.get("params", {})
+    od        = float(params.get("diameter",       200.0))
+    width     = float(params.get("width",           40.0))
+    shaft_dia = float(params.get("shaft_diameter",  20.0))
+    wall      = float(params.get("wall_thickness",   8.0))
+
+    lines = [
+        _SCRIPT_HEADER,
+        "# === PART PARAMETERS (tunable) ===",
+        f"OD_MM        = {od}",
+        f"WIDTH_MM     = {width}",
+        f"SHAFT_DIA_MM = {shaft_dia}",
+        f"WALL_MM      = {wall}",
+        "# === END PARAMETERS ===",
+        "",
+        "# --- Outer cylinder (full solid to start) ---",
+        "outer_cyl = rg.Cylinder(rg.Circle(rg.Plane.WorldXY, OD_MM / 2.0),",
+        "                        WIDTH_MM).ToBrep(True, True)",
+        "",
+        "# --- Inner void: open at top (z=WIDTH_MM), floor at z=0 ---",
+        "inner_plane  = rg.Plane(rg.Point3d(0, 0, WALL_MM), rg.Vector3d(0, 0, 1))",
+        "inner_cyl    = rg.Cylinder(",
+        "    rg.Circle(inner_plane, OD_MM / 2.0 - WALL_MM),",
+        "    WIDTH_MM - WALL_MM + 1.0).ToBrep(True, False)",
+        "hollow = rg.Brep.CreateBooleanDifference([outer_cyl], [inner_cyl], 0.001)",
+        "if hollow is None or len(hollow) == 0:",
+        "    raise RuntimeError('Brake drum: hollow boolean failed')",
+        "result = hollow[0]",
+        "",
+        "# --- Shaft bore through closed bottom ---",
+        "shaft_plane = rg.Plane(rg.Point3d(0, 0, -1), rg.Vector3d(0, 0, 1))",
+        "shaft_cyl   = rg.Cylinder(",
+        "    rg.Circle(shaft_plane, SHAFT_DIA_MM / 2.0),",
+        "    WALL_MM + 2.0).ToBrep(True, True)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [shaft_cyl], 0.001)",
+        "if cut is None or len(cut) == 0:",
+        "    raise RuntimeError('Brake drum: shaft bore boolean failed')",
+        "result = cut[0]",
+    ]
+    lines.append(_script_footer(step_path, stl_path))
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Template: aria_spool
+# --------------------------------------------------------------------------- #
+
+def _script_spool(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
+    params    = plan.get("params", {})
+    drum_od   = float(params.get("diameter",         600.0))
+    drum_w    = float(params.get("width",             50.0))
+    flange_od = float(params.get("flange_diameter",  640.0))
+    flange_th = float(params.get("flange_thickness",   8.0))
+    hub_od    = float(params.get("hub_diameter",      47.2))
+
+    lines = [
+        _SCRIPT_HEADER,
+        "# === PART PARAMETERS (tunable) ===",
+        f"DRUM_OD_MM   = {drum_od}",
+        f"DRUM_W_MM    = {drum_w}",
+        f"FLANGE_OD_MM = {flange_od}",
+        f"FLANGE_TH_MM = {flange_th}",
+        f"HUB_OD_MM    = {hub_od}",
+        "# === END PARAMETERS ===",
+        "",
+        "# --- Drum body ---",
+        "drum = rg.Cylinder(rg.Circle(rg.Plane.WorldXY, DRUM_OD_MM / 2.0),",
+        "                   DRUM_W_MM).ToBrep(True, True)",
+        "",
+        "# --- Bottom flange (z = -FLANGE_TH_MM to 0) ---",
+        "fl_b_plane = rg.Plane(rg.Point3d(0, 0, -FLANGE_TH_MM), rg.Vector3d(0, 0, 1))",
+        "fl_b = rg.Cylinder(rg.Circle(fl_b_plane, FLANGE_OD_MM / 2.0),",
+        "                   FLANGE_TH_MM).ToBrep(True, True)",
+        "",
+        "# --- Top flange (z = DRUM_W_MM to DRUM_W_MM + FLANGE_TH_MM) ---",
+        "fl_t_plane = rg.Plane(rg.Point3d(0, 0, DRUM_W_MM), rg.Vector3d(0, 0, 1))",
+        "fl_t = rg.Cylinder(rg.Circle(fl_t_plane, FLANGE_OD_MM / 2.0),",
+        "                   FLANGE_TH_MM).ToBrep(True, True)",
+        "",
+        "# --- Union drum + flanges ---",
+        "united = rg.Brep.CreateBooleanUnion([drum, fl_b, fl_t], 0.001)",
+        "if united is None or len(united) == 0:",
+        "    raise RuntimeError('Spool: union failed')",
+        "result = united[0]",
+        "",
+        "# --- Hub bore through entire assembly ---",
+        "hub_plane = rg.Plane(rg.Point3d(0, 0, -FLANGE_TH_MM - 1.0), rg.Vector3d(0, 0, 1))",
+        "hub_cyl   = rg.Cylinder(",
+        "    rg.Circle(hub_plane, HUB_OD_MM / 2.0),",
+        "    DRUM_W_MM + 2.0 * FLANGE_TH_MM + 2.0).ToBrep(True, True)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [hub_cyl], 0.001)",
+        "if cut is None or len(cut) == 0:",
+        "    raise RuntimeError('Spool: hub bore boolean failed')",
+        "result = cut[0]",
+    ]
+    lines.append(_script_footer(step_path, stl_path))
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Template: aria_trip_lever
+# --------------------------------------------------------------------------- #
+
+def _script_trip_lever(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
+    params      = plan.get("params", {})
+    length      = float(params.get("length_mm",        80.0))
+    width       = float(params.get("width_mm",         12.0))
+    thick       = float(params.get("thickness_mm",      5.0))
+    pivot_dia   = float(params.get("pivot_hole_dia_mm", 6.0))
+    pivot_off   = float(params.get("pivot_offset_mm",  15.0))
+    tip_w       = float(params.get("tip_width_mm",      8.0))
+
+    lines = [
+        _SCRIPT_HEADER,
+        "# === PART PARAMETERS (tunable) ===",
+        f"LENGTH_MM       = {length}",
+        f"WIDTH_MM        = {width}",
+        f"THICK_MM        = {thick}",
+        f"PIVOT_HOLE_DIA  = {pivot_dia}",
+        f"PIVOT_OFFSET_MM = {pivot_off}",
+        f"TIP_WIDTH_MM    = {tip_w}",
+        "# === END PARAMETERS ===",
+        "",
+        "# --- Body ---",
+        "body   = rg.Box(rg.Plane.WorldXY,",
+        "               rg.Interval(0, LENGTH_MM),",
+        "               rg.Interval(0, WIDTH_MM),",
+        "               rg.Interval(0, THICK_MM)).ToBrep()",
+        "result = body",
+        "",
+        "# --- Pivot bore ---",
+        "piv_plane = rg.Plane(rg.Point3d(PIVOT_OFFSET_MM, WIDTH_MM / 2.0, -1),",
+        "                     rg.Vector3d(0, 0, 1))",
+        "piv_cyl   = rg.Cylinder(rg.Circle(piv_plane, PIVOT_HOLE_DIA / 2.0),",
+        "                        THICK_MM + 2.0).ToBrep(True, True)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [piv_cyl], 0.001)",
+        "if cut is None or len(cut) == 0:",
+        "    raise RuntimeError('Trip lever: pivot bore boolean failed')",
+        "result = cut[0]",
+        "",
+        "# --- Narrowed trip tip (taper cut at free end) ---",
+        "if TIP_WIDTH_MM < WIDTH_MM:",
+        "    side_cut = (WIDTH_MM - TIP_WIDTH_MM) / 2.0",
+        "    tip_pts  = [",
+        "        rg.Point3d(LENGTH_MM * 0.6,  0,                  -1),",
+        "        rg.Point3d(LENGTH_MM + 1,    0,                  -1),",
+        "        rg.Point3d(LENGTH_MM + 1,    side_cut,           -1),",
+        "        rg.Point3d(LENGTH_MM * 0.6,  0,                  -1),",
+        "    ]",
+        "    tip_profile = rg.PolylineCurve(tip_pts)",
+        "    tip_extr    = rg.Extrusion.Create(tip_profile, THICK_MM + 2.0, True)",
+        "    tip_brep    = tip_extr.ToBrep() if tip_extr else None",
+        "    if tip_brep:",
+        "        cut2 = rg.Brep.CreateBooleanDifference([result], [tip_brep], 0.001)",
+        "        if cut2: result = cut2[0]",
+        "    # Mirror cut for other side",
+        "    tip_pts_r = [",
+        "        rg.Point3d(LENGTH_MM * 0.6,  WIDTH_MM,           -1),",
+        "        rg.Point3d(LENGTH_MM + 1,    WIDTH_MM,           -1),",
+        "        rg.Point3d(LENGTH_MM + 1,    WIDTH_MM - side_cut,-1),",
+        "        rg.Point3d(LENGTH_MM * 0.6,  WIDTH_MM,           -1),",
+        "    ]",
+        "    tip_profile_r = rg.PolylineCurve(tip_pts_r)",
+        "    tip_extr_r    = rg.Extrusion.Create(tip_profile_r, THICK_MM + 2.0, True)",
+        "    tip_brep_r    = tip_extr_r.ToBrep() if tip_extr_r else None",
+        "    if tip_brep_r:",
+        "        cut3 = rg.Brep.CreateBooleanDifference([result], [tip_brep_r], 0.001)",
+        "        if cut3: result = cut3[0]",
+    ]
+    lines.append(_script_footer(step_path, stl_path))
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Template: aria_flyweight
+# --------------------------------------------------------------------------- #
+
+def _script_flyweight(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
+    params      = plan.get("params", {})
+    mass_dia    = float(params.get("mass_dia_mm",     25.0))
+    mass_len    = float(params.get("mass_length_mm",  30.0))
+    arm_len     = float(params.get("arm_length_mm",   40.0))
+    arm_w       = float(params.get("arm_width_mm",    10.0))
+    arm_thick   = float(params.get("arm_thick_mm",     6.0))
+    pivot_dia   = float(params.get("pivot_dia_mm",     6.0))
+
+    lines = [
+        _SCRIPT_HEADER,
+        "# === PART PARAMETERS (tunable) ===",
+        f"MASS_DIA_MM   = {mass_dia}",
+        f"MASS_LEN_MM   = {mass_len}",
+        f"ARM_LEN_MM    = {arm_len}",
+        f"ARM_W_MM      = {arm_w}",
+        f"ARM_THICK_MM  = {arm_thick}",
+        f"PIVOT_DIA_MM  = {pivot_dia}",
+        "# === END PARAMETERS ===",
+        "",
+        "# --- Pivot arm (box) ---",
+        "arm = rg.Box(rg.Plane.WorldXY,",
+        "             rg.Interval(0, ARM_LEN_MM),",
+        "             rg.Interval(0, ARM_W_MM),",
+        "             rg.Interval(0, ARM_THICK_MM)).ToBrep()",
+        "result = arm",
+        "",
+        "# --- Mass body (cylinder at far end of arm) ---",
+        "mass_plane  = rg.Plane(rg.Point3d(ARM_LEN_MM + MASS_DIA_MM / 2.0,",
+        "                                  ARM_W_MM / 2.0, 0),",
+        "                       rg.Vector3d(0, 0, 1))",
+        "mass_cyl    = rg.Cylinder(rg.Circle(mass_plane, MASS_DIA_MM / 2.0),",
+        "                          MASS_LEN_MM).ToBrep(True, True)",
+        "united = rg.Brep.CreateBooleanUnion([result, mass_cyl], 0.001)",
+        "if united is None or len(united) == 0:",
+        "    raise RuntimeError('Flyweight: arm+mass union failed')",
+        "result = united[0]",
+        "",
+        "# --- Pivot bore (at near end of arm) ---",
+        "piv_plane = rg.Plane(rg.Point3d(PIVOT_DIA_MM, ARM_W_MM / 2.0, -1),",
+        "                     rg.Vector3d(0, 0, 1))",
+        "piv_cyl   = rg.Cylinder(rg.Circle(piv_plane, PIVOT_DIA_MM / 2.0),",
+        "                        ARM_THICK_MM + 2.0).ToBrep(True, True)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [piv_cyl], 0.001)",
+        "if cut is None or len(cut) == 0:",
+        "    raise RuntimeError('Flyweight: pivot bore boolean failed')",
+        "result = cut[0]",
+    ]
+    lines.append(_script_footer(step_path, stl_path))
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------- #
+# Template: aria_rope_guide
+# --------------------------------------------------------------------------- #
+
+def _script_rope_guide(plan: dict[str, Any], step_path: str, stl_path: str) -> str:
+    params      = plan.get("params", {})
+    roller_od   = float(params.get("roller_diameter",   30.0))
+    roller_w    = float(params.get("roller_width",      30.0))
+    brk_thick   = float(params.get("bracket_thickness",  6.0))
+    brk_w       = float(params.get("bracket_width",     80.0))
+    brk_h       = float(params.get("bracket_height",    40.0))
+    bore        = float(params.get("bore",               8.0))
+
+    lines = [
+        _SCRIPT_HEADER,
+        "# === PART PARAMETERS (tunable) ===",
+        f"ROLLER_OD_MM    = {roller_od}",
+        f"ROLLER_W_MM     = {roller_w}",
+        f"BRACKET_TH_MM   = {brk_thick}",
+        f"BRACKET_W_MM    = {brk_w}",
+        f"BRACKET_H_MM    = {brk_h}",
+        f"BORE_MM         = {bore}",
+        "# === END PARAMETERS ===",
+        "",
+        "# --- Mounting plate ---",
+        "plate  = rg.Box(rg.Plane.WorldXY,",
+        "               rg.Interval(0, BRACKET_W_MM),",
+        "               rg.Interval(0, BRACKET_TH_MM),",
+        "               rg.Interval(0, BRACKET_H_MM)).ToBrep()",
+        "result = plate",
+        "",
+        "# --- Roller boss (cylinder protruding from plate centre) ---",
+        "boss_cx   = BRACKET_W_MM / 2.0",
+        "boss_cz   = BRACKET_H_MM / 2.0",
+        "boss_plane = rg.Plane(rg.Point3d(boss_cx, BRACKET_TH_MM, boss_cz),",
+        "                      rg.Vector3d(0, 1, 0))",
+        "boss_cyl   = rg.Cylinder(rg.Circle(boss_plane, ROLLER_OD_MM / 2.0),",
+        "                         ROLLER_W_MM).ToBrep(True, True)",
+        "united = rg.Brep.CreateBooleanUnion([result, boss_cyl], 0.001)",
+        "if united is None or len(united) == 0:",
+        "    raise RuntimeError('Rope guide: boss union failed')",
+        "result = united[0]",
+        "",
+        "# --- Axle bore through roller boss ---",
+        "axle_plane = rg.Plane(rg.Point3d(boss_cx, BRACKET_TH_MM - 1.0, boss_cz),",
+        "                      rg.Vector3d(0, 1, 0))",
+        "axle_cyl   = rg.Cylinder(rg.Circle(axle_plane, BORE_MM / 2.0),",
+        "                         ROLLER_W_MM + 2.0).ToBrep(True, True)",
+        "cut = rg.Brep.CreateBooleanDifference([result], [axle_cyl], 0.001)",
+        "if cut is None or len(cut) == 0:",
+        "    raise RuntimeError('Rope guide: axle bore boolean failed')",
+        "result = cut[0]",
     ]
     lines.append(_script_footer(step_path, stl_path))
     return "\n".join(lines)
@@ -365,6 +657,11 @@ _TEMPLATE_MAP: dict[str, Any] = {
     "aria_ratchet_ring": _script_ratchet_ring,
     "aria_housing":      _script_housing,
     "aria_catch_pawl":   _script_catch_pawl,
+    "aria_brake_drum":   _script_brake_drum,
+    "aria_spool":        _script_spool,
+    "aria_trip_lever":   _script_trip_lever,
+    "aria_flyweight":    _script_flyweight,
+    "aria_rope_guide":   _script_rope_guide,
 }
 
 
@@ -380,19 +677,24 @@ def _write_runner(
     part_id: str,
 ) -> None:
     """Write a Rhino Compute runner script that posts the RhinoCommon script to the API."""
+    # Use forward slashes — avoids raw-string escape edge cases on Windows
+    sp   = str(script_path).replace("\\", "/")
+    step = str(step_path).replace("\\", "/")
+    stl  = str(stl_path).replace("\\", "/")
+
     lines = [
         '"""',
         f"Rhino Compute runner for {part_id}.",
-        f'Usage:  python "{runner_path}"',
-        f'        RHINO_COMPUTE_URL=http://your-server:6500 python "{runner_path}"',
+        f'Usage:  python "{sp}"',
+        f'        RHINO_COMPUTE_URL=http://your-server:6500 python "{sp}"',
         "See docs/rhino_compute_setup.md for setup.",
         '"""',
         "import json, os, sys",
         "from pathlib import Path",
         "",
-        f'SCRIPT_PATH = Path(r"{script_path}")',
-        f'STEP_PATH   = r"{step_path}"',
-        f'STL_PATH    = r"{stl_path}"',
+        f'SCRIPT_PATH = Path("{sp}")',
+        f'STEP_PATH   = "{step}"',
+        f'STL_PATH    = "{stl}"',
         f'PART_NAME   = "{part_id}"',
         f'COMPUTE_URL = os.environ.get("RHINO_COMPUTE_URL", "{RHINO_COMPUTE_URL}")',
         "",
