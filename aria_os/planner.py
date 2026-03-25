@@ -18,9 +18,39 @@ TEMPLATE_DIMS = {
 
 # Keywords that indicate a feature not in the template (force LLM)
 OVERRIDE_FEATURE_KEYWORDS = {
-    "aria_spool": ["flange", "keyway", "bolt circle", "m6", "90mm"],
-    "aria_cam_collar": ["helical", "ramp", "set screw", "m4"],
-    "aria_ratchet_ring": ["asymmetric", "custom pitch", "modified addendum", "lugs"],
+    "aria_spool": [
+        "flange", "keyway", "key way", "bolt circle", "m6", "90mm",
+        "pocket", "slot", "relief", "counter-bore", "counterbore",
+        "spline", "hub flange", "asymmetric",
+    ],
+    "aria_cam_collar": [
+        "helical", "ramp", "set screw", "m4",
+        "keyway", "key way", "spline", "slot", "undercut", "chamfer",
+    ],
+    "aria_ratchet_ring": [
+        "asymmetric", "custom pitch", "modified addendum", "lugs",
+        "involute", "pressure angle", "module", "relief", "undercut",
+        "dual-direction", "bidirectional",
+    ],
+    "aria_housing": [
+        "pocket", "slot", "boss", "rib", "gusset", "counter-bore",
+        "counterbore", "viewport", "window", "cutout",
+    ],
+    "aria_shaft": [
+        "keyway", "key way", "spline", "shoulder", "journal",
+        "snap ring", "groove", "stepped", "threaded",
+    ],
+    "aria_bracket": [
+        "gusset", "rib", "pocket", "slot", "counter-bore", "counterbore",
+        "chamfer", "fillet", "asymmetric", "offset holes",
+    ],
+    "aria_brake_drum": [
+        "fin", "vane", "rib", "slot", "ventilated", "keyway",
+    ],
+    "lre_nozzle": [
+        "dual-throat", "dual throat", "bell curve", "contoured",
+        "truncated", "film cooling", "regenerative",
+    ],
 }
 
 
@@ -158,13 +188,17 @@ def plan(goal: str, context: dict[str, str] | None = None, repo_root: Path | Non
             "bore", "bolt", "mount", "face contact", "engagement",
         )
         if any(k in goal_lower for k in safety_keywords):
-            out["tool_route"] = "fusion_cem_authoritative"
+            # Route to cadquery (headless, reliable) with CEM constraints injected
+            # into the plan. "fusion_cem_authoritative" was a dead route — tool_router
+            # had no handler for it so parts silently fell back to heuristic routing.
+            out["tool_route"] = "cadquery"
+            out["cad_tool_selected"] = "cadquery"
             out["cem_route_reason"] = (
-                "CEM-critical component detected; keep functional geometry authoritative "
-                "and drive CAD with physics-derived constraints."
+                "CEM-critical component: using CadQuery with physics-derived params injected."
             )
         else:
-            out["tool_route"] = "rhino_surface_refine_candidate"
+            out["tool_route"] = "cadquery"
+            out["cad_tool_selected"] = "cadquery"
         return out
 
     # ---------- Lattice generator routing ----------
@@ -525,6 +559,23 @@ def plan(goal: str, context: dict[str, str] | None = None, repo_root: Path | Non
     return _inject_cem_guidance(_plan_generic(goal, constants, context=context, cem_nums=cem_nums))
 
 
+def _slug_from_goal(goal: str) -> str:
+    """Convert a free-text goal into a snake_case part_id slug (max 5 meaningful words).
+
+    Strips filler words, lowercases, replaces spaces with underscores.
+    Never returns 'aria_part'; returns 'custom_part' if nothing meaningful remains.
+
+    Examples:
+        "Liquid Rocket Engine Nozzle" -> "liquid_rocket_engine_nozzle"
+        "a simple bracket with two holes" -> "simple_bracket_two_holes"
+        "my ARIA housing 700mm" -> "housing_700mm"
+    """
+    _FILLER = frozenset({"a", "an", "the", "with", "for", "of", "and", "my", "aria"})
+    words = re.sub(r"[^a-z0-9 ]", " ", goal.lower()).split()
+    meaningful = [w for w in words if w not in _FILLER][:5]
+    return "_".join(meaningful) if meaningful else "custom_part"
+
+
 def _plan_generic(
     goal: str,
     constants: dict[str, float],
@@ -550,26 +601,20 @@ def _plan_generic(
         (["ratchet"], "aria_ratchet_ring"),
     ]
 
-    part_id = "aria_part"
+    part_id = None
     for keywords, pid in PART_ID_MAP:
         if any(kw in goal_lower for kw in keywords):
             part_id = pid
             break
+    if part_id is None:
+        part_id = _slug_from_goal(goal)
 
     base_shape: dict[str, Any] = {"type": "box", "width": 100.0, "height": 100.0, "depth": 100.0}
     if any(kw in goal_lower for kw in ("cylind", "round", "bore", "spool", "collar", "ring", "drum")):
         base_shape = {"type": "cylinder", "diameter": 50.0, "height": 30.0}
 
-    # Unknown part: prefer a CEM-scaled envelope over a generic 100 mm cube
-    if part_id == "aria_part" and cem_nums:
-        if cem_nums.get("housing_od_mm"):
-            s = float(cem_nums["housing_od_mm"])
-            dlen = float(cem_nums.get("housing_length_mm", s * 0.5))
-            base_shape = {"type": "box", "width": s, "height": s, "depth": dlen}
-        elif cem_nums.get("spool_flange_d_mm"):
-            d = float(cem_nums["spool_flange_d_mm"])
-            h = float(cem_nums.get("spool_width_mm", 50.0))
-            base_shape = {"type": "cylinder", "diameter": d, "height": h}
+    # CEM envelope override: only for explicitly known ARIA components — never leak into
+    # unrelated parts.  (The old "if part_id == 'aria_part'" block has been removed.)
 
     if part_id == "aria_ratchet_ring" and cem_nums.get("spool_flange_d_mm"):
         base_shape = {

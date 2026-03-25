@@ -26,6 +26,11 @@ def _cq_ratchet_ring(params: dict[str, Any]) -> str:
     bore   = float(params.get("bore_mm", 185.0))
     thick  = float(params.get("thickness_mm", params.get("height_mm", 21.0)))
     teeth  = int(params.get("n_teeth", 24))
+    # Tooth height derived from pitch so teeth never overlap at any tooth count/OD combo.
+    # Cap at 6mm; floor at 1.5mm for very fine-pitch rings.
+    import math as _m
+    _pitch = (_m.pi * od) / teeth
+    _tooth_h = round(max(1.5, min(6.0, _pitch * 0.35)), 3)
     return f"""
 import cadquery as cq, math
 
@@ -33,7 +38,7 @@ OD_MM          = {od}
 BORE_MM        = {bore}
 THICKNESS_MM   = {thick}
 N_TEETH        = {teeth}
-TOOTH_HEIGHT   = 4.0
+TOOTH_HEIGHT   = {_tooth_h}   # derived: pitch*0.35, capped [1.5, 6.0] mm
 TOOTH_BASE_W   = (math.pi * OD_MM / N_TEETH) * 0.55
 
 ring = (
@@ -99,8 +104,9 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 def _cq_spool(params: dict[str, Any]) -> str:
     drum_od  = float(params.get("diameter", params.get("od_mm", 600.0)))
     drum_w   = float(params.get("width", params.get("drum_width_mm", 50.0)))
-    fl_od    = float(params.get("flange_diameter", drum_od + 40.0))
-    fl_thick = float(params.get("flange_thickness", 8.0))
+    # Flange OD defaults to drum_od + 15% of drum_od (proportional), not a fixed 40mm offset.
+    fl_od    = float(params.get("flange_diameter", params.get("flange_od_mm", drum_od * 1.15)))
+    fl_thick = float(params.get("flange_thickness", params.get("flange_thickness_mm", max(6.0, drum_w * 0.12))))
     hub_od   = float(params.get("hub_diameter", 47.2))
     return f"""
 import cadquery as cq
