@@ -106,7 +106,8 @@ def run_print_scale(args: list[str]):
     """
     Scale an existing STEP file for print-fit checks:
       python run_aria_os.py --print-scale <part_stub> --scale 0.75
-    Writes <part>_print_<pct>pct.step/.stl and reports dims + 256mm bed fit.
+    Requires Rhino Compute (RHINO_COMPUTE_URL env var, default http://localhost:6500).
+    Reports dims + 256mm bed fit; writes scaled STEP/STL via Rhino Compute.
     """
     if len(args) < 1:
         print("Usage: python run_aria_os.py --print-scale <part_stub> --scale <factor>")
@@ -125,8 +126,6 @@ def run_print_scale(args: list[str]):
             i += 1
 
     from aria_os.exporter import get_output_paths
-    import cadquery as cq
-    from cadquery import importers, exporters
 
     paths = get_output_paths(part_stub, ROOT)
     step_path = Path(paths["step_path"])
@@ -140,22 +139,73 @@ def run_print_scale(args: list[str]):
             print(f"STEP not found for stub: {part_stub}")
             sys.exit(1)
 
-    imported = importers.importStep(str(step_path))
-    solid = imported.val() if hasattr(imported, "val") else imported
-    bb = solid.BoundingBox()
-    orig_dims = (bb.xlen, bb.ylen, bb.zlen)
+    compute_url = (
+        __import__("os").environ.get("RHINO_COMPUTE_URL", "http://localhost:6500").rstrip("/")
+    )
 
-    scaled_solid = solid.scale(scale)
-    bb2 = scaled_solid.BoundingBox()
-    scaled_dims = (bb2.xlen, bb2.ylen, bb2.zlen)
+    try:
+        import requests  # type: ignore
+        resp = requests.get(f"{compute_url}/version", timeout=5)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"Rhino Compute not available at {compute_url}: {e}")
+        print("To use --print-scale, start Rhino Compute and set RHINO_COMPUTE_URL.")
+        print("See docs/rhino_compute_setup.md for setup instructions.")
+        sys.exit(1)
 
     pct = int(round(scale * 100))
     out_base = f"{step_path.stem}_print_{pct}pct"
     out_step = ROOT / "outputs" / "cad" / "step" / f"{out_base}.step"
     out_stl = ROOT / "outputs" / "cad" / "stl" / f"{out_base}.stl"
-    result = cq.Workplane("XY").add(scaled_solid)
-    exporters.export(result, str(out_step), exporters.ExportTypes.STEP)
-    exporters.export(result, str(out_stl), exporters.ExportTypes.STL)
+    out_step.parent.mkdir(parents=True, exist_ok=True)
+    out_stl.parent.mkdir(parents=True, exist_ok=True)
+
+    # Build RhinoCommon scale script and post to Rhino Compute
+    script = f"""
+import rhinoscriptsyntax as rs
+import Rhino.Geometry as rg
+import Rhino
+
+step_file = r"{step_path}"
+out_step = r"{out_step}"
+out_stl = r"{out_stl}"
+scale = {scale}
+
+objs = rs.Command('_-Import "' + step_file + '" _Enter', False)
+all_objs = rs.AllObjects()
+if all_objs:
+    xform = rg.Transform.Scale(rg.Point3d.Origin, scale)
+    for obj_id in all_objs:
+        rs.TransformObject(obj_id, xform)
+    bb_pts = [rs.BoundingBox([o]) for o in all_objs]
+    all_pts = [pt for bb in bb_pts if bb for pt in bb]
+    if all_pts:
+        xs = [p.X for p in all_pts]
+        ys = [p.Y for p in all_pts]
+        zs = [p.Z for p in all_pts]
+        xlen = max(xs) - min(xs)
+        ylen = max(ys) - min(ys)
+        zlen = max(zs) - min(zs)
+        print(f"BBOX:{{xlen:.3f}},{{ylen:.3f}},{{zlen:.3f}}")
+    rs.SelectObjects(all_objs)
+    rs.Command(f'_-Export "{{out_step}}" _Enter', False)
+    rs.Command(f'_-Export "{{out_stl}}" _Enter _Enter', False)
+"""
+
+    try:
+        resp = requests.post(
+            f"{compute_url}/grasshopper",
+            json={"algo": script, "pointer": None, "values": []},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        stdout = str(data.get("stdout", ""))
+        m = __import__("re").search(r"BBOX:([\d.]+),([\d.]+),([\d.]+)", stdout)
+        scaled_dims = (float(m.group(1)), float(m.group(2)), float(m.group(3))) if m else (0, 0, 0)
+    except Exception as e:
+        print(f"Rhino Compute scale failed: {e}")
+        sys.exit(1)
 
     bed_mm = 256.0
     fit = max(scaled_dims[0], scaled_dims[1]) <= bed_mm
@@ -164,7 +214,6 @@ def run_print_scale(args: list[str]):
     print("=== Print Scale ===")
     print(f"Input STEP:  {step_path}")
     print(f"Scale:       {scale} ({pct}%)")
-    print(f"Orig dims:   {orig_dims[0]:.2f} x {orig_dims[1]:.2f} x {orig_dims[2]:.2f} mm")
     print(f"Scaled dims: {scaled_dims[0]:.2f} x {scaled_dims[1]:.2f} x {scaled_dims[2]:.2f} mm")
     print(f"Output STEP: {out_step}")
     print(f"Output STL:  {out_stl}")
@@ -739,17 +788,45 @@ def main():
             sys.exit(1)
         run_generate_and_assemble(description, into_path, part_label, at_vec, rot_vec)
         return
+    # --- --image: analyse a photo and derive a goal, then run pipeline ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--image":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --image <photo.jpg> [\"optional hint\"] [--preview]")
+            sys.exit(1)
+        _argv_rest = sys.argv[2:]
+        _preview = "--preview" in _argv_rest
+        _argv_clean = [a for a in _argv_rest if a != "--preview"]
+        _image_path = _argv_clean[0]
+        _hint = " ".join(_argv_clean[1:])
+        from aria_os.llm_client import analyze_image_for_cad
+        print(f"[IMAGE] Analysing {_image_path}...")
+        _goal = analyze_image_for_cad(_image_path, hint=_hint, repo_root=ROOT)
+        if not _goal:
+            print("[IMAGE] Could not extract a goal from the image. Provide a hint with a description.")
+            sys.exit(1)
+        print(f"[IMAGE] Goal: {_goal}")
+        from aria_os import run
+        run(_goal, repo_root=ROOT, preview=_preview)
+        print("Done.")
+        return
+
     if len(sys.argv) < 2:
         print("Usage: python run_aria_os.py \"describe the part you want\"")
+        print("       python run_aria_os.py --image <photo.jpg> [\"hint\"] [--preview]")
         print("       python run_aria_os.py --list")
         print("       python run_aria_os.py --validate")
         print("       python run_aria_os.py --modify <path_to_.py> \"modification\"")
         print("       python run_aria_os.py --assemble <config.json>")
         print("Example: python run_aria_os.py \"generate the ARIA housing shell\"")
         sys.exit(1)
-    goal = " ".join(sys.argv[1:])
+
+    # Strip --preview from args before joining into goal
+    _args = sys.argv[1:]
+    _preview = "--preview" in _args
+    _args = [a for a in _args if a != "--preview"]
+    goal = " ".join(_args)
     from aria_os import run
-    run(goal, repo_root=ROOT)
+    run(goal, repo_root=ROOT, preview=_preview)
     print("Done.")
 
 

@@ -16,7 +16,7 @@ from .validator import validate_grasshopper_script
 from .post_gen_validator import run_validation_loop, check_output_quality
 
 
-def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
+def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, preview: bool = False):
     """Run the ARIA-OS pipeline: plan → route → generate artifacts → validate → log."""
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent
@@ -30,9 +30,8 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
     plan = planner_plan(goal, context, repo_root=repo_root)
     if not isinstance(plan, dict):
         plan = {"part_id": "aria_part", "text": str(plan), "build_order": [], "features": []}
-    plan = attach_brief_to_plan(goal, plan, context, repo_root=repo_root)
-
     # Extract user-specified dimensions and populate plan["params"] so templates honour them.
+    # Must happen BEFORE attach_brief_to_plan so the engineering brief reflects user dims.
     from .spec_extractor import extract_spec, merge_spec_into_plan as _merge_spec
     _spec = extract_spec(goal)
     if _spec:
@@ -43,11 +42,20 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
         if isinstance(_base, dict):
             _DIM_KEYS = (
                 "od_mm", "bore_mm", "id_mm", "thickness_mm", "height_mm",
-                "width_mm", "depth_mm", "length_mm", "diameter_mm",
+                "width_mm", "depth_mm", "length_mm",
+                # diameter_mm excluded: for box parts it captures sub-feature dims (ports/holes),
+                # not the part's base shape — syncing it would mislead bbox validation.
             )
+            # Also write the bare (no _mm) key that planner uses for box dims
+            _SHORT_KEY = {
+                "width_mm": "width", "height_mm": "height", "depth_mm": "depth",
+                "length_mm": "length", "thickness_mm": "thickness",
+            }
             for _k in _DIM_KEYS:
                 if _k in _spec:
                     _base[_k] = _spec[_k]
+                    if _k in _SHORT_KEY:
+                        _base[_SHORT_KEY[_k]] = _spec[_k]
         _user_dims = [
             f"{k}={v} (user)"
             for k, v in _spec.items()
@@ -55,6 +63,31 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
         ]
         if _user_dims:
             print(f"[SPEC] {' '.join(_user_dims)}")
+
+    # --- CEM: resolve physics model for this domain, auto-generate if unknown ---
+    # Priority: static registry (aria/lre) → dynamic registry → LLM-generated new CEM
+    # CEM outputs fill in plan["params"] without overwriting user-explicit values.
+    # This is the LEAP-71 layer: engineering constraints → physics-derived geometry.
+    try:
+        from .cem_generator import resolve_and_compute
+        _cem_params = plan.get("params") or {}
+        _cem_result = resolve_and_compute(goal, plan.get("part_id", ""), _cem_params, repo_root)
+        if _cem_result:
+            params_target = plan.setdefault("params", {})
+            injected = []
+            for k, v in _cem_result.items():
+                if k == "part_family":
+                    continue
+                if k not in params_target or params_target[k] is None:
+                    params_target[k] = v
+                    injected.append(f"{k}={v}")
+            if injected:
+                print(f"[CEM] Physics params injected: {' '.join(injected)}")
+            plan["cem_context"] = _cem_result
+    except Exception as _cem_exc:
+        print(f"[CEM] skipped: {_cem_exc}")
+
+    plan = attach_brief_to_plan(goal, plan, context, repo_root=repo_root)
 
     plan_text = plan.get("engineering_brief") or plan.get("text", str(plan))
     part_id   = plan.get("part_id", "")
@@ -86,9 +119,12 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
     print("=" * 64)
     print(f"Pipeline: {cad_tool}")
     print(f"Why: {plan.get('cad_tool_rationale', '')}")
-    print(f"[AUTOMATION] Primary CAD: {cad_tool} (artifacts → outputs/cad/...)")
+    print(f"[AUTOMATION] Primary CAD: {cad_tool} (artifacts -> outputs/cad/...)")
     print("-" * 64)
-    print(plan_text)
+    # Encode-safe: replace chars the Windows console can't handle
+    import sys as _sys
+    _enc = getattr(_sys.stdout, "encoding", "utf-8") or "utf-8"
+    print(plan_text.encode(_enc, errors="replace").decode(_enc))
     print("=" * 64 + "\n")
 
     paths     = get_output_paths(part_id or goal, repo_root)
@@ -147,23 +183,74 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
             repo_root=repo_root,
         )
 
-    elif cad_tool == "cadquery":
+    elif cad_tool == "sdf":
         try:
-            from .cadquery_generator import write_cadquery_artifacts
-            artifacts = write_cadquery_artifacts(
+            from .sdf_heat_exchanger import write_sdf_artifacts
+            artifacts = write_sdf_artifacts(
                 plan if isinstance(plan, dict) else {},
                 goal,
-                str(step_path),
                 str(stl_path),
                 repo_root=repo_root,
             )
-            if artifacts.get("step_path"):
-                session["step_path"] = artifacts["step_path"]
             if artifacts.get("stl_path"):
                 session["stl_path"] = artifacts["stl_path"]
-            if artifacts.get("bbox"):
-                session["bbox"] = artifacts["bbox"]
-            event_bus.emit("complete", "CadQuery generation complete", {"part_id": part_id})
+            if artifacts.get("error"):
+                session["sdf_error"] = artifacts["error"]
+                print(f"[SDF ERROR] {artifacts['error']}")
+            else:
+                meta = artifacts.get("meta", {})
+                print(
+                    f"[SDF] {meta.get('tpms_type', 'tpms')} | "
+                    f"scale={meta.get('scale_mm', 0):.1f}mm | "
+                    f"{meta.get('voxels', 0):,} voxels | "
+                    f"{meta.get('triangles', 0):,} triangles"
+                )
+                session["sdf_meta"] = meta
+                event_bus.emit("complete", "SDF generation complete", {"part_id": part_id})
+        except ImportError as _sdf_imp:
+            print(f"[SDF] scikit-image not installed — falling back to cadquery.")
+            print(f"      Run: pip install scikit-image")
+            # Fall through to cadquery below by setting cad_tool
+            cad_tool = "cadquery"
+            event_bus.emit("error", f"SDF import error: {_sdf_imp}", {"part_id": part_id})
+        except Exception as exc:
+            event_bus.emit("error", f"SDF failed: {exc}", {"part_id": part_id})
+            print(f"[SDF ERROR] {exc}")
+
+    if cad_tool == "cadquery":
+        try:
+            from .cadquery_generator import write_cadquery_artifacts
+            _cq_previous_failures: list[str] = []
+            for _cq_attempt in range(max_attempts):
+                artifacts = write_cadquery_artifacts(
+                    plan if isinstance(plan, dict) else {},
+                    goal,
+                    str(step_path),
+                    str(stl_path),
+                    repo_root=repo_root,
+                    previous_failures=_cq_previous_failures or None,
+                )
+                _cq_err = artifacts.get("error")
+                if _cq_err:
+                    _cq_previous_failures.append(_cq_err.splitlines()[-1])
+                    print(f"[CQ RETRY {_cq_attempt + 1}/{max_attempts}] {_cq_previous_failures[-1]}")
+                    event_bus.emit("error", f"CQ attempt {_cq_attempt + 1} failed: {_cq_err[:200]}", {"part_id": part_id})
+                    if _cq_attempt + 1 >= max_attempts:
+                        print(f"[CQ FAIL] All {max_attempts} attempts exhausted.\n{_cq_err}")
+                    continue
+                # Success
+                if artifacts.get("step_path"):
+                    session["step_path"] = artifacts["step_path"]
+                if artifacts.get("stl_path"):
+                    session["stl_path"] = artifacts["stl_path"]
+                if artifacts.get("bbox"):
+                    session["bbox"] = artifacts["bbox"]
+                if artifacts.get("script_path"):
+                    session["script_path"] = artifacts["script_path"]
+                if artifacts.get("error"):
+                    session["cq_error"] = artifacts["error"]
+                event_bus.emit("complete", "CadQuery generation complete", {"part_id": part_id})
+                break
         except Exception as exc:
             event_bus.emit("error", f"CadQuery failed: {exc}", {"part_id": part_id})
             print(f"[CADQUERY ERROR] {exc}")
@@ -269,7 +356,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
             if stl_info.get("repaired"):
                 print(f"[QUALITY] STL repaired (was not watertight): {stl_path}")
                 event_bus.emit("validation", "STL repaired", {"part_id": part_id, "stl_path": str(stl_path)})
-            if not step_info.get("readable", True):
+            if not step_info.get("readable", True) and cad_tool != "sdf":
                 print(f"[QUALITY] STEP not readable: {step_path}")
                 event_bus.emit("validation", "STEP not readable", {"part_id": part_id})
             if quality.get("passed"):
@@ -282,6 +369,38 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
 
     session["automation_artifacts"] = artifacts
     session["attempts"] = 1
+
+    # --- Preview UI: show 3D model + let user choose export format ---
+    if preview:
+        _stl_for_preview = session.get("stl_path") or (str(stl_path) if stl_path.exists() else None)
+        _script_for_preview = session.get("script_path")
+        if _stl_for_preview and Path(_stl_for_preview).exists():
+            from .preview_ui import show_preview
+            _export_choice = show_preview(
+                _stl_for_preview,
+                part_id=part_id or goal[:40],
+                script_path=_script_for_preview,
+            )
+            session["export_choice"] = _export_choice
+            # Act on choice: delete unwanted output files
+            if _export_choice == "skip":
+                print("[PREVIEW] Discarding outputs as requested.")
+                for _p in (step_path, stl_path):
+                    if _p.exists():
+                        _p.unlink(missing_ok=True)
+                event_bus.emit("complete", "Preview: user discarded run", {"part_id": part_id})
+                return session
+            elif _export_choice == "step":
+                if stl_path.exists():
+                    stl_path.unlink(missing_ok=True)
+                    print(f"[PREVIEW] STL removed (step-only export): {stl_path}")
+            elif _export_choice == "stl":
+                if step_path.exists():
+                    step_path.unlink(missing_ok=True)
+                    print(f"[PREVIEW] STEP removed (stl-only export): {step_path}")
+            # "both" → keep everything (default)
+        else:
+            print("[PREVIEW] No STL available for preview — skipping viewer.")
 
     # --- CEM physics check (runs for every single-part generation) ---
     _cem_result = None
@@ -323,25 +442,49 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3):
         and _quality.get("passed", True)
     )
 
-    # bbox_within_2pct: check XY bbox vs spec od_mm within 2 %
+    # bbox_within_2pct: works for both cylindrical (od_mm) and box (width/height/depth) parts
     _bbox_within_2pct = False
     if _bbox and _spec:
         _od = _spec.get("od_mm")
+        _w  = _spec.get("width_mm")
+        _h  = _spec.get("height_mm")
+        _d  = _spec.get("depth_mm")
         if _od and _bbox.get("x"):
             _tol = _od * 0.02
             _bbox_within_2pct = (
                 abs(_bbox.get("x", 0) - _od) <= _tol
                 and abs(_bbox.get("y", 0) - _od) <= _tol
             )
+        elif _w and _h and _d:
+            _tol = 2.0  # 2mm absolute tolerance for box parts
+            _bbox_within_2pct = (
+                abs(_bbox.get("x", 0) - _w) <= _tol
+                and abs(_bbox.get("y", 0) - _h) <= _tol
+                and abs(_bbox.get("z", 0) - _d) <= _tol
+            )
+
+    # Read the actual generated code from the script file (for few-shot learning)
+    _generated_code = f"# routed_tool={cad_tool}"
+    _script_path = session.get("script_path", "")
+    if _script_path:
+        try:
+            _generated_code = Path(_script_path).read_text(encoding="utf-8")
+        except Exception:
+            pass
+
+    # Collect the actual error message if generation failed
+    _run_error = session.get("cq_error") or session.get("validation", {}).get("error") or ""
+    if not _run_error and _val_status == "failure":
+        _run_error = str(session.get("validation", {}).get("failures", "validation failed"))
 
     record_attempt(
         goal=goal,
         plan_text=plan_text,
         part_id=part_id or "aria_part",
-        code=f"# routed_tool={cad_tool}",
+        code=_generated_code,
         passed=_passed,
         bbox=_bbox or {"x": 0.0, "y": 0.0, "z": 0.0},
-        error=None,
+        error=_run_error or None,
         cem_snapshot=load_cem_geometry(repo_root, goal=goal, part_id=part_id or ""),
         cem_passed=_cem_passed,
         feature_complete=True,

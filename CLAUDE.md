@@ -54,6 +54,15 @@ python run_aria_os.py --assemble assembly_configs/aria_clutch_assembly.json
 
 # Print-fit scaling check
 python run_aria_os.py --print-scale aria_ratchet_ring --scale 0.75
+
+# Generate from a photo (vision AI extracts goal, then runs pipeline)
+python run_aria_os.py --image photo.jpg
+python run_aria_os.py --image photo.jpg "it's a bracket"   # optional hint
+
+# Preview generated model in 3D browser before export
+python run_aria_os.py --preview "ARIA ratchet ring, 213mm OD"
+# Opens Three.js STL viewer in browser; choose export format in terminal:
+#   [1] step  [2] stl  [3] both (default)  [4] skip
 ```
 
 ### Dashboard
@@ -105,13 +114,14 @@ npx expo run:android    # add google-services.json first
 ```
 
 ### LLM backend
-`ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) is **optional**. Priority chain: Anthropic → Ollama → heuristic fallback. The pipeline never crashes due to a missing key.
+All keys are **optional**. Priority chain: **Anthropic → Gemini → Ollama → heuristic fallback**. The pipeline never crashes due to a missing key.
 
-- **Anthropic / OpenAI** — set key in `.env`; enables full LLM generation + visual quality checks.
+- **Anthropic** — set `ANTHROPIC_API_KEY` in `.env`; enables full LLM generation + vision image analysis.
+- **Google Gemini** — set `GOOGLE_API_KEY` in `.env`; enables LLM generation + vision image analysis. Set `GEMINI_MODEL` to override (default: `gemini-2.0-flash`).
 - **Ollama (local)** — install [Ollama](https://ollama.com), run `ollama pull deepseek-coder`. Set `OLLAMA_HOST` / `OLLAMA_MODEL` in `.env` if non-default.
-- **Heuristic templates** — 14 known parts work with zero network calls (see `cadquery_generator._CQ_TEMPLATE_MAP`).
+- **Heuristic templates** — 16 known parts work with zero network calls (see `cadquery_generator._CQ_TEMPLATE_MAP`).
 
-See `aria_os/llm_client.py` — `call_llm(prompt, system, *, repo_root)` is the single entry point used by all generators.
+See `aria_os/llm_client.py` — `call_llm(prompt, system, *, repo_root)` is the single entry point used by all generators. `analyze_image_for_cad(image_path, hint, *, repo_root)` uses the same priority chain for vision (Anthropic → Gemini → None).
 
 ---
 
@@ -122,15 +132,16 @@ The main pipeline lives in `aria_os/` and runs as: **goal string → plan → ro
 ### Entry & routing
 - `run_aria_os.py` — CLI; calls `aria_os.run(goal)`
 - `aria_os/orchestrator.py` — pipeline controller
-- `aria_os/planner.py` — goal → structured plan dict; detects dimensional overrides to decide template vs LLM
+- `aria_os/planner.py` — goal → structured plan dict; detects dimensional overrides to decide template vs LLM. `has_dimensional_overrides(goal, template_dims, part_id)` routes to LLM only for **>25% deviation** from template defaults — smaller changes use the template with spec-injected params. Feature keywords (keyway, involute, spline, etc.) always force LLM regardless of magnitude. `OVERRIDE_FEATURE_KEYWORDS` covers 8 part types.
 - `aria_os/tool_router.py` — routes to `cadquery` / `fusion` / `grasshopper` / `blender` based on goal keywords and `part_id`. `CADQUERY_KEYWORDS` includes `"nozzle"`, `"rocket"`, `"lre"`, `"liquid rocket"`, `"turbopump"`, `"injector"` so LRE parts route to CadQuery headless instead of Grasshopper.
 - `aria_os/orchestrator.py` — after `attach_brief_to_plan`, calls `extract_spec(goal)` + `merge_spec_into_plan(spec, plan)` to populate `plan["params"]` with user-specified dimensions. Prints `[SPEC] key=val (user) ...` for each extracted dim. After the merge, syncs user-specified dimensional keys (`od_mm`, `bore_mm`, `thickness_mm`, `height_mm`, `width_mm`, `depth_mm`, `length_mm`, `diameter_mm`) back into `plan["base_shape"]` so validation `expected_bbox` checks against what the user asked for, not planner template defaults. Grasshopper `write_grasshopper_artifacts` call is wrapped in a retry loop (up to `max_attempts`); `RuntimeError` is caught, logged, and retried — never propagates as unhandled traceback.
 
 ### CAD generation
 - `aria_os/generator.py` — CadQuery templates for `KNOWN_PART_IDS`; LLM fallback for unknown parts
-- `aria_os/llm_client.py` — **unified LLM client** (new). Priority: Anthropic → Ollama → `None`. Never raises. All generators import `call_llm` from here. `get_anthropic_key()` returns `None` instead of raising (unlike old `_get_api_key`). `get_ollama_status()` feeds `/api/health`. `_LOCAL_MODEL_NOTE` injected into system prompt when Ollama is used.
+- `aria_os/llm_client.py` — **unified LLM client**. Priority: Anthropic → Gemini → Ollama → `None`. Never raises. All generators import `call_llm` from here. `get_anthropic_key()` / `get_google_key()` read from env or `.env`. `get_ollama_status()` feeds `/api/health`. `_LOCAL_MODEL_NOTE` injected into system prompt when Ollama is used. `analyze_image_for_cad(image_path, hint)` — vision AI: tries `_try_anthropic_vision` then `_try_gemini_vision`; supports new `google-genai` SDK and legacy `google-generativeai` SDK.
 - `aria_os/llm_generator.py` — Anthropic/OpenAI backend; injects mechanical constants + failure patterns into system prompt; `_get_api_key()` now delegates to `llm_client.get_anthropic_key()` (kept for vision callers only)
-- `aria_os/cad_prompt_builder.py` — builds engineering brief from CEM outputs + context for LLM prompt
+- `aria_os/cad_prompt_builder.py` — builds engineering brief from CEM outputs + context for LLM prompt. `_build_dim_hints` emits **all** `plan["params"]` keys (including CEM-derived physics params) for every domain under a MANDATORY marker — LLM must use exact values, not recalculate.
+- `aria_os/preview_ui.py` — **3D STL preview** before export. `show_preview(stl_path, part_id) -> ExportChoice`. Embeds STL as base64 in a self-contained Three.js HTML page (no server needed), opens in default browser, then prompts terminal for export choice: `"step" | "stl" | "both" | "skip"`. Activated via `--preview` flag or `orchestrator.run(preview=True)`.
 - `aria_os/fusion_generator.py` — generates Fusion 360 Python API scripts (run inside Fusion)
 - `aria_os/grasshopper_generator.py` — generates Grasshopper/Rhino Compute artifacts; **Grasshopper is the default tool for 6 core ARIA parts** (see `GRASSHOPPER_PART_IDS` in `tool_router.py`). `write_grasshopper_artifacts` raises `RuntimeError` (never writes a placeholder) when no template exists and LLM is unavailable — this propagates as a validation loop retry. Script size < 500 bytes is a hard failure. Ratchet ring union loop: repairs tooth brep before + after transform, retries with tol=0.01 on failure, raises `RuntimeError` if `Faces.Count < 20` post-loop.
 - `aria_os/blender_generator.py` — generates Blender lattice artifacts
@@ -166,6 +177,7 @@ outputs/cad/grasshopper/<part>/
 - `aria_os/post_gen_validator.py` — **deepened validation loop** (up to 3 retries, failure-context injection):
   - `parse_spec(goal, plan)` → extracts `{od_mm, bore_mm, height_mm, n_teeth, has_bore, volume_min/max, tol_mm}`
   - `check_geometry(stl_path, spec)` → trimesh bbox/volume/bore/watertight checks
+  - `_detect_bore(mesh, bb, spec)` → spec-derived threshold: when `bore_mm`+`od_mm` known, threshold = `1 - (bore_mm/od_mm)**2 * 0.5`; falls back to fixed 0.65. Avoids false negatives on large bores and false positives on thin walls.
   - `validate_step(step_path)` → STEP readability + solid count via CadQuery (header fallback)
   - `check_and_repair_stl(stl_path)` → watertight check + trimesh repair (fill_holes/fix_normals/fix_winding) + re-export
   - `check_output_quality(step_path, stl_path)` → combined STEP+STL check; returns `{passed, failures, step, stl}`
@@ -176,7 +188,11 @@ outputs/cad/grasshopper/<part>/
     - Returns `quality_result` dict when `check_quality=True`; orchestrator passes `check_quality=True`
   - All backend generators accept `previous_failures: list[str] | None = None`; `cadquery_generator.py` injects into LLM prompt
   - **Output quality wired into orchestrator** (Item 4): `check_output_quality(step_path, stl_path)` runs for ALL backends after generation; result stored in `session["output_quality"]`. Logs repair events. Orchestrator also passes `check_quality=True` to `run_validation_loop` for GH/CadQuery; result in `session["validation"]["quality"]` and `session["validation"]["validation_failures"]`.
-- `aria_os/cadquery_generator.py` — `_CQ_TEMPLATE_MAP` contains **16 templates**: 7 ARIA structural parts (`aria_ratchet_ring`, `aria_housing`, `aria_spool`, `aria_cam_collar`, `aria_brake_drum`, `aria_catch_pawl`, `aria_rope_guide`) + 7 generic mechanical parts (`aria_bracket`, `aria_flange`, `aria_shaft`, `aria_pulley`, `aria_cam`, `aria_pin`, `aria_spacer`) + 2 LRE parts (`lre_nozzle`, `aria_nozzle` — convergent+divergent hollow bell-nozzle revolved in XY plane around Y axis; params: `entry_r_mm=60`, `throat_r_mm=25`, `exit_r_mm=80`, `conv_length_mm=80`, `length_mm=200`, `wall_mm=3`). Every template produces valid geometry on first attempt. Unknown parts fall back to LLM. `_cq_bracket`: holes are evenly spaced along the plate width (15% margin each side); `n_bolts` controls count (default 2), `bolt_dia_mm` is accepted as fallback for `hole_dia_mm`.
+- `aria_os/cadquery_generator.py` — `_CQ_TEMPLATE_MAP` contains **16 templates**: 7 ARIA structural parts (`aria_ratchet_ring`, `aria_housing`, `aria_spool`, `aria_cam_collar`, `aria_brake_drum`, `aria_catch_pawl`, `aria_rope_guide`) + 7 generic mechanical parts (`aria_bracket`, `aria_flange`, `aria_shaft`, `aria_pulley`, `aria_cam`, `aria_pin`, `aria_spacer`) + 2 LRE parts (`lre_nozzle`, `aria_nozzle` — convergent+divergent hollow bell-nozzle revolved in XY plane around Y axis; params: `entry_r_mm=60`, `throat_r_mm=25`, `exit_r_mm=80`, `conv_length_mm=80`, `length_mm=200`, `wall_mm=3`). Every template produces valid geometry on first attempt. Unknown parts fall back to LLM. Template param key conventions (standard spec keys accepted across all templates):
+  - `_cq_bracket`: `n_bolts` controls hole count; holes spaced evenly along width (15% margin); `bolt_dia_mm` → `hole_dia_mm` fallback
+  - `_cq_brake_drum`: `od_mm`, `height_mm`/`width_mm`, `wall_mm`; hub bore from `bore_mm` (fallback: `od*0.12`); wall from `wall_mm` (fallback: `max(8, od*0.04)`); shaft_d clamped to `< od - 2*wall`
+  - `_cq_catch_pawl`: `length_mm`, `width_mm`, `thickness_mm`; pivot bore from `bore_mm` → `pivot_hole_dia_mm` fallback
+  - `_cq_rope_guide`: `width_mm`, `height_mm`, `thickness_mm`, `diameter_mm` (roller), `bore_mm`; legacy bracket_* keys still accepted as fallback
 - `aria_os/spec_extractor.py` — **structured spec extraction** (Item 3): converts natural-language descriptions to typed dicts before any generator or router call.
   - `extract_spec(description) -> dict` — extracts: `od_mm`, `bore_mm`, `id_mm`, `thickness_mm`, `height_mm`, `width_mm`, `depth_mm`, `length_mm`, `diameter_mm`, `n_teeth`, `n_bolts`, `bolt_circle_r_mm`, `bolt_dia_mm`, `wall_mm`, `material`, `part_type`
   - `merge_spec_into_plan(spec, plan) -> dict` — merges spec into `plan["params"]` without overwriting existing non-None values
