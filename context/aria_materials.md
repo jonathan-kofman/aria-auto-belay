@@ -15,3 +15,5 @@
 | 6082_t6         | 6082-T6 Aluminum    | 260       | 310          | 2.71        | 1.2           | 9             | cnc                    |
 | inconel_718     | Inconel 718         | 1100      | 1375         | 8.19        | 20.0          | 2             | cnc,dmls               |
 
+> **Note:** The room-temp yield above (1100 MPa) differs from `cem_core.py` which uses 700 MPa — the elevated-temperature (700 degC) yield for hot-section analysis.
+

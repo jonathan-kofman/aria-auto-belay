@@ -48,6 +48,9 @@ MATERIAL_6061_AL = Material(
     youngs_modulus_GPa=69, thermal_conductivity_W_mK=167,
     specific_heat_J_kgK=896, max_use_temp_K=473)
 
+# NOTE: yield_strength_MPa=700 is the elevated-temperature (700 degC) yield used for
+# hot-section CEM analysis. Room-temp yield is 1100 MPa per context/aria_materials.md.
+# If you need room-temp properties, override yield_strength_MPa=1100.
 MATERIAL_INCONEL718 = Material(
     name="Inconel 718 (700C)",
     density_kg_m3=8220, yield_strength_MPa=700, ultimate_strength_MPa=900,

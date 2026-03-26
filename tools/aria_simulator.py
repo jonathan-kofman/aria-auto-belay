@@ -25,7 +25,7 @@ TENSION_BASELINE_N        = 40.0   # Normal climbing tension (N)
 TENSION_TAKE_THRESHOLD_N  = 200.0  # Load cell threshold to confirm TAKE (N)
 TENSION_FALL_THRESHOLD_N  = 400.0  # Threshold indicating active fall (N)
 TENSION_GROUND_N          = 15.0   # Below this = climber on ground
-TENSION_WATCH_ME_N        = 25.0   # Tighter slack in WATCH ME mode (N)
+TENSION_WATCH_ME_N        = 60.0   # Tighter slack in WATCH ME mode (N) — must match TENSION_TIGHT_N in state_machine.py
 
 ROPE_SPEED_CLIMB_MS       = 0.3    # Normal climbing rope speed (m/s)
 ROPE_SPEED_LOWER_MS       = 0.5    # Controlled lower speed (m/s)

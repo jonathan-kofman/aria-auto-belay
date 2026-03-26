@@ -122,6 +122,29 @@ def validate(
     out = StringIO()
     err = StringIO()
     namespace = dict(inject_namespace or {})
+
+    # --- Sandboxed exec: restrict builtins to block os/subprocess/socket access ---
+    _ALLOWED_MODULES = frozenset({"cadquery", "math", "cadquery.exporters"})
+
+    def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name not in _ALLOWED_MODULES:
+            raise ImportError(f"Import of '{name}' is blocked by sandbox")
+        return __builtins__.__import__(name, globals, locals, fromlist, level) if hasattr(__builtins__, '__import__') else __import__(name, globals, locals, fromlist, level)
+
+    safe_builtins = {
+        "__import__": _safe_import,
+        "range": range, "len": len, "print": print,
+        "abs": abs, "min": min, "max": max, "round": round,
+        "float": float, "int": int, "str": str,
+        "list": list, "dict": dict, "tuple": tuple, "set": set,
+        "bool": bool, "enumerate": enumerate, "zip": zip, "map": map,
+        "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
+        "True": True, "False": False, "None": None,
+        "ValueError": ValueError, "TypeError": TypeError,
+        "RuntimeError": RuntimeError, "Exception": Exception,
+    }
+    namespace["__builtins__"] = safe_builtins
+
     old_stdout, old_stderr = sys.stdout, sys.stderr
     exec_error = ""
     try:

@@ -806,7 +806,27 @@ print(f"EXPORTED STL: {{_stl}}")
         import cadquery as cq  # noqa: F401
         from cadquery import exporters  # noqa: F401
 
-        ns: dict[str, Any] = {}
+        # --- Sandboxed exec: allow cadquery/math only, block os/subprocess/socket ---
+        _ALLOWED_MODULES = frozenset({"cadquery", "math", "cadquery.exporters"})
+
+        def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name not in _ALLOWED_MODULES:
+                raise ImportError(f"Import of '{name}' is blocked by sandbox")
+            return __import__(name, globals, locals, fromlist, level)
+
+        safe_builtins = {
+            "__import__": _safe_import,
+            "range": range, "len": len, "print": print,
+            "abs": abs, "min": min, "max": max, "round": round,
+            "float": float, "int": int, "str": str,
+            "list": list, "dict": dict, "tuple": tuple, "set": set,
+            "bool": bool, "enumerate": enumerate, "zip": zip, "map": map,
+            "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
+            "True": True, "False": False, "None": None,
+            "ValueError": ValueError, "TypeError": TypeError,
+            "RuntimeError": RuntimeError, "Exception": Exception,
+        }
+        ns: dict[str, Any] = {"__builtins__": safe_builtins}
         exec(compile(cq_code, f"<{part_id}_cq>", "exec"), ns)  # noqa: S102
         geom = ns.get("result")
         if geom is None:
