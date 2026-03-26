@@ -27,6 +27,7 @@ ZONE_PAUSE_TIMEOUT_S    = 10.0
 TENSION_FALL_THRESHOLD_N = 400.0
 ROPE_SPEED_FALL_MS       = 2.0
 ESTOP_BRAKE_DELAY_MS    = 50.0
+ESTOP_RESET_HOLD_S      = 2.0      # operator must hold reset for 2 s to exit ESTOP
 WATCHDOG_TIMEOUT_MS     = 500.0
 
 
@@ -85,6 +86,7 @@ class Inputs:
     cv_clip: bool    = False
     cv_zone: bool    = False   # unexpected body in camera zone
     estop: bool      = False
+    operator_reset: bool = False  # physical key-switch / panel reset input
     time_s: float    = 0.0
     dt: float        = 0.02
 
@@ -107,6 +109,7 @@ class AriaStateMachine:
         self.watch_me_start_time:   Optional[float] = None
         self.zone_pause_start_time: Optional[float] = None
         self.pre_pause_state:       Optional[State] = None
+        self.estop_reset_start:     Optional[float] = None  # when operator_reset first asserted
 
     def _go(self, new_state: State) -> None:
         self.state = new_state
