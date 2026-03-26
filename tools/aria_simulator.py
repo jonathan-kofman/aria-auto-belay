@@ -551,6 +551,35 @@ class ARIAStateMachine:
             self._take_voice_time = time.time()
             self.state = State.TAKE
 
+    # ── FALL_ARREST ──
+    def _state_fall_arrest(self, s):
+        # Brake engaged, motor off, hold position.
+        # Requires explicit acknowledgment to exit.
+        self._motor_output = 0.0
+        self._motor_direction = 0
+
+        if self._valid_voice(s, VoiceCommand.RESET):
+            self.log.add("FALL_ARREST acknowledged via RESET — returning to IDLE", "SAFE")
+            self.state = State.IDLE
+            self.pid.reset()
+            return
+        if self._valid_voice(s, VoiceCommand.LOWER):
+            self.log.add("FALL_ARREST acknowledged via LOWER — controlled descent", "SAFE")
+            self.state = State.LOWER
+            return
+
+    # ── ESTOP ──
+    def _state_estop(self, s):
+        # All outputs disabled. Requires explicit reset to exit.
+        self._motor_output = 0.0
+        self._motor_direction = 0
+
+        if self._valid_voice(s, VoiceCommand.RESET):
+            self.log.add("ESTOP reset — returning to IDLE", "SAFE")
+            self.state = State.IDLE
+            self.pid.reset()
+            return
+
     # ── Status report ──
     def status(self):
         s = self.sensors

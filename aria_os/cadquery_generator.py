@@ -947,7 +947,7 @@ Avoid these CadQuery failure patterns:
 - Never use annular profile as first operation. Build solid cylinder/box first, then remove interior.
 - For hollow parts: create outer solid, then cut the inner void.
 
-{f"Known recent failures for this part (from learning log):\\n{_learned_block}" if _learned_block else ""}
+{("Known recent failures for this part (from learning log):" + chr(10) + _learned_block) if _learned_block else ""}
 
 CadQuery patterns:
   Box:       cq.Workplane("XY").box(L, W, H)
