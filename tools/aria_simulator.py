@@ -249,44 +249,27 @@ class ARIAStateMachine:
             prev_state = self.state
 
             # ── ESTOP — highest priority, overrides everything ──
-            if self._valid_voice(s, VoiceCommand.RESET) and self.state == State.ESTOP:
-                # Explicit reset exits ESTOP
-                self.log.add("ESTOP reset — returning to IDLE", "SAFE")
-                self.state = State.IDLE
-                self._motor_output = 0.0
-                self._motor_direction = 0
-                self.pid.reset()
-                # fall through to clear voice + log transition
-            elif s.voice_command == VoiceCommand.RESET and s.voice_confidence >= VOICE_CONFIDENCE_MIN and self.state == State.ESTOP:
-                pass  # handled above
-            # Check for ESTOP command from any state
-            elif hasattr(s, '_estop') and s._estop:
+            if s._estop and self.state != State.ESTOP:
                 self._motor_output = 0.0
                 self._motor_direction = 0
                 self.state = State.ESTOP
                 self.log.add("ESTOP TRIGGERED — all outputs disabled", "SAFE")
-                # fall through to clear voice + log transition
 
             # ── FALL DETECTION — overrides all active states ──
-            elif self.state not in (State.IDLE, State.ESTOP, State.FALL_ARREST):
-                if self._is_fall_in_progress(s):
-                    self._motor_output = 0.0
-                    self._motor_direction = 0
-                    self.log.add(
-                        f"FALL DETECTED — load={s.load_cell_n:.0f}N "
-                        f"speed={s.rope_speed_ms:.2f}m/s — brake engaged, "
-                        f"entering FALL_ARREST",
-                        "SAFE"
-                    )
-                    self.state = State.FALL_ARREST
-                    # fall through to clear voice + log transition
-
-                else:
-                    # ── Normal STATE LOGIC ──
-                    self._dispatch_state(s)
+            elif (self.state not in (State.IDLE, State.ESTOP, State.FALL_ARREST)
+                  and self._is_fall_in_progress(s)):
+                self._motor_output = 0.0
+                self._motor_direction = 0
+                self.log.add(
+                    f"FALL DETECTED — load={s.load_cell_n:.0f}N "
+                    f"speed={s.rope_speed_ms:.2f}m/s — brake engaged, "
+                    f"entering FALL_ARREST",
+                    "SAFE"
+                )
+                self.state = State.FALL_ARREST
 
             else:
-                # IDLE, FALL_ARREST, ESTOP — dispatch normally
+                # ── Normal STATE LOGIC (includes FALL_ARREST and ESTOP handlers) ──
                 self._dispatch_state(s)
 
             # ── Clear one-shot voice command after processing ──
