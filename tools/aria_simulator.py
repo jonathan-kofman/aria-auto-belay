@@ -303,6 +303,29 @@ class ARIAStateMachine:
         return (s.voice_command == cmd and
                 s.voice_confidence >= VOICE_CONFIDENCE_MIN)
 
+    def _dispatch_state(self, s):
+        """Route to the correct state handler."""
+        if self.state == State.IDLE:
+            self._state_idle(s)
+        elif self.state == State.CLIMBING:
+            self._state_climbing(s)
+        elif self.state == State.CLIPPING:
+            self._state_clipping(s)
+        elif self.state == State.TAKE:
+            self._state_take(s)
+        elif self.state == State.REST:
+            self._state_rest(s)
+        elif self.state == State.LOWER:
+            self._state_lower(s)
+        elif self.state == State.WATCH_ME:
+            self._state_watch_me(s)
+        elif self.state == State.UP:
+            self._state_up(s)
+        elif self.state == State.FALL_ARREST:
+            self._state_fall_arrest(s)
+        elif self.state == State.ESTOP:
+            self._state_estop(s)
+
     # ── IDLE ──
     def _state_idle(self, s):
         self._motor_output = 0.0
@@ -359,6 +382,17 @@ class ARIAStateMachine:
 
     # ── CLIPPING ──
     def _state_clipping(self, s):
+        # Voice overrides during clipping — climber can command TAKE or LOWER
+        if self._valid_voice(s, VoiceCommand.TAKE):
+            self._take_voice_time = time.time()
+            self.log.add("TAKE requested during CLIPPING", "CMD")
+            self.state = State.TAKE
+            return
+        if self._valid_voice(s, VoiceCommand.LOWER):
+            self.log.add("LOWER requested during CLIPPING", "CMD")
+            self.state = State.LOWER
+            return
+
         # Pre-feed CLIP_SLACK_M of rope quickly
         elapsed = time.time() - self._clip_start_time
         clip_duration = CLIP_SLACK_M / ROPE_SPEED_CLIMB_MS
@@ -377,7 +411,7 @@ class ARIAStateMachine:
             self.state = State.CLIMBING
 
         # Safety: if fall detected during clipping, state machine
-        # returns immediately before this runs (safety override above)
+        # transitions to FALL_ARREST (safety override in tick)
 
     # ── TAKE ──
     def _state_take(self, s):

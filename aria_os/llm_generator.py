@@ -71,7 +71,7 @@ Mechanical constants (from aria_mechanical.md) — use these when relevant:
 
 {cem_block}
 {few_shot_block}
-{f"# Known recent failures for this part:\\n# {learned_failures.replace(chr(10), chr(10) + '# ')}" if learned_failures else ""}
+{("# Known recent failures for this part:" + chr(10) + "# " + learned_failures.replace(chr(10), chr(10) + "# ")) if learned_failures else ""}
 
 Avoid these patterns:
 {avoid}
@@ -148,7 +148,7 @@ Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and 
   _json_path = _pathlib.Path(STEP_PATH).parent.parent / "meta" / (_pathlib.Path(STEP_PATH).stem + ".json")
   _json_path.parent.mkdir(parents=True, exist_ok=True)
   _json_path.write_text(_json.dumps(_meta, indent=2))
-  print(f\"META:{{_json_path}}\")
+  print(f'META:{{_json_path}}')
 
 The variable 'result' must be the final rg.Brep. Do not define STEP_PATH, STL_PATH or PART_NAME; they are provided."""
 
