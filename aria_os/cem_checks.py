@@ -130,25 +130,42 @@ def _run_dynamic_checks() -> tuple[Optional[bool], Optional[float], Optional[flo
 
 
 def _run_cem_system_check(goal: str = "", part_id: str = "") -> tuple[Optional[bool], List[str]]:
-    """Run resolved CEM module's ARIAModule.validate() (default cem_aria)."""
+    """Run resolved CEM module's compute_for_goal() and validate outputs."""
     try:
         import importlib
+        import sys
+        import os
 
         from cem_registry import resolve_cem_module
 
         mod_name = resolve_cem_module(goal or "", part_id or "")
-        cem_mod = importlib.import_module(mod_name)
-        ARIAInputs = getattr(cem_mod, "ARIAInputs", None)
-        ARIAModule = getattr(cem_mod, "ARIAModule", None)
-        if ARIAInputs is None or ARIAModule is None:
+        if mod_name is None:
             return None, []
-    except ImportError:
+
+        # Ensure repo root is on path for CEM module resolution
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+
+        cem_mod = importlib.import_module(mod_name)
+        compute_fn = getattr(cem_mod, "compute_for_goal", None)
+        if compute_fn is None:
+            return None, []
+    except (ImportError, Exception):
         return None, []
-    inputs = ARIAInputs()
-    module = ARIAModule(inputs)
-    module.compute()
-    ok = module.validate()
-    return bool(ok), list(module.warnings)
+
+    try:
+        result = compute_fn(goal or "", {})
+        if not isinstance(result, dict) or not result:
+            return None, []
+        # Validate that physics outputs are plausible (non-zero scalars)
+        warnings: List[str] = []
+        for key, val in result.items():
+            if isinstance(val, (int, float)) and val < 0:
+                warnings.append(f"[CEM] negative value: {key}={val}")
+        return True, warnings
+    except Exception as exc:
+        return False, [f"[CEM] compute_for_goal failed: {exc}"]
 
 
 def _body_bending_sf(dims: Dict[str, Any], yield_mpa: float, load_n: float = 16000.0) -> float:

@@ -53,11 +53,7 @@ class TestCadQueryBracket:
 
     def test_plan_succeeds(self):
         from aria_os.planner import plan
-        try:
-            result = plan(self.GOAL, {}, repo_root=_REPO)
-        except TypeError:
-            # planner calls load_cem_geometry with kwargs unsupported on some builds
-            pytest.skip("planner/cem_geometry signature mismatch — skip")
+        result = plan(self.GOAL, {}, repo_root=_REPO)
         assert isinstance(result, dict)
         # planner returns at minimum a text or part_id key
         assert "part_id" in result or "text" in result
