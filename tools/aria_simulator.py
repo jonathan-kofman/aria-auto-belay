@@ -780,23 +780,35 @@ ARIA Simulator - Commands:
 -----------------------------------------------
   status              Print current system status
   voice <cmd>         Inject voice command
-                      Commands: take, slack, lower, up, watch me, rest, climbing
+                      Commands: take, slack, lower, up, watch me, rest,
+                                climbing, reset
   sensor <key>=<val>  Inject sensor value
                       Keys: load_cell_n, rope_speed_ms, rope_position_m,
                             cv_climber_height_m, cv_clip_confidence,
                             cv_climber_detected
+  estop               Trigger emergency stop (enter ESTOP state)
+  estop release       Release e-stop button (still need 'voice reset' to exit)
   scenario <name>     Run automated test scenario
                       Scenarios: climb, fall, watch_me, rest, up
   log                 Show last 10 log entries
   help                Show this message
   quit / exit         Exit simulator
 -----------------------------------------------
+States: IDLE, CLIMBING, CLIPPING, TAKE, REST, LOWER, WATCH_ME, UP,
+        FALL_ARREST (post-fall hold), ESTOP (emergency stop)
+
+FALL_ARREST: entered on fall detection (high tension + rope speed).
+  Exit via: 'voice reset' → IDLE, or 'voice lower' → LOWER.
+ESTOP: entered via 'estop' command. Exit via: 'voice reset' → IDLE.
+
 Examples:
   voice take
   voice watch me
+  voice reset
   sensor load_cell_n=680
   sensor cv_climber_detected=True
   sensor cv_clip_confidence=0.9
+  estop
   scenario climb
 """
 
@@ -851,6 +863,14 @@ def run_cli(aria: ARIAStateMachine):
                 aria.inject_voice(voice_str)
             else:
                 print("Usage: voice <command>")
+
+        elif cmd == "estop":
+            if len(parts) >= 2 and parts[1].lower() == "release":
+                aria.inject_estop(False)
+                print("  E-stop button released (use 'voice reset' to exit ESTOP state)")
+            else:
+                aria.inject_estop(True)
+                print("  E-STOP activated")
 
         elif cmd == "sensor":
             if len(parts) < 2 or "=" not in parts[1]:

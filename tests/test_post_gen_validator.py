@@ -401,10 +401,15 @@ class TestRunValidationLoop:
         def gen(plan, step_path, stl_path, root, previous_failures=None):
             raise RuntimeError("generator crashed")
 
-        result = run_validation_loop(
-            gen, "ring", {"params": {}},
-            step, stl, max_attempts=1, skip_visual=True,
-        )
+        with patch("aria_os.post_gen_validator.check_geometry") as mock_geo:
+            mock_geo.return_value = {
+                "passed": False, "failures": ["STL not produced"],
+                "bbox": None, "volume": None, "watertight": None,
+            }
+            result = run_validation_loop(
+                gen, "ring", {"params": {}},
+                step, stl, max_attempts=1, skip_visual=True,
+            )
         assert result["status"] == "failure"
 
     def test_check_quality_flag(self, tmp_path):

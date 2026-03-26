@@ -181,7 +181,7 @@ class TestBolts:
         assert spec["bolt_dia_mm"] == 8.0
 
     def test_bolt_circle_mm(self):
-        spec = extract_spec("bolt circle 90mm")
+        spec = extract_spec("90mm bolt circle")
         assert spec["bolt_circle_r_mm"] == 45.0
 
     def test_n_holes(self):
