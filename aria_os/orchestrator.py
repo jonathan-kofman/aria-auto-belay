@@ -96,8 +96,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
     if not plan.get("cad_tool_selected"):
         try:
             from .multi_cad_router import CADRouter
-            router = CADRouter()
-            decision = router.route(goal, dry_run=False)
+            decision = CADRouter.route(goal, dry_run=False)
             cad_tool = decision["backend"]
             plan["cad_tool_selected"]  = cad_tool
             plan["cad_tool_rationale"] = decision.get("reasoning", "")

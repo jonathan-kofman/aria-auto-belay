@@ -1,0 +1,8 @@
+{
+  "goal": "ARIA motor housing shell, 260mm OD, 10mm wall, 180mm length",
+  "part_id": "aria_housing",
+  "step_path": "/tmp/pytest-of-root/pytest-7/test_fusion_script_references_0/h.step",
+  "stl_path": "/tmp/pytest-of-root/pytest-7/test_fusion_script_references_0/h.stl",
+  "features": [],
+  "base_shape": {}
+}

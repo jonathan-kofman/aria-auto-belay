@@ -22,6 +22,7 @@ from aria_offline_mode import render_offline_status
 from aria_drop_parser import render_drop_parser_tab
 from aria_fault_behavior import render_fault_table_tab
 from aria_cad_tab import render_cad_tab
+from aria_api_tab import render_api_tab
 
 try:  # optional, used for live serial connection
     import serial  # type: ignore
@@ -107,6 +108,9 @@ SETUPS = {
     ],
     "ARIA-OS (CAD & manufacturing)": [
         "CAD & Manufacturing",
+    ],
+    "API Server": [
+        "Generate · Health · Run log",
     ],
     "Voice & audio": [
         "Voice commands reference",
@@ -316,9 +320,11 @@ def _optional_column(col):
 
 st.subheader(f"{setup} – {test}")
 
-# ── CEM Design tab: full width, no col split ─────────────────────────────────
+# ── Full-width tabs (no column split) ────────────────────────────────────────
 if setup.startswith("CEM Design"):
     render_cem_tab()
+elif setup.startswith("API Server"):
+    render_api_tab()
 else:
     result_container = None
     in_inner_else = False
@@ -490,6 +496,9 @@ else:
 
     elif setup.startswith("ARIA-OS (CAD & manufacturing)"):
         render_cad_tab()
+
+    elif setup.startswith("API Server"):
+        render_api_tab()
 
     elif setup.startswith("Test Data & Calibration"):
         render_testdata_tab()

@@ -763,8 +763,24 @@ def write_cadquery_artifacts(
     if template_fn:
         cq_code = template_fn(params)
     else:
-        cq_code = _llm_cadquery(plan, goal, step_path, stl_path, repo_root,
-                                previous_failures=previous_failures or [])
+        # Before falling back to LLM: try deterministic CEM-to-geometry path
+        # when physics params have been injected into the plan.
+        cq_code = None
+        if plan.get("cem_context"):
+            try:
+                import sys as _sys
+                _repo = repo_root or Path(__file__).resolve().parent.parent
+                if str(_repo) not in _sys.path:
+                    _sys.path.insert(0, str(_repo))
+                from cem_to_geometry import scalars_to_cq_script
+                cq_code = scalars_to_cq_script(part_id, params)
+                print(f"[CEM→CQ] Deterministic CEM template used for '{part_id}'")
+            except Exception:
+                cq_code = None  # fall through to LLM
+
+        if not cq_code:
+            cq_code = _llm_cadquery(plan, goal, step_path, stl_path, repo_root,
+                                    previous_failures=previous_failures or [])
 
     # --- Write script ---
     out_dir = repo_root / "outputs" / "cad" / "cadquery" / part_id

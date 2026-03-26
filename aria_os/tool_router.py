@@ -27,7 +27,17 @@ FUSION_PART_IDS = {
 
 GRASSHOPPER_PART_IDS = {
     "aria_cam_collar",
+    "aria_spool",
+    "aria_housing",
+    "aria_ratchet_ring",
+    "aria_brake_drum",
+    "aria_rope_guide",
 }
+
+# LRE / nozzle parts always route to CadQuery headless (no Grasshopper)
+CADQUERY_KEYWORDS = [
+    "nozzle", "rocket", "lre", "liquid rocket", "turbopump", "injector",
+]
 
 
 def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
@@ -37,6 +47,10 @@ def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
     goal_lower = (goal or "").lower()
     part_id = str(plan.get("part_id", ""))
     features = plan.get("features", []) or []
+
+    # LRE / nozzle always → cadquery headless (overrides GRASSHOPPER_PART_IDS)
+    if any(kw in goal_lower for kw in CADQUERY_KEYWORDS):
+        return "cadquery"
 
     if part_id in GRASSHOPPER_PART_IDS:
         return "grasshopper"

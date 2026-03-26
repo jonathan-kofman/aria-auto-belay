@@ -9,6 +9,8 @@ import { SessionsScreen } from '../screens/climber/SessionsScreen';
 import { SessionDetailScreen } from '../screens/climber/SessionDetailScreen';
 import { LeaderboardScreen } from '../screens/climber/LeaderboardScreen';
 import { ProfileScreen } from '../screens/climber/ProfileScreen';
+import { GymOnboardingScreen } from '../screens/climber/GymOnboardingScreen';
+import { LiveSessionScreen } from '../screens/climber/LiveSessionScreen';
 import { useAuthStore } from '../store/authStore';
 
 const Drawer = createDrawerNavigator<ClimberDrawerParamList>();
@@ -93,6 +95,16 @@ export function ClimberNavigator() {
         <Drawer.Screen name="Sessions" component={SessionsStack} options={{ title: 'Sessions' }} />
         <Drawer.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Leaderboard' }} />
         <Drawer.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+        <Drawer.Screen
+          name="PairDevice"
+          component={GymOnboardingScreen}
+          options={{ title: 'Pair with ARIA' }}
+        />
+        <Drawer.Screen
+          name="LiveSession"
+          component={LiveSessionScreen}
+          options={{ title: 'Live Session', drawerItemStyle: { display: 'none' } }}
+        />
       </Drawer.Navigator>
     </View>
   );
