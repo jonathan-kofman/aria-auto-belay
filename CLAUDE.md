@@ -86,15 +86,16 @@ python aria_models/static_tests.py        # unit tests for state machine / physi
 python tools/aria_test_harness.py         # automated scenario PASS/FAIL tests
 python tools/aria_hil_test.py             # hardware-in-loop tests (requires connected hardware)
 
-# CAD pipeline test suite (186 tests, all headless):
+# CAD pipeline test suite (all headless):
 python -m pytest tests/ -q
+#  tests/test_grasshopper_scripts.py — GH RhinoCommon script validity
 #  tests/test_post_gen_validator.py  — validation loop, STEP/STL quality, repair
 #  tests/test_cad_router.py          — multi-backend routing + 14-template smoke tests
 #  tests/test_spec_extractor.py      — structured spec extraction (40 tests)
 #  tests/test_api_server.py          — FastAPI server: 422 validation, health, runs log
 #  tests/test_e2e_pipeline.py        — 5 diverse descriptions, one per backend:
-#      cadquery (bracket, ratchet ring) — real STEP+STL + watertight assertions
-#      grasshopper (spool CQ fallback) — watertight + diameter ≈ spec
+#      cadquery (bracket, ratchet ring) — router + script generation assertions
+#      grasshopper (cam collar)        — GH component + CQ fallback artifact write
 #      blender (gyroid lattice)        — artifact produced + bpy reference
 #      fusion360 (motor housing)       — script non-empty + fusion API reference
 ```
@@ -212,11 +213,11 @@ goal → cem_registry.resolve_cem_module() → "cem_aria" | "cem_lre" | ...
 ```
 
 Key files:
-- `cem_registry.py` — maps goal keywords to CEM module names; **register new domains here** (current: `aria`, `lre`/`nozzle`/`rocket`/`turbopump`/`injector`)
+- `cem_registry.py` — maps goal keywords to CEM module names; **register new domains here** (current: `aria`, `lre`/`nozzle`/`rocket`/`turbopump`/`injector`). `resolve_cem_module(goal, part_id)` returns module name or `None`.
 - `cem_core.py` — base `Material` and `Fluid` classes; pre-defined materials (X1 420i, Inconel 718, 6061 Al) and fluids (LOX, kerosene, IPA) — import from here, never redefine
-- `cem_aria.py` — thin shim that re-exports `aria_cem.py` (avoids shadowing by `aria_cem/` package)
-- `cem_lre.py` — standalone LRE (liquid rocket engine) CEM module; `compute_lre_nozzle()` derives nozzle geometry from thrust + chamber pressure
-- `cem_to_geometry.py` — CEM scalars → CadQuery scripts (deterministic, no LLM)
+- `cem_aria.py` — thin shim that re-exports `aria_cem.py` (avoids shadowing by `aria_cem/` package). `compute_for_goal(goal, params)` entry point used by the orchestrator.
+- `cem_lre.py` — standalone LRE (liquid rocket engine) CEM module; `compute_lre_nozzle(LREInputs)` derives nozzle geometry from thrust + chamber pressure. `compute_for_goal(goal, params)` entry point. Supports LOX/RP-1, LOX/LH2, LOX/IPA, N2O4/UDMH propellants.
+- `cem_to_geometry.py` — CEM scalars → CadQuery scripts (deterministic, no LLM). `scalars_to_cq_script(part_id, params)` dispatches to per-part templates for: `aria_ratchet_ring`, `aria_brake_drum`, `aria_spool`, `aria_housing`, `aria_cam_collar`, `aria_rope_guide`, `lre_nozzle`. `write_cq_script(part_id, params, path)` writes to disk.
 - `aria_os/cem_context.py` — loads live CEM geometry from `cem_design_history.json` for LLM prompt injection
 - `aria_os/cem_checks.py` — per-part static + dynamic physics checks; SF < 1.5 = hard fail, 1.5–2.0 = warning
 
@@ -295,6 +296,7 @@ Fail-safe principle: ESP32 crash → STM32 holds tension. STM32/VESC fault → b
 | `outputs/cad/grasshopper/<part>/` | Grasshopper params.json + script | Yes |
 | `outputs/cad/learning_log.json` | Attempt outcomes (success/fail + error) | Yes |
 | `outputs/aria_generation_log.json` | GH pipeline runs with CEM SF values + STEP/STL paths | No |
+| `outputs/api_run_log.json` | API server run log (persisted from `_RUN_LOG`, last 500 entries) | No |
 | `cem_design_history.json` | Latest CEM parameter snapshots (used by LLM prompt injection) | No |
 | `sessions/` | Agent session logs | Yes |
 
