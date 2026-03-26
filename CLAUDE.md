@@ -112,7 +112,34 @@ python tools/aria_pid_tuner.py          # PID Kp/Ki/Kd sweep
 cd aria-climb
 npm install --legacy-peer-deps
 npx expo run:android    # add google-services.json first
+npx expo start          # JS-only preview via Expo Go (no BLE)
+
+# EAS cloud build (no local Android SDK required)
+npm install -g eas-cli
+eas build --profile development --platform android
 ```
+
+**App architecture** (`aria-climb/src/`):
+- `store/authStore.ts` — Zustand: `user`, `isLoading`, `pendingRoleSelect`, `isGymMode`, `signOut`
+- `store/bleStore.ts` — BLE scan state, discovered devices, connection, per-device telemetry
+- `store/alertStore.ts` / `store/sessionStore.ts` — alert list + session list
+- `services/ble/bleManager.ts` — scan, connect, notify subscribe, auto-reconnect with backoff
+- `services/ble/bleCharacteristics.ts` — ARIA BLE service UUID + TELEMETRY/COMMAND/STATUS characteristic UUIDs
+- `services/ble/bleProvisioning.ts` — gym owner provisioning: scan → send WiFi+gym config → reboot
+- `services/ble/bleProvisioningVerifier.ts` — poll Firestore until device comes online post-provision
+- `services/firebase/ariaDevice.ts` — `getGymDevice`, `subscribeToAllGymDevices`, `issueCommand`
+- `services/firebase/incidents.ts` — `subscribeToIncidents`, `resolveIncident`
+- `services/firebase/sessions.ts` — `subscribeToSessions`, `saveSession`
+- `hooks/useARIADevice.ts` — unified hook: `useARIADevice(deviceId)` for BLE; `useARIADevice(gymId, deviceId)` for Firestore+BLE
+- `hooks/useGymDevices.ts` — subscribe to all devices for a gym
+- `screens/climber/GymOnboardingScreen.tsx` — QR scan → BLE pair → navigate to live session
+- `screens/climber/LiveSessionScreen.tsx` — real-time tension bar, animated state badge, rope speed / current / battery
+- `types/aria.ts` — `ARIAState`, `ARIATelemetry`, `ARIADevice`, `Incident`, `MaintenanceAction`, `COLLECTIONS`, physics constants
+- `types/device.ts` — `FirestoreDevice`, `ARIAAdvertisedDevice`, `ProvisioningStatus`
+- `utils/blePacketParser.ts` — 20-byte binary BLE packet parser with XOR checksum
+
+**To get BLE working:** native build only (`expo run:android` or EAS). Expo Go does not support `react-native-ble-plx`.
+**Firebase:** add `google-services.json` to `aria-climb/android/app/` before first build.
 
 ### LLM backend
 All keys are **optional**. Priority chain: **Anthropic → Gemini → Ollama → heuristic fallback**. The pipeline never crashes due to a missing key.
@@ -200,7 +227,7 @@ outputs/cad/grasshopper/<part>/
   - Part type keywords: ratchet_ring, brake_drum, cam_collar, rope_guide, catch_pawl, pulley, flange, spacer, bracket, housing, spool, shaft, cam, pin, **lre_nozzle** (nozzle/rocket) (longest match wins)
   - Material keywords: specific grades (`6061`→`aluminium_6061`, `7075`→`aluminium_7075`) checked before generic (`aluminium`, `steel`)
   - Additional patterns (2026-03): `"OD 50mm"` (space only), `"50mm outer"`, `"outer dia 50mm"`, `"diameter of 50mm"`, `"bore 50mm"` (space only); WxHxD box notation `"50x100x200mm"`; radius→diameter conversion; combined `"4xM8"` bolt shorthand sets both `n_bolts` and `bolt_dia_mm` simultaneously; `"4 holes"` → `n_bolts`
-- `aria_os/multi_cad_router.py` — `CADRouter.route(goal, spec=None, *, dry_run=False)`: when `spec=None`, auto-extracts via `spec_extractor.extract_spec(goal)`; always includes `spec` key in returned dict.
+- `aria_os/multi_cad_router.py` — `CADRouter.route(goal, spec=None, *, dry_run=False)` (**class method, not instance method**): when `spec=None`, auto-extracts via `spec_extractor.extract_spec(goal)`; always includes `spec` key in returned dict. Orchestrator calls `CADRouter.route(goal)` directly — never instantiate `CADRouter()`.
 
 ### CEM (Computational Engineering Model) physics
 Multi-domain CEM pipeline added as of 2026-03:
@@ -219,7 +246,8 @@ Key files:
 - `cem_lre.py` — standalone LRE (liquid rocket engine) CEM module; `compute_lre_nozzle(LREInputs)` derives nozzle geometry from thrust + chamber pressure. `compute_for_goal(goal, params)` entry point. Supports LOX/RP-1, LOX/LH2, LOX/IPA, N2O4/UDMH propellants.
 - `cem_to_geometry.py` — CEM scalars → CadQuery scripts (deterministic, no LLM). `scalars_to_cq_script(part_id, params)` dispatches to per-part templates for: `aria_ratchet_ring`, `aria_brake_drum`, `aria_spool`, `aria_housing`, `aria_cam_collar`, `aria_rope_guide`, `lre_nozzle`. `write_cq_script(part_id, params, path)` writes to disk.
 - `aria_os/cem_context.py` — loads live CEM geometry from `cem_design_history.json` for LLM prompt injection
-- `aria_os/cem_checks.py` — per-part static + dynamic physics checks; SF < 1.5 = hard fail, 1.5–2.0 = warning
+- `aria_os/cem_checks.py` — per-part static + dynamic physics checks; SF < 1.5 = hard fail, 1.5–2.0 = warning. `_run_cem_system_check` calls `compute_for_goal()` on the resolved CEM module (fixed 2026-03 — previously called non-existent `ARIAModule` class).
+- `aria_os/cem_generator.py` — `resolve_and_compute(goal, part_id, params, repo_root)` — the orchestrator entry point; resolves CEM module via registry then calls `compute_for_goal()`.
 
 ### API server (`aria_os/api_server.py`)
 FastAPI server for the CAD pipeline (Item 5):
