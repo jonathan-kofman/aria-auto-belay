@@ -50,14 +50,16 @@ PID_KD                    = 0.1    # Tension PID derivative gain
 # ─────────────────────────────────────────────
 
 class State(Enum):
-    IDLE        = auto()   # No climber, device standby
-    CLIMBING    = auto()   # Active climbing, tension mode
-    CLIPPING    = auto()   # Feeding slack for clip
-    TAKE        = auto()   # Rope locked, climber hanging
-    REST        = auto()   # Climber resting, holding position
-    LOWER       = auto()   # Controlled descent to ground
-    WATCH_ME    = auto()   # High attention, tight slack
-    UP          = auto()   # Motor assist upward
+    IDLE         = auto()   # No climber, device standby
+    CLIMBING     = auto()   # Active climbing, tension mode
+    CLIPPING     = auto()   # Feeding slack for clip
+    TAKE         = auto()   # Rope locked, climber hanging
+    REST         = auto()   # Climber resting, holding position
+    LOWER        = auto()   # Controlled descent to ground
+    WATCH_ME     = auto()   # High attention, tight slack
+    UP           = auto()   # Motor assist upward
+    FALL_ARREST  = auto()   # Post-fall hold — brake engaged, requires explicit ack
+    ESTOP        = auto()   # Emergency stop — all outputs disabled, requires reset
 
 
 class VoiceCommand(Enum):
@@ -68,6 +70,7 @@ class VoiceCommand(Enum):
     WATCH_ME    = "watch me"
     REST        = "rest"
     CLIMBING    = "climbing"   # exit from REST/TAKE back to climbing
+    RESET       = "reset"      # exit from FALL_ARREST / ESTOP
     NONE        = "none"
 
 
@@ -235,36 +238,46 @@ class ARIAStateMachine:
             s = self.sensors
             prev_state = self.state
 
-            # ── SAFETY OVERRIDES (run before any state logic) ──
-            if self._is_fall_in_progress(s):
+            # ── ESTOP — highest priority, overrides everything ──
+            if self._valid_voice(s, VoiceCommand.RESET) and self.state == State.ESTOP:
+                # Explicit reset exits ESTOP
+                self.log.add("ESTOP reset — returning to IDLE", "SAFE")
+                self.state = State.IDLE
                 self._motor_output = 0.0
                 self._motor_direction = 0
-                self.log.add(
-                    f"FALL DETECTED — load={s.load_cell_n:.0f}N "
-                    f"speed={s.rope_speed_ms:.2f}m/s — clutch engaging",
-                    "SAFE"
-                )
-                # Don't change state — centrifugal clutch handles arrest
-                # Motor goes to zero, clutch takes over mechanically
-                return
+                self.pid.reset()
+                # fall through to clear voice + log transition
+            elif s.voice_command == VoiceCommand.RESET and s.voice_confidence >= VOICE_CONFIDENCE_MIN and self.state == State.ESTOP:
+                pass  # handled above
+            # Check for ESTOP command from any state
+            elif hasattr(s, '_estop') and s._estop:
+                self._motor_output = 0.0
+                self._motor_direction = 0
+                self.state = State.ESTOP
+                self.log.add("ESTOP TRIGGERED — all outputs disabled", "SAFE")
+                # fall through to clear voice + log transition
 
-            # ── STATE LOGIC ──
-            if self.state == State.IDLE:
-                self._state_idle(s)
-            elif self.state == State.CLIMBING:
-                self._state_climbing(s)
-            elif self.state == State.CLIPPING:
-                self._state_clipping(s)
-            elif self.state == State.TAKE:
-                self._state_take(s)
-            elif self.state == State.REST:
-                self._state_rest(s)
-            elif self.state == State.LOWER:
-                self._state_lower(s)
-            elif self.state == State.WATCH_ME:
-                self._state_watch_me(s)
-            elif self.state == State.UP:
-                self._state_up(s)
+            # ── FALL DETECTION — overrides all active states ──
+            elif self.state not in (State.IDLE, State.ESTOP, State.FALL_ARREST):
+                if self._is_fall_in_progress(s):
+                    self._motor_output = 0.0
+                    self._motor_direction = 0
+                    self.log.add(
+                        f"FALL DETECTED — load={s.load_cell_n:.0f}N "
+                        f"speed={s.rope_speed_ms:.2f}m/s — brake engaged, "
+                        f"entering FALL_ARREST",
+                        "SAFE"
+                    )
+                    self.state = State.FALL_ARREST
+                    # fall through to clear voice + log transition
+
+                else:
+                    # ── Normal STATE LOGIC ──
+                    self._dispatch_state(s)
+
+            else:
+                # IDLE, FALL_ARREST, ESTOP — dispatch normally
+                self._dispatch_state(s)
 
             # ── Clear one-shot voice command after processing ──
             self.sensors.voice_command = VoiceCommand.NONE

@@ -270,6 +270,23 @@ class AriaStateMachine:
             return self._out(fault="FALL_ARREST_HOLD")
 
         if s == State.ESTOP:
+            # Exit requires ALL of:
+            #   1. estop signal cleared (button/switch released)
+            #   2. explicit operator_reset held for ESTOP_RESET_HOLD_S
+            #   3. no residual high tension (rope safe)
+            if not inp.estop and inp.operator_reset:
+                if inp.tension_N < TENSION_FALL_THRESHOLD_N:
+                    if self.estop_reset_start is None:
+                        self.estop_reset_start = t
+                    elif (t - self.estop_reset_start) >= ESTOP_RESET_HOLD_S:
+                        self.estop_reset_start = None
+                        self._go(State.IDLE)
+                        return self._out()
+                else:
+                    # Tension still dangerously high — reject reset
+                    self.estop_reset_start = None
+            else:
+                self.estop_reset_start = None
             return self._out(fault="ESTOP_LATCHED")
 
         return self._out(fault="UNKNOWN_STATE")
