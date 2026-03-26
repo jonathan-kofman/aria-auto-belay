@@ -89,6 +89,7 @@ class SensorData:
     voice_command: VoiceCommand = VoiceCommand.NONE
     voice_confidence: float   = 0.0
     timestamp_ms: float       = 0.0
+    _estop: bool              = False  # E-stop button pressed
 
 
 # ─────────────────────────────────────────────
@@ -230,6 +231,15 @@ class ARIAStateMachine:
                     )
                     return
             self.log.add(f"Unknown voice command: '{cmd_str}'", "WARN")
+
+    def inject_estop(self, active: bool = True):
+        """Trigger or release the emergency stop button."""
+        with self._lock:
+            self.sensors._estop = active
+            if active:
+                self.log.add("E-STOP button pressed", "SAFE")
+            else:
+                self.log.add("E-STOP button released", "INFO")
 
     # ── State machine tick (runs continuously) ──
 
