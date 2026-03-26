@@ -176,7 +176,7 @@ def plan(goal: str, context: dict[str, str] | None = None, repo_root: Path | Non
         context = load_context()
     constants = get_mechanical_constants(context)
     goal_lower = goal.lower()
-    cem = load_cem_geometry(repo_root, goal=goal, part_id="")
+    cem = load_cem_geometry(repo_root)
     cem_nums = _planner_cem_floats(context, cem)
 
     def _inject_cem_guidance(out: dict[str, Any]) -> dict[str, Any]:

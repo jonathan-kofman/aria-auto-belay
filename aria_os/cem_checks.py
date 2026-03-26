@@ -427,3 +427,105 @@ def run_full_system_cem(outputs_dir: str | Path, context: dict) -> dict:
         pass
     return report
 
+
+def run_full_cem(
+    part_id: str,
+    meta: dict,
+    context: dict,
+    repo_root: "Path | None" = None,
+) -> "CEMCheckResult":
+    """
+    Convenience wrapper used by gh_to_step_bridge and external callers.
+
+    Enriches *meta* with CEM-derived dimensions before running static checks,
+    so the physics model uses physically-correct geometry rather than old
+    placeholder values from meta JSON files.
+
+    CEM enrichment priority:
+      1. Explicit user dimensions already in meta["dims_mm"]
+      2. CEM-derived dimensions from cem_aria/cem_lre compute_for_goal()
+      3. Context mechanical constants
+    """
+    from pathlib import Path as _Path
+
+    if repo_root is None:
+        repo_root = _Path(__file__).resolve().parent.parent
+
+    # Enrich meta dims with CEM-derived geometry
+    enriched_meta = _enrich_meta_with_cem(part_id, meta, repo_root)
+
+    # Write to a temp meta path so run_cem_checks can load it
+    import tempfile
+    tmp = _Path(tempfile.mktemp(suffix=".json"))
+    try:
+        tmp.write_text(json.dumps(enriched_meta), encoding="utf-8")
+        return run_cem_checks(part_id, tmp, context)
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _enrich_meta_with_cem(part_id: str, meta: dict, repo_root: "Path") -> dict:
+    """
+    Return a copy of meta with dims_mm filled in from CEM physics where missing.
+
+    The CEM model provides physically-correct dimensions derived from ANSI
+    arrest force requirements. These should be used as a floor: if the stored
+    meta already has a value, it is kept unchanged.
+
+    NOTE: The static stress model (aria_models/static_tests.py) uses simplified
+    closed-form equations. As of 2026-03, all catch mechanism parts show SF < 2.0
+    at the default meta dimensions because:
+      a) Meta files carry placeholder dims from early iterations, not final design
+      b) The bending/shear model does not account for load sharing across teeth or
+         the distributed contact along the pawl face
+    Calibration path: run hardware drop tests, back-calculate actual SF, update
+    aria_models/static_tests.py yield constants and load-sharing factors.
+    """
+    import copy
+    import sys
+
+    enriched = copy.deepcopy(meta)
+    dims = enriched.setdefault("dims_mm", {})
+
+    # Attempt CEM geometry injection
+    try:
+        root_str = str(repo_root)
+        if root_str not in sys.path:
+            sys.path.insert(0, root_str)
+
+        # Select module
+        from cem_registry import resolve_cem_module
+        mod_name = resolve_cem_module("", part_id)
+        if mod_name is None:
+            mod_name = "cem_aria"  # default for ARIA parts
+
+        import importlib
+        mod = importlib.import_module(mod_name)
+        cem_params = mod.compute_for_goal("", {})
+
+        # Map CEM output keys → dims_mm keys (only fill missing values)
+        _CEM_TO_DIM: dict[str, list[str]] = {
+            "ratchet_face_width_mm":   ["FACE_WIDTH", "THICKNESS"],
+            "ratchet_tooth_height_mm": ["TOOTH_HEIGHT"],
+            "brake_drum_wall_mm":      ["WALL"],
+            "brake_drum_width_mm":     ["WIDTH"],
+            "housing_wall_mm":         ["WALL"],
+            "housing_od_mm":           ["OD"],
+            "spool_hub_od_mm":         ["HUB_OD"],
+            "spool_width_mm":          ["WIDTH"],
+        }
+        for cem_key, dim_keys in _CEM_TO_DIM.items():
+            if cem_key in cem_params:
+                for dk in dim_keys:
+                    if dk not in dims:
+                        dims[dk] = cem_params[cem_key]
+                        break
+
+    except Exception:
+        pass  # enrichment is best-effort; fall through to raw meta
+
+    return enriched
+

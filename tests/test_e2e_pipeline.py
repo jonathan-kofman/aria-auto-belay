@@ -102,10 +102,11 @@ class TestCadQueryRatchetRing:
         assert spec.get("od_mm") == pytest.approx(213.0)
         assert spec.get("n_teeth") == 24
 
-    def test_router_returns_cadquery(self):
+    def test_router_returns_grasshopper(self):
+        # aria_ratchet_ring is in GRASSHOPPER_PART_IDS (complex gear geometry)
         from aria_os.multi_cad_router import CADRouter
         result = CADRouter.route(self.GOAL, dry_run=True)
-        assert result["backend"] == "cadquery"
+        assert result["backend"] == "grasshopper"
 
     @pytest.mark.skipif(not _cadquery_available(), reason="cadquery not installed")
     def test_script_generated(self, tmp_path):

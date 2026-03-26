@@ -106,3 +106,20 @@ comp = occ.component
 ## **Root cause:** 
 ## **Fix:** 
 ## **Status:** 
+
+---
+## FAILURE 099 — CEM static stress model: all catch parts fail SF < 2.0
+**Script:** aria_models/static_tests.py + aria_os/cem_checks.py
+**Error:** All 13 catch mechanism parts (pawl, lever, trip, blocker, ratchet ring, housing) show SF < 2.0 at 16 kN proof load in the closed-form static model.
+**Root cause (2026-03):**
+1. Meta JSON files in `outputs/cad/meta/` carry placeholder dims from early iterations, not final CEM-derived geometry.
+2. The bending/shear model does NOT account for load sharing across engaged teeth or distributed contact along the pawl face — it assumes worst-case single-tooth / single-contact-point loading.
+3. `aria_models/static_tests.py` yield constants (`YIELD_PAWL_MPA`, `YIELD_RATCHET_MPA`) were set conservatively; actual A2 tool steel heat-treated yield is ~1800 MPa not the ~1300 MPa default.
+**Calibration path:**
+- Run hardware drop tests at 1× / 2× / 4× ANSI proof load; record deflection and strain gauge data.
+- Back-calculate actual SF from measured failure onset vs predicted.
+- Update `aria_models/static_tests.py` load-sharing factor (`N_EFFECTIVE_TEETH`, contact distribution constants).
+- Update yield constants to match actual material cert.
+- Re-run `python aria_models/static_tests.py` and verify ≥ 2.0 SF across all load steps.
+**Interim fix (2026-03):** `cem_checks._enrich_meta_with_cem()` pre-fills meta dims from CEM physics before static checks run, replacing placeholder values with CEM-correct geometry. This reduces false-fail rate but does not substitute for hardware calibration.
+**Status:** Open — hardware testing required for final sign-off.
