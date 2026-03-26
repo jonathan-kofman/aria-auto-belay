@@ -25,7 +25,7 @@ TENSION_BASELINE_N        = 40.0   # Normal climbing tension (N)
 TENSION_TAKE_THRESHOLD_N  = 200.0  # Load cell threshold to confirm TAKE (N)
 TENSION_FALL_THRESHOLD_N  = 400.0  # Threshold indicating active fall (N)
 TENSION_GROUND_N          = 15.0   # Below this = climber on ground
-TENSION_WATCH_ME_N        = 25.0   # Tighter slack in WATCH ME mode (N)
+TENSION_WATCH_ME_N        = 60.0   # Tighter slack in WATCH ME mode (N) — must match TENSION_TIGHT_N in state_machine.py
 
 ROPE_SPEED_CLIMB_MS       = 0.3    # Normal climbing rope speed (m/s)
 ROPE_SPEED_LOWER_MS       = 0.5    # Controlled lower speed (m/s)
@@ -50,14 +50,16 @@ PID_KD                    = 0.1    # Tension PID derivative gain
 # ─────────────────────────────────────────────
 
 class State(Enum):
-    IDLE        = auto()   # No climber, device standby
-    CLIMBING    = auto()   # Active climbing, tension mode
-    CLIPPING    = auto()   # Feeding slack for clip
-    TAKE        = auto()   # Rope locked, climber hanging
-    REST        = auto()   # Climber resting, holding position
-    LOWER       = auto()   # Controlled descent to ground
-    WATCH_ME    = auto()   # High attention, tight slack
-    UP          = auto()   # Motor assist upward
+    IDLE         = auto()   # No climber, device standby
+    CLIMBING     = auto()   # Active climbing, tension mode
+    CLIPPING     = auto()   # Feeding slack for clip
+    TAKE         = auto()   # Rope locked, climber hanging
+    REST         = auto()   # Climber resting, holding position
+    LOWER        = auto()   # Controlled descent to ground
+    WATCH_ME     = auto()   # High attention, tight slack
+    UP           = auto()   # Motor assist upward
+    FALL_ARREST  = auto()   # Post-fall hold — brake engaged, requires explicit ack
+    ESTOP        = auto()   # Emergency stop — all outputs disabled, requires reset
 
 
 class VoiceCommand(Enum):
@@ -68,6 +70,7 @@ class VoiceCommand(Enum):
     WATCH_ME    = "watch me"
     REST        = "rest"
     CLIMBING    = "climbing"   # exit from REST/TAKE back to climbing
+    RESET       = "reset"      # exit from FALL_ARREST / ESTOP
     NONE        = "none"
 
 
@@ -86,6 +89,7 @@ class SensorData:
     voice_command: VoiceCommand = VoiceCommand.NONE
     voice_confidence: float   = 0.0
     timestamp_ms: float       = 0.0
+    _estop: bool              = False  # E-stop button pressed
 
 
 # ─────────────────────────────────────────────
@@ -93,6 +97,22 @@ class SensorData:
 # ─────────────────────────────────────────────
 
 class PIDController:
+    """PID controller with clamping anti-windup.
+
+    Anti-windup rationale: the integral term is clamped so that
+    |Ki * integral| can never exceed the actuator output range on its
+    own.  This prevents unbounded accumulation during output saturation
+    (e.g. motor at 100 % while error persists).
+
+    Simulator gains  (Kp=2.5, Ki=0.8, Kd=0.1, output +/-100):
+        integral_max = output_max / Ki = 100 / 0.8 = 125.0
+
+    Firmware gains   (Kp=0.022, Ki=0.413, Kd=0.0005, output 0-10 V):
+        integral_max = 10 / 0.413 ~= 24.21
+        integral_min =  0 / 0.413 =   0.0
+        (firmware PID must implement the same clamping scheme)
+    """
+
     def __init__(self, kp, ki, kd, output_min=-100, output_max=100):
         self.kp = kp
         self.ki = ki
@@ -103,6 +123,19 @@ class PIDController:
         self._prev_error = 0.0
         self._prev_time = time.time()
 
+        # Anti-windup: compute integral clamp from actuator limits.
+        # |Ki * integral| must stay within [output_min, output_max].
+        if self.ki != 0.0:
+            self._integral_min = self.output_min / self.ki
+            self._integral_max = self.output_max / self.ki
+            # Ensure min <= max regardless of Ki sign
+            if self._integral_min > self._integral_max:
+                self._integral_min, self._integral_max = (
+                    self._integral_max, self._integral_min)
+        else:
+            self._integral_min = 0.0
+            self._integral_max = 0.0
+
     def compute(self, setpoint, measurement):
         now = time.time()
         dt = now - self._prev_time
@@ -110,6 +143,11 @@ class PIDController:
             dt = 0.001
         error = setpoint - measurement
         self._integral += error * dt
+
+        # ── Anti-windup: clamp integral term ──
+        self._integral = max(self._integral_min,
+                             min(self._integral_max, self._integral))
+
         derivative = (error - self._prev_error) / dt
         output = (self.kp * error +
                   self.ki * self._integral +
@@ -194,6 +232,15 @@ class ARIAStateMachine:
                     return
             self.log.add(f"Unknown voice command: '{cmd_str}'", "WARN")
 
+    def inject_estop(self, active: bool = True):
+        """Trigger or release the emergency stop button."""
+        with self._lock:
+            self.sensors._estop = active
+            if active:
+                self.log.add("E-STOP button pressed", "SAFE")
+            else:
+                self.log.add("E-STOP button released", "INFO")
+
     # ── State machine tick (runs continuously) ──
 
     def tick(self):
@@ -201,36 +248,29 @@ class ARIAStateMachine:
             s = self.sensors
             prev_state = self.state
 
-            # ── SAFETY OVERRIDES (run before any state logic) ──
-            if self._is_fall_in_progress(s):
+            # ── ESTOP — highest priority, overrides everything ──
+            if s._estop and self.state != State.ESTOP:
+                self._motor_output = 0.0
+                self._motor_direction = 0
+                self.state = State.ESTOP
+                self.log.add("ESTOP TRIGGERED — all outputs disabled", "SAFE")
+
+            # ── FALL DETECTION — overrides all active states ──
+            elif (self.state not in (State.IDLE, State.ESTOP, State.FALL_ARREST)
+                  and self._is_fall_in_progress(s)):
                 self._motor_output = 0.0
                 self._motor_direction = 0
                 self.log.add(
                     f"FALL DETECTED — load={s.load_cell_n:.0f}N "
-                    f"speed={s.rope_speed_ms:.2f}m/s — clutch engaging",
+                    f"speed={s.rope_speed_ms:.2f}m/s — brake engaged, "
+                    f"entering FALL_ARREST",
                     "SAFE"
                 )
-                # Don't change state — centrifugal clutch handles arrest
-                # Motor goes to zero, clutch takes over mechanically
-                return
+                self.state = State.FALL_ARREST
 
-            # ── STATE LOGIC ──
-            if self.state == State.IDLE:
-                self._state_idle(s)
-            elif self.state == State.CLIMBING:
-                self._state_climbing(s)
-            elif self.state == State.CLIPPING:
-                self._state_clipping(s)
-            elif self.state == State.TAKE:
-                self._state_take(s)
-            elif self.state == State.REST:
-                self._state_rest(s)
-            elif self.state == State.LOWER:
-                self._state_lower(s)
-            elif self.state == State.WATCH_ME:
-                self._state_watch_me(s)
-            elif self.state == State.UP:
-                self._state_up(s)
+            else:
+                # ── Normal STATE LOGIC (includes FALL_ARREST and ESTOP handlers) ──
+                self._dispatch_state(s)
 
             # ── Clear one-shot voice command after processing ──
             self.sensors.voice_command = VoiceCommand.NONE
@@ -255,6 +295,29 @@ class ARIAStateMachine:
     def _valid_voice(self, s, cmd):
         return (s.voice_command == cmd and
                 s.voice_confidence >= VOICE_CONFIDENCE_MIN)
+
+    def _dispatch_state(self, s):
+        """Route to the correct state handler."""
+        if self.state == State.IDLE:
+            self._state_idle(s)
+        elif self.state == State.CLIMBING:
+            self._state_climbing(s)
+        elif self.state == State.CLIPPING:
+            self._state_clipping(s)
+        elif self.state == State.TAKE:
+            self._state_take(s)
+        elif self.state == State.REST:
+            self._state_rest(s)
+        elif self.state == State.LOWER:
+            self._state_lower(s)
+        elif self.state == State.WATCH_ME:
+            self._state_watch_me(s)
+        elif self.state == State.UP:
+            self._state_up(s)
+        elif self.state == State.FALL_ARREST:
+            self._state_fall_arrest(s)
+        elif self.state == State.ESTOP:
+            self._state_estop(s)
 
     # ── IDLE ──
     def _state_idle(self, s):
@@ -312,6 +375,17 @@ class ARIAStateMachine:
 
     # ── CLIPPING ──
     def _state_clipping(self, s):
+        # Voice overrides during clipping — climber can command TAKE or LOWER
+        if self._valid_voice(s, VoiceCommand.TAKE):
+            self._take_voice_time = time.time()
+            self.log.add("TAKE requested during CLIPPING", "CMD")
+            self.state = State.TAKE
+            return
+        if self._valid_voice(s, VoiceCommand.LOWER):
+            self.log.add("LOWER requested during CLIPPING", "CMD")
+            self.state = State.LOWER
+            return
+
         # Pre-feed CLIP_SLACK_M of rope quickly
         elapsed = time.time() - self._clip_start_time
         clip_duration = CLIP_SLACK_M / ROPE_SPEED_CLIMB_MS
@@ -330,7 +404,7 @@ class ARIAStateMachine:
             self.state = State.CLIMBING
 
         # Safety: if fall detected during clipping, state machine
-        # returns immediately before this runs (safety override above)
+        # transitions to FALL_ARREST (safety override in tick)
 
     # ── TAKE ──
     def _state_take(self, s):
@@ -469,6 +543,35 @@ class ARIAStateMachine:
         if self._valid_voice(s, VoiceCommand.TAKE):
             self._take_voice_time = time.time()
             self.state = State.TAKE
+
+    # ── FALL_ARREST ──
+    def _state_fall_arrest(self, s):
+        # Brake engaged, motor off, hold position.
+        # Requires explicit acknowledgment to exit.
+        self._motor_output = 0.0
+        self._motor_direction = 0
+
+        if self._valid_voice(s, VoiceCommand.RESET):
+            self.log.add("FALL_ARREST acknowledged via RESET — returning to IDLE", "SAFE")
+            self.state = State.IDLE
+            self.pid.reset()
+            return
+        if self._valid_voice(s, VoiceCommand.LOWER):
+            self.log.add("FALL_ARREST acknowledged via LOWER — controlled descent", "SAFE")
+            self.state = State.LOWER
+            return
+
+    # ── ESTOP ──
+    def _state_estop(self, s):
+        # All outputs disabled. Requires explicit reset to exit.
+        self._motor_output = 0.0
+        self._motor_direction = 0
+
+        if self._valid_voice(s, VoiceCommand.RESET):
+            self.log.add("ESTOP reset — returning to IDLE", "SAFE")
+            self.state = State.IDLE
+            self.pid.reset()
+            return
 
     # ── Status report ──
     def status(self):
@@ -677,23 +780,35 @@ ARIA Simulator - Commands:
 -----------------------------------------------
   status              Print current system status
   voice <cmd>         Inject voice command
-                      Commands: take, slack, lower, up, watch me, rest, climbing
+                      Commands: take, slack, lower, up, watch me, rest,
+                                climbing, reset
   sensor <key>=<val>  Inject sensor value
                       Keys: load_cell_n, rope_speed_ms, rope_position_m,
                             cv_climber_height_m, cv_clip_confidence,
                             cv_climber_detected
+  estop               Trigger emergency stop (enter ESTOP state)
+  estop release       Release e-stop button (still need 'voice reset' to exit)
   scenario <name>     Run automated test scenario
                       Scenarios: climb, fall, watch_me, rest, up
   log                 Show last 10 log entries
   help                Show this message
   quit / exit         Exit simulator
 -----------------------------------------------
+States: IDLE, CLIMBING, CLIPPING, TAKE, REST, LOWER, WATCH_ME, UP,
+        FALL_ARREST (post-fall hold), ESTOP (emergency stop)
+
+FALL_ARREST: entered on fall detection (high tension + rope speed).
+  Exit via: 'voice reset' → IDLE, or 'voice lower' → LOWER.
+ESTOP: entered via 'estop' command. Exit via: 'voice reset' → IDLE.
+
 Examples:
   voice take
   voice watch me
+  voice reset
   sensor load_cell_n=680
   sensor cv_climber_detected=True
   sensor cv_clip_confidence=0.9
+  estop
   scenario climb
 """
 
@@ -748,6 +863,14 @@ def run_cli(aria: ARIAStateMachine):
                 aria.inject_voice(voice_str)
             else:
                 print("Usage: voice <command>")
+
+        elif cmd == "estop":
+            if len(parts) >= 2 and parts[1].lower() == "release":
+                aria.inject_estop(False)
+                print("  E-stop button released (use 'voice reset' to exit ESTOP state)")
+            else:
+                aria.inject_estop(True)
+                print("  E-STOP activated")
 
         elif cmd == "sensor":
             if len(parts) < 2 or "=" not in parts[1]:

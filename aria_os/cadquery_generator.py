@@ -822,7 +822,27 @@ print(f"EXPORTED STL: {{_stl}}")
         import cadquery as cq  # noqa: F401
         from cadquery import exporters  # noqa: F401
 
-        ns: dict[str, Any] = {}
+        # --- Sandboxed exec: allow cadquery/math only, block os/subprocess/socket ---
+        _ALLOWED_MODULES = frozenset({"cadquery", "math", "cadquery.exporters"})
+
+        def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name not in _ALLOWED_MODULES:
+                raise ImportError(f"Import of '{name}' is blocked by sandbox")
+            return __import__(name, globals, locals, fromlist, level)
+
+        safe_builtins = {
+            "__import__": _safe_import,
+            "range": range, "len": len, "print": print,
+            "abs": abs, "min": min, "max": max, "round": round,
+            "float": float, "int": int, "str": str,
+            "list": list, "dict": dict, "tuple": tuple, "set": set,
+            "bool": bool, "enumerate": enumerate, "zip": zip, "map": map,
+            "isinstance": isinstance, "hasattr": hasattr, "getattr": getattr,
+            "True": True, "False": False, "None": None,
+            "ValueError": ValueError, "TypeError": TypeError,
+            "RuntimeError": RuntimeError, "Exception": Exception,
+        }
+        ns: dict[str, Any] = {"__builtins__": safe_builtins}
         exec(compile(cq_code, f"<{part_id}_cq>", "exec"), ns)  # noqa: S102
         geom = ns.get("result")
         if geom is None:
@@ -883,22 +903,25 @@ def _llm_cadquery(
     sp = step_path.replace("\\", "/")
     st = stl_path.replace("\\", "/")
 
-    system = """You are a CadQuery Python expert. Output ONLY a Python code block.
-Imports: import cadquery as cq, math
-Rules:
-- All dimensions in mm as ALL_CAPS module-level constants.
-- Build solid first, then cuts, then holes.
-- Final variable MUST be named 'result' and be a cq.Workplane object.
-- Print BBOX: print(f\"BBOX:{bb.xlen:.3f},{bb.ylen:.3f},{bb.zlen:.3f}\") at the end.
-- Do NOT write any export code — that is injected separately.
-CadQuery patterns:
-  Box:       cq.Workplane("XY").box(L, W, H)
-  Cylinder:  cq.Workplane("XY").circle(R).extrude(H)
-  Ring:      cq.Workplane("XY").circle(R_OUT).circle(R_IN).extrude(H)
-  Cut hole:  .workplane(offset=-1).circle(R).cutThruAll()
-  Union:     .union(other_wp)
-  Shell:     .shell(-WALL)
-"""
+    # --- Build rich system prompt with same context as Grasshopper path ---
+    try:
+        from .context_loader import get_mechanical_constants, load_context
+        from .cem_context import load_cem_geometry, format_cem_block
+        _ctx = load_context(repo_root)
+        _constants = get_mechanical_constants(_ctx)
+        _constants_block = "\n".join(f"#   {k}: {v}" for k, v in sorted(_constants.items()))
+    except Exception:
+        _constants_block = ""
+
+    # CEM physics context
+    try:
+        g = (goal or "").strip()
+        pid = (plan.get("part_id") or "") if isinstance(plan.get("part_id"), str) else ""
+        _cem = load_cem_geometry(repo_root, goal=g, part_id=pid)
+        _cem_block = format_cem_block(_cem)
+    except Exception:
+        _cem_block = ""
+
     # Inject few-shot examples and learned failure patterns from learning log
     try:
         from .cad_learner import get_few_shot_examples, format_few_shot_block, get_failure_patterns
@@ -909,27 +932,95 @@ CadQuery patterns:
         _few_shot = ""
         _learned_failures = []
 
-    user = (
-        f"Goal: {goal}\n"
-        f"Plan: {plan.get('text', str(plan))}\n\n"
-        f"Generate CadQuery Python. Variable 'result' must be the final cq.Workplane.\n"
-        f"Export paths (do NOT write export code — it is added automatically):\n"
-        f"  STEP: {sp}\n  STL: {st}\n"
-    )
+    _learned_block = ""
+    if _learned_failures:
+        _learned_block = "\n".join(f"- {e}" for e in _learned_failures)
+
+    system = f"""You are a CadQuery Python expert. Output ONLY a Python code block. No explanation, no markdown outside the block.
+
+Imports (use exactly):
+  import cadquery as cq
+  import math
+
+Rules:
+- All dimensions in mm as ALL_CAPS module-level constants.
+- Build solid first, then cuts, then holes. No fillets/chamfers on first attempt.
+- Final variable MUST be named 'result' and be a cq.Workplane object.
+- Select faces by direction (faces(">Z")), never by index.
+- Print BBOX: print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}") at the end.
+- Do NOT write any export code — that is injected separately.
+
+Mechanical constants (from aria_mechanical.md) — use these when relevant:
+{_constants_block}
+
+{_cem_block}
+
+Avoid these CadQuery failure patterns:
+- ChFi3d_Builder: only 2 faces — caused by fillet on thin body. Remove fillet; add after solid validates.
+- BRep_API: command not done — caused by invalid face refs in compound boolean. Simplify to extrude + cut only.
+- Nothing to loft — caused by non-coplanar loft profiles. Use revolve for axisymmetric profiles.
+- Bbox axis mismatch — CadQuery extrudes along Z. Verify plan expects Z for height.
+- Never use annular profile as first operation. Build solid cylinder/box first, then remove interior.
+- For hollow parts: create outer solid, then cut the inner void.
+
+{("Known recent failures for this part (from learning log):" + chr(10) + _learned_block) if _learned_block else ""}
+
+CadQuery patterns:
+  Box:       cq.Workplane("XY").box(L, W, H)
+  Cylinder:  cq.Workplane("XY").circle(R).extrude(H)
+  Ring:      cq.Workplane("XY").circle(R_OUT).circle(R_IN).extrude(H)
+  Cut hole:  .faces(">Z").workplane().circle(R).cutThruAll()
+  Union:     .union(other_wp)
+  Shell:     .shell(-WALL)
+  Revolve:   cq.Workplane("XZ").polyline(pts).close().revolve(360)
+
+Required code structure:
+  ## All numeric dimensions must be module-level constants
+  # === PART PARAMETERS (tunable) ===
+  LENGTH_MM = 60.0
+  WIDTH_MM = 12.0
+  # === END PARAMETERS ===
+  # geometry uses constants only, never inline numbers
+
+Every generated script MUST end with:
+  bb = result.val().BoundingBox()
+  print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+    # --- Build user prompt ---
+    brief = plan.get("engineering_brief")
+    user_lines: list[str] = []
+    if brief:
+        user_lines.extend([
+            "=== ENGINEERING BRIEF (authoritative — follow this over the short user phrase) ===",
+            str(brief).strip(),
+            "",
+            "=== STRUCTURED PLAN (summary) ===",
+        ])
+    user_lines.extend([
+        f"Goal: {goal}",
+        f"Plan: {plan.get('text', str(plan))}",
+        "",
+        "Generate CadQuery Python. Variable 'result' must be the final cq.Workplane.",
+        f"Export paths (do NOT write export code — it is added automatically):",
+        f"  STEP: {sp}",
+        f"  STL: {st}",
+    ])
     if _few_shot:
-        user += f"\n{_few_shot}\n"
+        user_lines.append(f"\n{_few_shot}")
     if previous_failures:
         failure_block = "\n".join(f"  - {f}" for f in previous_failures)
-        user += (
+        user_lines.append(
             f"\nPREVIOUS ATTEMPT FAILURES — fix these in your new code:\n"
-            f"{failure_block}\n"
+            f"{failure_block}"
         )
     if _learned_failures:
         learned_block = "\n".join(f"  - {f}" for f in _learned_failures)
-        user += (
+        user_lines.append(
             f"\nKNOWN RECURRING FAILURES FOR THIS PART (from learning log):\n"
-            f"{learned_block}\n"
+            f"{learned_block}"
         )
+    user = "\n".join(user_lines)
 
     try:
         text = call_llm(user, system, repo_root=repo_root)

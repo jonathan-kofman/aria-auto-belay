@@ -25,6 +25,15 @@ Thumbs.db
 .vscode/
 *.code-workspace
 
+# Secrets & credentials — never push these
+serviceAccountKey.json
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+google-services.json
+
 # Private docs — never push these
 ARIA_Full_Project_Record*
 ARIA_Action_Tracker*

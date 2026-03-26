@@ -1,9 +1,8 @@
 """
 LLM-based Grasshopper/RhinoCommon script generator for arbitrary parts.
-Calls Anthropic API; builds system/user prompts from plan + context.
+Uses the unified call_llm() fallback chain (Anthropic → Gemini → Ollama → None).
 CadQuery-specific prompt removed 2026-03-23 — now generates RhinoCommon Python.
 """
-import os
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -11,32 +10,7 @@ from typing import Any, Optional
 from .context_loader import get_mechanical_constants, load_context
 from .cem_context import load_cem_geometry, format_cem_block
 from .cad_learner import get_few_shot_examples, format_few_shot_block, get_failure_patterns
-
-
-def _get_api_key(repo_root: Optional[Path] = None) -> str:
-    """Get ANTHROPIC_API_KEY from os.environ or .env in repo root."""
-    key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if key:
-        return key
-    if repo_root is None:
-        repo_root = Path(__file__).resolve().parent.parent
-    env_file = repo_root / ".env"
-    if env_file.exists():
-        try:
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" in line:
-                    k, v = line.split("=", 1)
-                    if k.strip() == "ANTHROPIC_API_KEY":
-                        return v.strip().strip('"').strip("'")
-        except Exception:
-            pass
-    raise RuntimeError(
-        "Set ANTHROPIC_API_KEY in environment or in a .env file in the repo root. "
-        "See .env.example for format."
-    )
+from .llm_client import call_llm
 
 
 def _build_system_prompt(
@@ -97,7 +71,7 @@ Mechanical constants (from aria_mechanical.md) — use these when relevant:
 
 {cem_block}
 {few_shot_block}
-{f"# Known recent failures for this part:\\n# {learned_failures.replace(chr(10), chr(10) + '# ')}" if learned_failures else ""}
+{("# Known recent failures for this part:" + chr(10) + "# " + learned_failures.replace(chr(10), chr(10) + "# ")) if learned_failures else ""}
 
 Avoid these patterns:
 {avoid}
@@ -174,7 +148,7 @@ Every generated script MUST end with these exact lines (STEP_PATH, STL_PATH and 
   _json_path = _pathlib.Path(STEP_PATH).parent.parent / "meta" / (_pathlib.Path(STEP_PATH).stem + ".json")
   _json_path.parent.mkdir(parents=True, exist_ok=True)
   _json_path.write_text(_json.dumps(_meta, indent=2))
-  print(f\"META:{{_json_path}}\")
+  print(f'META:{{_json_path}}')
 
 The variable 'result' must be the final rg.Brep. Do not define STEP_PATH, STL_PATH or PART_NAME; they are provided."""
 
@@ -230,50 +204,17 @@ def _extract_code(response: str) -> Optional[str]:
     return None
 
 
-def _call_anthropic(
-    api_key: str,
+def _call_unified_llm(
     system: str,
     user: str,
-) -> str:
-    """Shared Anthropic call; returns raw response text."""
-    try:
-        import anthropic
-    except ImportError:
-        raise RuntimeError(
-            "anthropic package required for LLM generation. Install with: pip install anthropic"
-        ) from None
+    repo_root: Optional[Path] = None,
+) -> Optional[str]:
+    """Call unified LLM fallback chain (Anthropic → Gemini → Ollama → None).
 
-    from . import event_bus
-
-    client = anthropic.Anthropic(api_key=api_key)
-    model = "claude-sonnet-4-6"
-    event_bus.emit("llm_output", "Calling LLM...", {"model": model})
-    try:
-        msg = client.messages.create(
-            model=model,
-            max_tokens=2000,
-            temperature=0,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-        )
-    except Exception as e:
-        if "model" in str(e).lower():
-            model = "claude-3-5-sonnet-20241022"
-            event_bus.emit("llm_output", "Calling LLM (fallback model)...", {"model": model})
-            msg = client.messages.create(
-                model=model,
-                max_tokens=2000,
-                temperature=0,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            )
-        else:
-            raise
-    text = ""
-    for b in msg.content:
-        if hasattr(b, "text"):
-            text += b.text
-    return text
+    Returns raw response text or None if all backends are unavailable.
+    Never raises — callers must handle None explicitly.
+    """
+    return call_llm(user, system, repo_root=repo_root)
 
 
 def generate(
@@ -285,13 +226,17 @@ def generate(
     goal: Optional[str] = None,
 ) -> str:
     """
-    Call Anthropic API to generate Grasshopper/RhinoCommon code. Returns code string.
-    Raises on API error or if no code could be extracted.
+    Call unified LLM chain to generate Grasshopper/RhinoCommon code. Returns code string.
+    Raises RuntimeError if all LLM backends are unavailable or no valid code returned.
     """
-    api_key = _get_api_key(repo_root)
     system = _build_system_prompt(context, plan, repo_root=repo_root, goal=goal)
     user = _build_user_prompt(plan, previous_code, previous_error)
-    text = _call_anthropic(api_key, system, user)
+    text = _call_unified_llm(system, user, repo_root)
+    if text is None:
+        raise RuntimeError(
+            "All LLM backends unavailable (Anthropic / Gemini / Ollama). "
+            "Set ANTHROPIC_API_KEY or GOOGLE_API_KEY in .env, or start Ollama."
+        )
     code = _extract_code(text)
     if not code:
         raise RuntimeError("LLM did not return valid RhinoCommon code. No code block or Rhino import found.")
@@ -311,12 +256,12 @@ def generate_rhino_python(
     Injects STEP_PATH and STL_PATH as constants at the top of the user prompt so
     the generated script can export without placeholder substitution.
 
-    Returns code string. Raises on API error or missing code block.
+    Returns code string. Raises RuntimeError if all LLM backends unavailable or
+    no valid code block returned.
     """
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent
 
-    api_key = _get_api_key(repo_root)
     context = load_context(repo_root)
     system  = _build_system_prompt(context, plan, repo_root=repo_root, goal=goal)
 
@@ -332,7 +277,13 @@ def generate_rhino_python(
     )
     user = base_user + path_block
 
-    text = _call_anthropic(api_key, system, user)
+    text = _call_unified_llm(system, user, repo_root)
+    if text is None:
+        raise RuntimeError(
+            f"All LLM backends unavailable — cannot generate RhinoCommon code for "
+            f"'{plan.get('part_id', goal)}'. Set ANTHROPIC_API_KEY or GOOGLE_API_KEY "
+            f"in .env, or start Ollama."
+        )
     code = _extract_code(text)
     if not code:
         raise RuntimeError(

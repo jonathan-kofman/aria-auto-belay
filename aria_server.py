@@ -29,7 +29,7 @@ app = FastAPI(title="ARIA-OS Server", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:8501"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -104,6 +104,7 @@ async def list_parts():
 @app.get("/api/parts/{part_id}/stl")
 async def get_stl(part_id: str):
     """Serve the STL file for a part."""
+    import os
     # Search outputs/cad/stl/ for a matching file
     stl_dir = REPO_ROOT / "outputs" / "cad" / "stl"
     matches = list(stl_dir.glob(f"*{part_id}*.stl")) if stl_dir.exists() else []
@@ -111,7 +112,12 @@ async def get_stl(part_id: str):
         raise HTTPException(status_code=404, detail=f"No STL found for {part_id}")
     # Return the most recently modified match
     stl_file = max(matches, key=lambda p: p.stat().st_mtime)
-    return FileResponse(str(stl_file), media_type="model/stl", filename=stl_file.name)
+    # Path traversal protection: ensure resolved path stays within outputs/
+    allowed_prefix = os.path.realpath(str(REPO_ROOT / "outputs"))
+    resolved = os.path.realpath(str(stl_file))
+    if not resolved.startswith(allowed_prefix + os.sep) and resolved != allowed_prefix:
+        raise HTTPException(status_code=403, detail="Access denied: path outside outputs directory")
+    return FileResponse(resolved, media_type="model/stl", filename=stl_file.name)
 
 
 @app.get("/api/sessions")

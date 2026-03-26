@@ -90,7 +90,8 @@ def _run_static_checks(part_id: str, meta: Dict[str, Any], context: dict) -> tup
         )
     elif any(x in lid for x in ("ratchet", "ring", "gear", "tooth")):
         sf = _ratchet_tooth_shear_sf(dims, _st_mod.YIELD_RATCHET_MPA)
-        return (sf >= 2.0), float(sf), "tooth_shear"
+        # Ratchet ring tooth shear is safety-critical — requires SF >= 8.0
+        return (sf >= 8.0), float(sf), "tooth_shear"
     elif any(x in lid for x in ("housing", "shell", "enclosure")):
         df = st.simulate_static_pawl(
             load_steps=load_steps,
