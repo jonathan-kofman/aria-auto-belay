@@ -214,7 +214,7 @@ def ansi_proof_load_check(
     Test 1E: ANSI 16,000 N proof load check on housing wall.
     Returns a summary dict with stress, SF, and pass/fail.
     """
-    sh = _housing_wall_stress_mpa(ansi_load_n)
+    sh = _housing_wall_stress_mpa(ansi_load_n, wall_mm=housing_wall_mm)
     sf = yield_mpa / sh if sh > 0 else 999
     return dict(
         test         = "1E — Housing Proof Load",

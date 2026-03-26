@@ -417,10 +417,31 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                 "static_failure_mode": _cem_result.static_failure_mode,
             }
             if not _cem_result.overall_passed:
-                print(f"[CEM FAIL] {_cem_result.summary}")
+                # Determine the required SF threshold for this part
+                _sf_val = _cem_result.static_min_sf
+                _sf_mode = _cem_result.static_failure_mode or "unknown"
+                _PART_SF_THRESHOLDS = {
+                    "aria_ratchet_ring": ("tooth_shear", 8.0),
+                    "aria_spool": ("radial_load", 2.0),
+                    "aria_cam_collar": ("taper_engagement", 2.0),
+                    "aria_housing": ("wall_bending", 2.0),
+                    "aria_brake_drum": ("hoop_stress", 2.0),
+                }
+                _threshold = 2.0
+                for _pid_key, (_mode, _thr) in _PART_SF_THRESHOLDS.items():
+                    if _pid_key in (part_id or "").lower():
+                        _threshold = _thr
+                        break
+                print(f"[CEM HARD FAIL] SF {_sf_val:.2f} below required {_threshold:.1f} for {part_id}. Export blocked.")
                 event_bus.emit("cem", f"CEM FAIL: {_cem_result.summary}",
                                {"part_id": part_id, "passed": False,
                                 "sf": _cem_result.static_min_sf})
+                # Block export: remove generated STEP/STL files
+                for _block_path in (step_path, stl_path):
+                    if _block_path.exists():
+                        _block_path.unlink(missing_ok=True)
+                        print(f"[CEM] Removed: {_block_path}")
+                session["cem_blocked"] = True
             else:
                 print(f"[CEM OK] {_cem_result.summary}")
                 event_bus.emit("cem", f"CEM OK: {_cem_result.summary}",
