@@ -220,37 +220,65 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
     if cad_tool == "cadquery":
         try:
             from .cadquery_generator import write_cadquery_artifacts
-            _cq_previous_failures: list[str] = []
-            for _cq_attempt in range(max_attempts):
-                artifacts = write_cadquery_artifacts(
-                    plan if isinstance(plan, dict) else {},
+
+            # Build a generate_fn compatible with run_validation_loop protocol:
+            #   generate_fn(plan, step_path, stl_path, repo_root, previous_failures=None) -> dict
+            def _cq_generate_fn(p, sp, st, rr, previous_failures=None):
+                return write_cadquery_artifacts(
+                    p if isinstance(p, dict) else {},
                     goal,
-                    str(step_path),
-                    str(stl_path),
-                    repo_root=repo_root,
-                    previous_failures=_cq_previous_failures or None,
+                    str(sp),
+                    str(st),
+                    repo_root=rr,
+                    previous_failures=previous_failures,
                 )
-                _cq_err = artifacts.get("error")
-                if _cq_err:
-                    _cq_previous_failures.append(_cq_err.splitlines()[-1])
-                    print(f"[CQ RETRY {_cq_attempt + 1}/{max_attempts}] {_cq_previous_failures[-1]}")
-                    event_bus.emit("error", f"CQ attempt {_cq_attempt + 1} failed: {_cq_err[:200]}", {"part_id": part_id})
-                    if _cq_attempt + 1 >= max_attempts:
-                        print(f"[CQ FAIL] All {max_attempts} attempts exhausted.\n{_cq_err}")
-                    continue
-                # Success
-                if artifacts.get("step_path"):
-                    session["step_path"] = artifacts["step_path"]
-                if artifacts.get("stl_path"):
-                    session["stl_path"] = artifacts["stl_path"]
-                if artifacts.get("bbox"):
-                    session["bbox"] = artifacts["bbox"]
-                if artifacts.get("script_path"):
-                    session["script_path"] = artifacts["script_path"]
-                if artifacts.get("error"):
-                    session["cq_error"] = artifacts["error"]
+
+            _val_plan = {"part_id": part_id, "params": plan.get("params", {}), "text": goal}
+
+            val_result = run_validation_loop(
+                generate_fn=_cq_generate_fn,
+                goal=goal,
+                plan=_val_plan,
+                step_path=str(step_path),
+                stl_path=str(stl_path),
+                max_attempts=max_attempts,
+                repo_root=repo_root,
+                skip_visual=True,
+                check_quality=True,
+            )
+
+            # Extract results from validation loop
+            gen_result = val_result.get("generate_result", {})
+            artifacts = gen_result if isinstance(gen_result, dict) else {}
+
+            if gen_result.get("step_path"):
+                session["step_path"] = gen_result["step_path"]
+            if gen_result.get("stl_path"):
+                session["stl_path"] = gen_result["stl_path"]
+            if gen_result.get("bbox"):
+                session["bbox"] = gen_result["bbox"]
+            if gen_result.get("script_path"):
+                session["script_path"] = gen_result["script_path"]
+                artifacts["script_path"] = gen_result["script_path"]
+            if gen_result.get("error"):
+                session["cq_error"] = gen_result["error"]
+
+            session["validation"] = {
+                "geo":  val_result.get("geo_result", {}),
+                "vis":  val_result.get("vis_result", {}),
+                "quality": val_result.get("quality_result", {}),
+                "attempts": val_result.get("attempts", 1),
+                "status": val_result.get("status"),
+                "validation_failures": val_result.get("validation_failures", []),
+            }
+
+            if val_result.get("status") == "success":
                 event_bus.emit("complete", "CadQuery generation complete", {"part_id": part_id})
-                break
+            else:
+                _val_failures = val_result.get("validation_failures", [])
+                print(f"[CQ VALIDATION FAIL] {val_result.get('attempts', 0)} attempts exhausted. Failures: {_val_failures}")
+                event_bus.emit("error", f"CQ validation failed after {val_result.get('attempts', 0)} attempts", {"part_id": part_id})
+
         except Exception as exc:
             event_bus.emit("error", f"CadQuery failed: {exc}", {"part_id": part_id})
             print(f"[CADQUERY ERROR] {exc}")
@@ -278,30 +306,47 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
             event_bus.emit("error", f"Fusion 360 generator failed: {exc}", {"part_id": part_id})
             print(f"[FUSION360 ERROR] {exc}")
 
-    # --- Run validation loop for geometry-producing backends ---
-    if cad_tool in ("grasshopper", "cadquery") and artifacts.get("script_path"):
-        # Only run validation if files were already produced (CadQuery in-process)
-        # or if a STEP/STL file exists from a prior Rhino Compute run
+    # --- Run validation loop for grasshopper backend ---
+    # CadQuery validation is handled above via its own run_validation_loop call.
+    # Grasshopper artifacts are produced by write_grasshopper_artifacts, so we wire
+    # a generate_fn that re-invokes that function on retry.
+    if cad_tool == "grasshopper" and artifacts.get("script_path"):
         if step_path.exists() or stl_path.exists():
             try:
                 _val_plan = {"part_id": part_id, "params": plan.get("params", {}), "text": goal}
 
-                def _noop_generate(p, sp, st, rr):
-                    # Geometry already produced; just return existing paths
-                    return {
-                        "status": "success" if Path(st).exists() else "failure",
-                        "step_path": str(sp) if Path(sp).exists() else None,
-                        "stl_path":  str(st) if Path(st).exists() else None,
-                        "error": None,
-                    }
+                def _gh_regen_fn(p, sp, st, rr, previous_failures=None):
+                    """Re-invoke grasshopper generation for validation retries."""
+                    try:
+                        regen_artifacts = write_grasshopper_artifacts(
+                            plan if isinstance(plan, dict) else {},
+                            goal,
+                            str(sp),
+                            str(st),
+                            repo_root=rr,
+                        )
+                        return {
+                            "status": "success" if regen_artifacts.get("script_path") else "failure",
+                            "step_path": str(sp) if Path(sp).exists() else None,
+                            "stl_path":  str(st) if Path(st).exists() else None,
+                            "error": regen_artifacts.get("error"),
+                            "script_path": regen_artifacts.get("script_path"),
+                        }
+                    except RuntimeError as e:
+                        return {
+                            "status": "failure",
+                            "step_path": str(sp) if Path(sp).exists() else None,
+                            "stl_path":  str(st) if Path(st).exists() else None,
+                            "error": str(e),
+                        }
 
                 val_result = run_validation_loop(
-                    generate_fn=_noop_generate,
+                    generate_fn=_gh_regen_fn,
                     goal=goal,
                     plan=_val_plan,
                     step_path=str(step_path),
                     stl_path=str(stl_path),
-                    max_attempts=1,  # files already generated; one-shot validation
+                    max_attempts=max_attempts,
                     repo_root=repo_root,
                     skip_visual=True,
                     check_quality=True,

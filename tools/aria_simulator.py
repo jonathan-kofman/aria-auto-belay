@@ -93,6 +93,22 @@ class SensorData:
 # ─────────────────────────────────────────────
 
 class PIDController:
+    """PID controller with clamping anti-windup.
+
+    Anti-windup rationale: the integral term is clamped so that
+    |Ki * integral| can never exceed the actuator output range on its
+    own.  This prevents unbounded accumulation during output saturation
+    (e.g. motor at 100 % while error persists).
+
+    Simulator gains  (Kp=2.5, Ki=0.8, Kd=0.1, output +/-100):
+        integral_max = output_max / Ki = 100 / 0.8 = 125.0
+
+    Firmware gains   (Kp=0.022, Ki=0.413, Kd=0.0005, output 0-10 V):
+        integral_max = 10 / 0.413 ~= 24.21
+        integral_min =  0 / 0.413 =   0.0
+        (firmware PID must implement the same clamping scheme)
+    """
+
     def __init__(self, kp, ki, kd, output_min=-100, output_max=100):
         self.kp = kp
         self.ki = ki
@@ -103,6 +119,19 @@ class PIDController:
         self._prev_error = 0.0
         self._prev_time = time.time()
 
+        # Anti-windup: compute integral clamp from actuator limits.
+        # |Ki * integral| must stay within [output_min, output_max].
+        if self.ki != 0.0:
+            self._integral_min = self.output_min / self.ki
+            self._integral_max = self.output_max / self.ki
+            # Ensure min <= max regardless of Ki sign
+            if self._integral_min > self._integral_max:
+                self._integral_min, self._integral_max = (
+                    self._integral_max, self._integral_min)
+        else:
+            self._integral_min = 0.0
+            self._integral_max = 0.0
+
     def compute(self, setpoint, measurement):
         now = time.time()
         dt = now - self._prev_time
@@ -110,6 +139,11 @@ class PIDController:
             dt = 0.001
         error = setpoint - measurement
         self._integral += error * dt
+
+        # ── Anti-windup: clamp integral term ──
+        self._integral = max(self._integral_min,
+                             min(self._integral_max, self._integral))
+
         derivative = (error - self._prev_error) / dt
         output = (self.kp * error +
                   self.ki * self._integral +

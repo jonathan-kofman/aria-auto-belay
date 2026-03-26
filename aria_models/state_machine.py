@@ -24,6 +24,8 @@ TENSION_TIGHT_N         = 60.0
 REST_TIMEOUT_S          = 600.0
 WATCH_ME_TIMEOUT_S      = 180.0
 ZONE_PAUSE_TIMEOUT_S    = 10.0
+TENSION_FALL_THRESHOLD_N = 400.0
+ROPE_SPEED_FALL_MS       = 2.0
 ESTOP_BRAKE_DELAY_MS    = 50.0
 WATCHDOG_TIMEOUT_MS     = 500.0
 
@@ -38,6 +40,7 @@ class State(Enum):
     WATCH_ME        = auto()
     UP              = auto()
     CLIMBING_PAUSED = auto()   # zone intrusion hold
+    FALL_ARREST     = auto()   # post-fall hold — requires explicit ack to exit
     ESTOP           = auto()
 
 
@@ -51,6 +54,7 @@ MOTOR_MODES = {
     State.WATCH_ME:        "TENSION_TIGHT",
     State.UP:              "UP_DRIVE",
     State.CLIMBING_PAUSED: "HOLD",
+    State.FALL_ARREST:     "OFF",
     State.ESTOP:           "OFF",
 }
 
@@ -58,15 +62,19 @@ VALID_TRANSITIONS = {
     State.IDLE:            {State.CLIMBING, State.ESTOP},
     State.CLIMBING:        {State.CLIPPING, State.TAKE, State.REST,
                             State.LOWER, State.WATCH_ME, State.UP,
-                            State.CLIMBING_PAUSED, State.IDLE, State.ESTOP},
-    State.CLIPPING:        {State.CLIMBING, State.ESTOP},
-    State.TAKE:            {State.CLIMBING, State.LOWER, State.ESTOP},
-    State.REST:            {State.CLIMBING, State.ESTOP},
-    State.LOWER:           {State.IDLE, State.ESTOP},
-    State.WATCH_ME:        {State.CLIMBING, State.ESTOP},
-    State.UP:              {State.CLIMBING, State.ESTOP},
-    State.CLIMBING_PAUSED: {State.CLIMBING, State.ESTOP},
-    State.ESTOP:           set(),
+                            State.CLIMBING_PAUSED, State.FALL_ARREST,
+                            State.IDLE, State.ESTOP},
+    State.CLIPPING:        {State.CLIMBING, State.TAKE, State.LOWER,
+                            State.FALL_ARREST, State.ESTOP},
+    State.TAKE:            {State.CLIMBING, State.LOWER, State.FALL_ARREST,
+                            State.ESTOP},
+    State.REST:            {State.CLIMBING, State.FALL_ARREST, State.ESTOP},
+    State.LOWER:           {State.IDLE, State.FALL_ARREST, State.ESTOP},
+    State.WATCH_ME:        {State.CLIMBING, State.FALL_ARREST, State.ESTOP},
+    State.UP:              {State.CLIMBING, State.FALL_ARREST, State.ESTOP},
+    State.CLIMBING_PAUSED: {State.CLIMBING, State.FALL_ARREST, State.ESTOP},
+    State.FALL_ARREST:     {State.IDLE, State.LOWER, State.ESTOP},
+    State.ESTOP:           {State.IDLE},  # operator reset only — see step() guard
 }
 
 
@@ -119,6 +127,12 @@ class AriaStateMachine:
         if inp.estop:
             self._go(State.ESTOP)
             return self._out(fault="ESTOP_TRIGGERED")
+
+        # Fall detection — overrides all states except ESTOP and FALL_ARREST
+        if self.state not in (State.ESTOP, State.FALL_ARREST, State.IDLE):
+            if inp.tension_N > TENSION_FALL_THRESHOLD_N:
+                self._go(State.FALL_ARREST)
+                return self._out(fault="FALL_DETECTED")
 
         # Latch take voice time globally
         if v == "take":
@@ -182,6 +196,15 @@ class AriaStateMachine:
             return self._out()
 
         if s == State.CLIPPING:
+            # Voice: TAKE — climber wants lock while clipping
+            if v == "take":
+                self.take_voice_time = t
+                self._go(State.TAKE)
+                return self._out()
+            # Voice: LOWER — climber wants to descend from clip position
+            if v == "lower":
+                self._go(State.LOWER)
+                return self._out()
             if not inp.cv_clip or v == "climbing":
                 self._go(State.CLIMBING)
                 return self._out()
@@ -231,6 +254,17 @@ class AriaStateMachine:
                 self._go(State.CLIMBING)
                 return self._out()
             return self._out()
+
+        if s == State.FALL_ARREST:
+            # Brake engaged, motor off, hold position.
+            # Require explicit acknowledgment to exit.
+            if v == "reset":
+                self._go(State.IDLE)
+                return self._out()
+            if v == "lower":
+                self._go(State.LOWER)
+                return self._out()
+            return self._out(fault="FALL_ARREST_HOLD")
 
         if s == State.ESTOP:
             return self._out(fault="ESTOP_LATCHED")

@@ -173,7 +173,7 @@ def _try_anthropic(prompt: str, system: str, repo_root: "Path | None" = None) ->
         from . import event_bus  # noqa: F401 — optional
         client = anthropic.Anthropic(api_key=api_key)
         kwargs: dict[str, Any] = {
-            "max_tokens": 2000,
+            "max_tokens": 4096,
             "temperature": 0,
             "messages": [{"role": "user", "content": prompt}],
         }
