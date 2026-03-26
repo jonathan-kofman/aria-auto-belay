@@ -40,3 +40,45 @@ export const TENSION_BASELINE_N = 40.0;
 export const TENSION_TAKE_THRESHOLD_N = 200.0;
 export const TENSION_FALL_THRESHOLD_N = 400.0;
 export const ROPE_SPEED_FALL_MS = 2.0;
+
+// ─── Firestore collection names ───────────────────────────────────────────────
+export const COLLECTIONS = {
+  GYMS: 'gyms',
+  USERS: 'users',
+  DEVICES: 'devices',
+  SESSIONS: 'sessions',
+  INCIDENTS: 'incidents',
+  COMMANDS: 'commands',
+  LEADERBOARD: 'leaderboard',
+} as const;
+
+// ─── Re-export Session so screens can import from types/aria ──────────────────
+export type { Session, TensionSample, HeightSample, SessionEvent, SessionEventType } from './session';
+
+// ─── Incident ─────────────────────────────────────────────────────────────────
+export interface Incident {
+  incidentId: string;
+  gymId: string;
+  deviceId: string;
+  type: 'zone_intrusion' | 'device_offline' | 'fall_detected' | string;
+  description: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: Date;
+  resolved: boolean;
+  resolvedBy: string | null;
+  resolvedAt?: Date;
+  notes?: string;
+  cameraThumbUrl?: string;
+}
+
+// ─── MaintenanceAction ────────────────────────────────────────────────────────
+export interface MaintenanceAction {
+  actionId: string;
+  deviceId: string;
+  gymId: string;
+  type: 'inspection' | 'rope_replace' | 'brake_service' | 'calibration' | 'firmware_update';
+  performedBy: string;
+  performedAt: Date;
+  notes?: string;
+  passed: boolean;
+}
