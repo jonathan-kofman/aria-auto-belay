@@ -626,13 +626,19 @@ def run_lattice_test():
 
 def run_lattice(args: list[str]):
     """
-    CLI entry for lattice generation:
+    CLI entry for lattice generation via Fusion 360 (primary) or Blender (fallback).
       python run_aria_os.py --lattice --pattern honeycomb --form volumetric ...
+      python run_aria_os.py --lattice --pattern gyroid --backend blender ...
     """
     from rich.console import Console
-    from aria_os.lattice import generate_lattice, LatticeParams
 
     console = Console(highlight=False, emoji=False)
+    backend = "fusion"
+    if "--backend" in args:
+        try:
+            backend = args[args.index("--backend") + 1]
+        except IndexError:
+            pass
 
     def get_arg(flag: str, default: str) -> str:
         try:
@@ -649,36 +655,69 @@ def run_lattice(args: list[str]):
             return False
         return default
 
+    pattern   = get_arg("--pattern", "honeycomb")
+    form      = get_arg("--form", "volumetric")
+    width_mm  = float(get_arg("--width",     "100"))
+    height_mm = float(get_arg("--height",    "100"))
+    depth_mm  = float(get_arg("--depth",     "10"))
+    cell_size = float(get_arg("--cell-size", "10"))
+    wall_mm   = float(get_arg("--strut",     "1.5"))
+    part_name = get_arg("--name", "lattice_panel")
+
+    if backend == "fusion":
+        # Primary: generate Fusion 360 script via Design Extension lattice
+        from pathlib import Path as _P
+        from aria_os.fusion_generator import write_fusion_artifacts
+        ROOT = _P(__file__).resolve().parent
+        out_step = str(ROOT / "outputs" / "cad" / "step" / f"{part_name}.step")
+        out_stl  = str(ROOT / "outputs" / "cad" / "stl"  / f"{part_name}.stl")
+        _P(out_step).parent.mkdir(parents=True, exist_ok=True)
+        _P(out_stl).parent.mkdir(parents=True, exist_ok=True)
+        goal = (f"{pattern} {form} lattice {width_mm}x{height_mm}x{depth_mm}mm "
+                f"cell {cell_size}mm wall {wall_mm}mm")
+        plan = {
+            "part_id": part_name,
+            "params": {
+                "width_mm": width_mm, "height_mm": height_mm,
+                "depth_mm": depth_mm, "cell_size_mm": cell_size,
+                "wall_mm": wall_mm, "pattern": pattern,
+            },
+        }
+        result_paths = write_fusion_artifacts(plan, goal, out_step, out_stl)
+        console.print(f"\n[FUSION] Lattice script generated.")
+        console.print(f"  Script: {result_paths['script_path']}")
+        console.print(f"  Mode  : {result_paths.get('fusion_mode', 'lattice')}")
+        console.print(f"\n  Run in Fusion 360: Utilities > Scripts and Add-Ins > Run Script")
+        console.print(f"  Requires: Fusion 360 Design Extension")
+        return
+
+    # Fallback: Blender headless pipeline
+    from aria_os.lattice import generate_lattice, LatticeParams
     params = LatticeParams(
-        pattern=get_arg("--pattern", "honeycomb"),
-        form=get_arg("--form", "volumetric"),
-        width_mm=float(get_arg("--width", "100")),
-        height_mm=float(get_arg("--height", "100")),
-        depth_mm=float(get_arg("--depth", "10")),
-        cell_size_mm=float(get_arg("--cell-size", "10")),
-        strut_diameter_mm=float(get_arg("--strut", "1.5")),
+        pattern=pattern,
+        form=form,
+        width_mm=width_mm,
+        height_mm=height_mm,
+        depth_mm=depth_mm,
+        cell_size_mm=cell_size,
+        strut_diameter_mm=wall_mm,
         skin_thickness_mm=float(get_arg("--skin", "2.0")),
         frame_thickness_mm=float(get_arg("--frame", "5.0")),
         interlaced=get_bool_arg("--interlaced", default=False),
         weave_offset_mm=float(get_arg("--weave-offset", "0.0")),
         process=get_arg("--process", "both"),
-        part_name=get_arg("--name", "lattice_panel"),
+        part_name=part_name,
     )
-
-    console.print(f"\nGenerating {params.pattern} {params.form} lattice...")
-
+    console.print(f"\nGenerating {params.pattern} {params.form} lattice (Blender)...")
     result = generate_lattice(params)
-
     for w in result.process_warnings:
         console.print(f"  [WARN] {w}")
-
     console.print(f"\n[DONE] {result.summary}")
     console.print(f"  STEP: {result.step_path}")
     console.print(f"  STL:  {result.stl_path}")
     console.print(f"  Cells: {result.cell_count}")
     console.print(f"  Min feature: {result.min_feature_mm}mm")
     console.print(f"  Est. weight: {result.estimated_weight_g:.1f}g")
-
     if result.passed_process_check:
         console.print("  Process check: PASS")
     else:
@@ -726,6 +765,10 @@ def main():
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "--cem-full":
         run_cem_full()
+        return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--cem-advise":
+        from aria_os.cem_advisor import run_cem_advisor
+        run_cem_advisor(Path(__file__).resolve().parent)
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "--material-study":
         if len(sys.argv) < 3:

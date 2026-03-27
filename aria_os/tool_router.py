@@ -1,13 +1,40 @@
 """
 aria_os/tool_router.py
-Decides which CAD tool handles each part based on geometry type.
+
+Routing hierarchy:
+  CadQuery    - headless, fast; 16 known templates; LRE/nozzle hard-override
+  Grasshopper - the 6 core ARIA structural parts (needs Rhino Compute)
+  Fusion 360  - primary for lattice, generative design, sheet metal,
+                additive/CAM setup, simulation, organic surfaces, assemblies
+  Blender     - visualization / mesh repair ONLY (not engineering geometry)
 """
 from typing import Any
 
 FUSION_KEYWORDS = [
-    "lattice", "volumetric", "gyroid", "octet", "infill", "cellular",
-    "honeycomb", "gradient density", "assembly", "cam toolpath", "nesting",
-    "additive setup", "lightweight fill", "energy absorber",
+    # Lattice / infill (Design Extension)
+    "lattice", "gyroid", "octet", "octet truss", "honeycomb", "infill",
+    "cellular", "volumetric", "gradient density", "energy absorber",
+    "lightweight fill", "tpms", "conformal lattice", "arc weave",
+    # Generative / topology (Design Extension)
+    "generative", "topology optim", "topopt", "generative design",
+    "minimum weight", "structural optim",
+    # Sheet metal (built-in, no extension)
+    "sheet metal", "sheetmetal", "sheet-metal", "stamping",
+    "flat pattern", "enclosure panel",
+    # Additive setup (Manufacturing Extension)
+    "additive setup", "build prep", "print orientation",
+    "support generation", "am setup", "slm setup", "dmls setup",
+    # CAM / machining (Manufacturing Extension)
+    "toolpath", "cam setup", "cnc program", "g-code",
+    "machining strategy", "multi-axis", "adaptive clearing",
+    "5-axis", "3+2 machining",
+    # Assembly / motion
+    "assembly", "motion study", "contact set",
+    # Simulation (Design Extension)
+    "fea", "stress analysis", "thermal sim", "simulate",
+    "modal analysis", "buckling",
+    # Organic / T-spline
+    "t-spline", "sculpt", "ergonomic grip", "organic surface",
 ]
 
 GRASSHOPPER_KEYWORDS = [
@@ -16,13 +43,15 @@ GRASSHOPPER_KEYWORDS = [
     "surface", "nurbs",
 ]
 
+# Blender: visualization and mesh repair only
 BLENDER_KEYWORDS = [
-    "mesh repair", "cleanup", "decimate", "remesh", "organic",
-    "sculpt", "soft", "irregular",
+    "mesh repair", "cleanup", "decimate", "remesh", "render",
+    "visualization", "sculpt mesh",
 ]
 
 FUSION_PART_IDS = {
     "aria_energy_absorber", "aria_lattice_housing", "aria_assembly",
+    "aria_sheet_metal_bracket", "aria_generative_housing",
 }
 
 GRASSHOPPER_PART_IDS = {
@@ -42,16 +71,21 @@ CADQUERY_KEYWORDS = [
 
 def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
     """
-    Return one of: 'cadquery', 'fusion', 'grasshopper', 'blender'
+    Return one of: "cadquery", "fusion", "grasshopper", "blender"
+
+    Priority:
+      1. cadquery    - LRE/nozzle hard-override
+      2. grasshopper - 6 core ARIA structural parts
+      3. fusion      - lattice, generative, sheet metal, additive, CAM, sim, sculpt
+      4. blender     - visualization / mesh repair only
+      5. cadquery    - default fallback
     """
     goal_lower = (goal or "").lower()
-    part_id = str(plan.get("part_id", ""))
-    features = plan.get("features", []) or []
+    part_id    = str(plan.get("part_id", ""))
+    features   = plan.get("features", []) or []
 
-    # LRE / nozzle always → cadquery headless (overrides GRASSHOPPER_PART_IDS)
     if any(kw in goal_lower for kw in CADQUERY_KEYWORDS):
         return "cadquery"
-
     if part_id in GRASSHOPPER_PART_IDS:
         return "grasshopper"
     if part_id in FUSION_PART_IDS:
@@ -62,7 +96,7 @@ def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
             continue
         if f.get("type") == "ramp" or "helical" in str(f.get("description", "")).lower():
             return "grasshopper"
-        if f.get("type") == "lattice":
+        if f.get("type") in ("lattice", "generative", "sheet_metal"):
             return "fusion"
 
     if any(kw in goal_lower for kw in GRASSHOPPER_KEYWORDS):
@@ -78,8 +112,8 @@ def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
 def get_output_formats(tool: str) -> list[str]:
     """Return expected output file extensions for each tool."""
     return {
-        "cadquery": ["step", "stl"],
-        "fusion": ["stl", "step"],
+        "cadquery":    ["step", "stl"],
+        "fusion":      ["step", "stl"],
         "grasshopper": ["step", "stl"],
-        "blender": ["stl"],
+        "blender":     ["stl"],
     }.get(tool, ["stl"])
