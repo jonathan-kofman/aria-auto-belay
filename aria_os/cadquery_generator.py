@@ -472,24 +472,182 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_gear(params: dict[str, Any]) -> str:
-    od   = float(params.get("od_mm",       params.get("diameter_mm",   80.0)))
-    h    = float(params.get("height_mm",   params.get("thickness_mm",  20.0)))
-    bore = float(params.get("bore_mm",     round(od * 0.2, 2)))
+    import math as _m
+    module_mm   = float(params.get("module_mm", 1.0))
+    n_teeth     = int(params.get("n_teeth", 40))
+    pa_deg      = float(params.get("pressure_angle_deg", 20.0))
+    face_w      = float(params.get("face_width_mm", 6.0))
+    bore        = float(params.get("bore_mm", 6.0))
+    hub_od_default = max(bore * 2.4, bore + 6.0)
+    hub_od      = float(params.get("hub_od_mm", hub_od_default))
+    spoke_style = str(params.get("spoke_style", "petal"))
+    n_spokes    = int(params.get("n_spokes", 5))
+    keyway_w    = float(params.get("keyway_width_mm", 0.0))
+    step_path   = str(params.get("step_path", ""))
+    stl_path    = str(params.get("stl_path", ""))
+
+    # Pre-compute gear geometry for bbox hint (not used in script, just docs)
+    pitch_r = module_mm * n_teeth / 2.0
+    tip_r   = pitch_r + module_mm
+    tip_od  = tip_r * 2.0
+
     return f"""
 import cadquery as cq
+import math
 
-OD_MM   = {od}
-H_MM    = {h}
-BORE_MM = {bore}
+MODULE       = {module_mm}
+N            = {n_teeth}
+PA           = math.radians({pa_deg})
+FACE_W       = {face_w}
+BORE         = {bore}
+HUB_OD       = {hub_od}
+SPOKE_STYLE  = "{spoke_style}"
+N_SPOKES     = {n_spokes}
+KEYWAY_W     = {keyway_w}
+STEP_PATH    = r"{step_path}"
+STL_PATH     = r"{stl_path}"
 
-outer    = cq.Workplane("XY").circle(OD_MM / 2.0).extrude(H_MM)
-bore_cyl = (
+pitch_r = MODULE * N / 2.0
+base_r  = pitch_r * math.cos(PA)
+tip_r   = pitch_r + MODULE
+root_r  = pitch_r - 1.25 * MODULE
+
+tooth_pitch_angle = 2 * math.pi / N
+
+# --- Involute helpers ---
+def inv_pt(t, rb):
+    return (rb * (math.cos(t) + t * math.sin(t)),
+            rb * (math.sin(t) - t * math.cos(t)))
+
+def t_for_r(r, rb):
+    return math.sqrt(max(0.0, (r / rb) ** 2 - 1.0))
+
+t_pitch = t_for_r(pitch_r, base_r)
+_ipx, _ipy = inv_pt(t_pitch, base_r)
+inv_pitch_angle = math.atan2(_ipy, _ipx)   # angle of pitch point on involute
+half_tooth_angle = math.pi / N              # half of angular pitch
+
+N_PTS = 10  # involute sample points per flank
+
+def tooth_polygon():
+    pts = []
+    # Root entry point (start of this tooth gap)
+    pts.append((root_r * math.cos(-half_tooth_angle - math.pi / N),
+                root_r * math.sin(-half_tooth_angle - math.pi / N)))
+
+    # Right flank (involute, root→tip)
+    t_root_val = t_for_r(max(root_r, base_r), base_r)
+    t_tip_val  = t_for_r(tip_r, base_r)
+    # Rotation offset to centre tooth at angle=0
+    rot_off = inv_pitch_angle - half_tooth_angle + t_pitch
+    for i in range(N_PTS + 1):
+        t = t_root_val + (t_tip_val - t_root_val) * i / N_PTS
+        px, py = inv_pt(t, base_r)
+        angle = math.atan2(py, px)
+        r = math.hypot(px, py)
+        a = angle - rot_off
+        pts.append((r * math.cos(a), r * math.sin(a)))
+
+    # Tip arc (3 points across tip)
+    tip_half = math.acos(min(1.0, base_r / tip_r))
+    for i in range(3):
+        a = half_tooth_angle + tip_half * (1.0 - float(i))
+        pts.append((tip_r * math.cos(a), tip_r * math.sin(a)))
+
+    # Left flank (mirror of right, tip→root)
+    for i in range(N_PTS, -1, -1):
+        t = t_root_val + (t_tip_val - t_root_val) * i / N_PTS
+        px, py = inv_pt(t, base_r)
+        angle = math.atan2(py, px)
+        r = math.hypot(px, py)
+        a = -(angle - rot_off)
+        pts.append((r * math.cos(a), r * math.sin(a)))
+
+    # Root exit point (end of this tooth gap)
+    pts.append((root_r * math.cos(half_tooth_angle + math.pi / N),
+                root_r * math.sin(half_tooth_angle + math.pi / N)))
+    return pts
+
+# Rotate one tooth profile N times to build full gear outline
+all_pts = []
+one_tooth = tooth_polygon()
+for i in range(N):
+    angle = i * tooth_pitch_angle
+    ca, sa = math.cos(angle), math.sin(angle)
+    for px, py in one_tooth:
+        all_pts.append((px * ca - py * sa, px * sa + py * ca))
+
+# Create solid gear blank from polygon
+gear = (
     cq.Workplane("XY")
-    .workplane(offset=-1.0)
-    .circle(BORE_MM / 2.0)
-    .extrude(H_MM + 2.0)
+    .polyline(all_pts)
+    .close()
+    .extrude(FACE_W)
 )
-result = outer.cut(bore_cyl)
+
+# Cut central bore
+gear = (
+    gear.faces(">Z").workplane()
+    .circle(BORE / 2.0)
+    .cutThruAll()
+)
+
+# Optional keyway (rectangular slot in bore)
+if KEYWAY_W > 0:
+    keyway_depth = KEYWAY_W * 0.6
+    gear = (
+        gear.faces(">Z").workplane()
+        .rect(KEYWAY_W, keyway_depth * 2)
+        .cutThruAll()
+    )
+
+# Spoke / lightening cutouts
+rim_r       = root_r - MODULE * 0.5       # inner face of rim land
+spoke_zone_r = (HUB_OD / 2.0 + rim_r) / 2.0  # centroid of cutout region
+cutout_h    = rim_r - HUB_OD / 2.0 - MODULE   # radial span of cutout
+
+if SPOKE_STYLE == "petal" and cutout_h > 2.0:
+    ell_a = cutout_h / 2.0
+    ell_b = (2.0 * math.pi * spoke_zone_r / N_SPOKES) * 0.38
+    ell_b = max(ell_b, 1.0)
+    for i in range(N_SPOKES):
+        angle = i * 2.0 * math.pi / N_SPOKES + math.pi / N_SPOKES
+        cx = spoke_zone_r * math.cos(angle)
+        cy = spoke_zone_r * math.sin(angle)
+        rot_deg = math.degrees(angle)
+        gear = (
+            gear.faces(">Z").workplane()
+            .transformed(offset=cq.Vector(cx, cy, 0),
+                         rotate=cq.Vector(0, 0, rot_deg))
+            .ellipse(ell_a, ell_b)
+            .cutThruAll()
+        )
+elif SPOKE_STYLE == "minimal" and cutout_h > 2.0:
+    spoke_w = max(1.0, MODULE * 0.8)
+    for i in range(N_SPOKES):
+        angle = i * 2.0 * math.pi / N_SPOKES
+        cx = spoke_zone_r * math.cos(angle)
+        cy = spoke_zone_r * math.sin(angle)
+        rot_deg = math.degrees(angle)
+        gear = (
+            gear.faces(">Z").workplane()
+            .transformed(offset=cq.Vector(cx, cy, 0),
+                         rotate=cq.Vector(0, 0, rot_deg))
+            .rect(cutout_h, spoke_w)
+            .cutThruAll()
+        )
+# SPOKE_STYLE == "straight": leave as solid disk (spokes = material between cutouts)
+
+result = gear
+
+# Optional STEP / STL export
+if STEP_PATH:
+    import cadquery as _cq_exp
+    _cq_exp.exporters.export(result, STEP_PATH)
+if STL_PATH:
+    import cadquery as _cq_exp2
+    _cq_exp2.exporters.export(result, STL_PATH)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """

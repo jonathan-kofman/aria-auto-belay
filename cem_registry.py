@@ -7,7 +7,7 @@ All new CEM domains must be registered here.
 Usage:
     from cem_registry import resolve_cem_module
     module_name = resolve_cem_module(goal, part_id)
-    # Returns: "cem_aria" | "cem_lre" | None
+    # Returns: "cem_aria" | "cem_lre" | "cem_clock" | None
 """
 from __future__ import annotations
 
@@ -23,6 +23,9 @@ _KEYWORD_MAP: list[tuple[list[str], str]] = [
     (["lre", "liquid rocket", "nozzle", "rocket", "turbopump", "injector",
       "combustion", "chamber pressure", "isp", "thrust", "propellant",
       "kerosene", "lox", "rp-1", "ipa", "meth"], "cem_lre"),
+    # Mechanical clock / horology keywords
+    (["clock", "skeleton clock", "pendulum", "mainspring", "gear train",
+      "escapement", "horology"], "cem_clock"),
     # ARIA auto-belay keywords
     (["aria", "belay", "ratchet", "brake drum", "spool", "cam collar",
       "centrifugal", "clutch", "rope guide", "catch pawl", "flyweight",
