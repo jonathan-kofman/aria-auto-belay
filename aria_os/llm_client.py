@@ -2,23 +2,27 @@
 aria_os/llm_client.py
 
 Unified LLM client. Priority order:
-1. Anthropic API  — if ANTHROPIC_API_KEY is set in environment or .env
-2. Google Gemini  — if GOOGLE_API_KEY is set in environment or .env
+1. Google Gemini  — if GOOGLE_API_KEY is set (primary; free/cheap tier used first)
+2. Anthropic API  — if ANTHROPIC_API_KEY is set (fallback; used when Gemini fails)
 3. Ollama local   — if Ollama is running on OLLAMA_HOST (default localhost:11434)
 4. Returns None   — caller falls back to heuristics
+
+Gemini is tried first to preserve Anthropic quota.  Anthropic is the high-quality
+fallback when Gemini is unavailable, rate-limited, or returns an empty response.
 
 Never raises. Logs which backend was used on every call.
 
 Environment variables
 ---------------------
-ANTHROPIC_API_KEY  — Anthropic API key (optional; enables Anthropic backend)
 GOOGLE_API_KEY     — Google Gemini API key (optional; enables Gemini backend)
+ANTHROPIC_API_KEY  — Anthropic API key (optional; enables Anthropic backend)
 GEMINI_MODEL       — Gemini model name (default: gemini-2.0-flash)
 OLLAMA_HOST        — Ollama base URL (default: http://localhost:11434)
 OLLAMA_MODEL       — Model name for Ollama (default: deepseek-coder)
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import urllib.error
@@ -477,6 +481,72 @@ def _try_gemini_vision(
     return None
 
 
+def _try_ollama_vision(
+    image_bytes: bytes,
+    media_type: str,
+    prompt: str,
+) -> "str | None":
+    """
+    Try Ollama vision inference using a multimodal model (llava, llava-llama3, etc.).
+    Ollama supports images via the 'images' field in the message payload (base64).
+    Auto-detects the best available vision model; falls back to the configured model.
+    Returns goal string or None on any failure.
+    """
+    host  = _ollama_host()
+    b64   = base64.b64encode(image_bytes).decode("utf-8")
+
+    # Prefer dedicated vision models; fall back to whatever is configured
+    vision_candidates = ["llava-llama3", "llava:13b", "llava", "llava:7b", _ollama_model()]
+
+    # Ask Ollama which models are available
+    available: list[str] = []
+    try:
+        req = urllib.request.Request(f"{host}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        available = [m["name"].split(":")[0] for m in data.get("models", [])]
+    except Exception:
+        pass  # can't list models — just try in order
+
+    model = next(
+        (c for c in vision_candidates
+         if not available or any(c.startswith(a) or a.startswith(c.split(":")[0])
+                                 for a in available)),
+        vision_candidates[-1],
+    )
+
+    payload = json.dumps({
+        "model": model,
+        "messages": [{
+            "role": "user",
+            "content": prompt,
+            "images": [b64],
+        }],
+        "stream": False,
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(
+            f"{host}/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        text = data.get("message", {}).get("content", "").strip()
+        if text:
+            print(f"[IMAGE] ollama/{model} vision")
+            return text
+        return None
+    except urllib.error.HTTPError as exc:
+        print(f"[IMAGE] ollama vision failed: HTTP {exc.code} (is {model} pulled?)")
+        return None
+    except Exception as exc:
+        print(f"[IMAGE] ollama vision failed: {exc}")
+        return None
+
+
 def analyze_image_for_cad(
     image_path: "str | Path",
     hint: str = "",
@@ -486,7 +556,9 @@ def analyze_image_for_cad(
     """
     Use vision AI to analyse a photo and return a CAD goal string.
 
-    Priority: Anthropic → Gemini → None
+    Priority: Gemini → Anthropic (fallback) → Ollama (llava) → None
+
+    Gemini is tried first to conserve Anthropic quota.
 
     Parameters
     ----------
@@ -509,11 +581,19 @@ def analyze_image_for_cad(
     media_type = _IMAGE_MIMETYPES.get(suffix, "image/jpeg")
     image_bytes = image_path.read_bytes()
 
-    prompt = "Analyse this part and produce a CAD goal description."
+    prompt = _IMAGE_ANALYSIS_SYSTEM + "\n\nAnalyse this part and produce a CAD goal description."
     if hint:
         prompt += f"\n\nUser hint: {hint}"
 
-    # 1. Try Anthropic vision
+    # 1. Try Gemini vision (primary)
+    try:
+        result = _try_gemini_vision(image_bytes, media_type, prompt, repo_root)
+        if result:
+            return result
+    except Exception as exc:
+        print(f"[IMAGE] gemini unexpected error: {exc}")
+
+    # 2. Try Anthropic vision (fallback)
     try:
         result = _try_anthropic_vision(image_bytes, media_type, prompt, repo_root)
         if result:
@@ -521,13 +601,13 @@ def analyze_image_for_cad(
     except Exception as exc:
         print(f"[IMAGE] anthropic unexpected error: {exc}")
 
-    # 2. Try Gemini vision
+    # 3. Try Ollama vision (llava / llava-llama3)
     try:
-        result = _try_gemini_vision(image_bytes, media_type, prompt, repo_root)
+        result = _try_ollama_vision(image_bytes, media_type, prompt)
         if result:
             return result
     except Exception as exc:
-        print(f"[IMAGE] gemini unexpected error: {exc}")
+        print(f"[IMAGE] ollama vision unexpected error: {exc}")
 
     print("[IMAGE] No vision backend available — provide a text description instead.")
     return None
@@ -546,7 +626,10 @@ def call_llm(
     """
     Call the best available LLM backend.
 
-    Priority: Anthropic → Gemini (if GOOGLE_API_KEY set) → Ollama → None
+    Priority: Gemini → Anthropic (fallback) → Ollama → None
+
+    Gemini is tried first to conserve Anthropic quota.  Anthropic kicks in
+    only when Gemini is unavailable or rate-limited.
 
     Parameters
     ----------
@@ -559,21 +642,21 @@ def call_llm(
     Response text, or None if all backends unavailable.
     Never raises.
     """
-    # 1. Try Anthropic
-    try:
-        result = _try_anthropic(prompt, system, repo_root)
-        if result is not None:
-            return result
-    except Exception as exc:
-        print(f"[LLM] anthropic unexpected error: {exc}")
-
-    # 2. Try Gemini
+    # 1. Try Gemini (primary — free/cheap quota)
     try:
         result = _try_gemini(prompt, system, repo_root)
         if result is not None:
             return result
     except Exception as exc:
         print(f"[LLM] gemini unexpected error: {exc}")
+
+    # 2. Try Anthropic (fallback — preserves paid quota)
+    try:
+        result = _try_anthropic(prompt, system, repo_root)
+        if result is not None:
+            return result
+    except Exception as exc:
+        print(f"[LLM] anthropic unexpected error: {exc}")
 
     # 3. Try Ollama
     try:
