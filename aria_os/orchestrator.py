@@ -550,7 +550,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
         passed=_passed,
         bbox=_bbox or {"x": 0.0, "y": 0.0, "z": 0.0},
         error=_run_error or None,
-        cem_snapshot=load_cem_geometry(repo_root, goal=goal, part_id=part_id or ""),
+        cem_snapshot=load_cem_geometry(repo_root),
         cem_passed=_cem_passed,
         feature_complete=True,
         mesh_clean=bool(_mesh_clean) if _mesh_clean is not None else True,

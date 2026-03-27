@@ -22,57 +22,80 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 def _cq_ratchet_ring(params: dict[str, Any]) -> str:
-    od     = float(params.get("od_mm", 213.0))
-    bore   = float(params.get("bore_mm", 185.0))
-    thick  = float(params.get("thickness_mm", params.get("height_mm", 21.0)))
-    teeth  = int(params.get("n_teeth", 24))
-    # Tooth height derived from pitch so teeth never overlap at any tooth count/OD combo.
-    # Cap at 6mm; floor at 1.5mm for very fine-pitch rings.
     import math as _m
-    _pitch = (_m.pi * od) / teeth
-    _tooth_h = round(max(1.5, min(6.0, _pitch * 0.35)), 3)
+    od    = float(params.get("od_mm", 213.0))
+    bore  = float(params.get("bore_mm", 120.2))   # spool hub OD fit (+0.2 mm clearance)
+    thick = float(params.get("thickness_mm", params.get("height_mm", 21.0)))
+    teeth = int(params.get("n_teeth", 24))
+
+    # External ratchet: teeth project outward to OD tip circle.
+    # Direct formula for r_root so tooth space = 8 mm (pawl tip 6mm + clearance):
+    #   space = 2π·r_root/N - (r_tip - r_root)·(tan60°+tan8°) = 8
+    #   r_root·(2π/N + tan60°+tan8°) = 8 + r_tip·(tan60°+tan8°)
+    r_tip  = od / 2.0
+    _k     = _m.tan(_m.radians(60)) + _m.tan(_m.radians(8))  # ~1.873
+    r_root = round((8.0 + r_tip * _k) / (2 * _m.pi / teeth + _k), 3)
+    r_root = max(r_root, bore / 2.0 + 5.0)   # never eat into bore
+    tooth_h = round(r_tip - r_root, 3)
+
     return f"""
 import cadquery as cq, math
 
-OD_MM          = {od}
-BORE_MM        = {bore}
-THICKNESS_MM   = {thick}
-N_TEETH        = {teeth}
-TOOTH_HEIGHT   = {_tooth_h}   # derived: pitch*0.35, capped [1.5, 6.0] mm
-TOOTH_BASE_W   = (math.pi * OD_MM / N_TEETH) * 0.55
+# === ARIA Ratchet Ring — external teeth, asymmetric profile ===
+# Teeth project outward from root circle to OD tip circle.
+# Drive face  8° from radial  → self-locking (pawl cannot override on load)
+# Back face  60° from radial  → shallow ramp (pawl slides over on forward spin)
+# Bore = 120 mm  → fits spool hub OD
+# Face width = 20 mm centred in 21 mm thickness (0.5 mm shoulder each side)
 
-ring = (
+OD_MM        = {od}          # tip circle diameter
+BORE_MM      = {bore}        # spool hub fit
+THICK_MM     = {thick}
+N_TEETH      = {teeth}
+R_TIP        = OD_MM / 2.0            # {r_tip} mm
+R_ROOT       = {r_root}               # root circle radius
+TOOTH_H      = {tooth_h}              # tip - root
+FACE_W       = 20.0                   # axial tooth face (from aria_mechanical.md)
+DRIVE_DEG    = 8.0
+BACK_DEG     = 60.0
+Z_OFF        = (THICK_MM - FACE_W) / 2.0   # 0.5 mm shoulder
+
+# --- base ring: bore to root circle ---
+base = (
     cq.Workplane("XY")
-    .circle(OD_MM / 2.0)
+    .circle(R_ROOT)
     .circle(BORE_MM / 2.0)
-    .extrude(THICKNESS_MM)
+    .extrude(THICK_MM)
 )
 
-tooth_profile = [
-    (0, 0),
-    (TOOTH_BASE_W, 0),
-    (TOOTH_BASE_W * 0.15, TOOTH_HEIGHT),
-    (0, 0),
-]
+# --- add 24 asymmetric teeth ---
+d_drive = TOOTH_H * math.tan(math.radians(DRIVE_DEG))
+d_back  = TOOTH_H * math.tan(math.radians(BACK_DEG))
+
 for i in range(N_TEETH):
-    angle = i * 360.0 / N_TEETH
-    r_mid = OD_MM / 2.0 - TOOTH_HEIGHT / 2.0
-    tx = r_mid * math.cos(math.radians(angle))
-    ty = r_mid * math.sin(math.radians(angle))
+    a = math.radians(i * 360.0 / N_TEETH)
+    ca, sa = math.cos(a), math.sin(a)
+
+    def g(r, t):   # local radial/tangential → global XY
+        return (r*ca - t*sa, r*sa + t*ca)
+
+    p_back  = g(R_ROOT, -d_back)
+    p_drive = g(R_ROOT,  d_drive)
+    p_tip   = g(R_TIP,   0.0)
+
     tooth = (
         cq.Workplane("XY")
-        .workplane(offset=0)
-        .transformed(rotate=(0, 0, angle))
-        .move(r_mid - TOOTH_HEIGHT / 2.0, -TOOTH_BASE_W / 2.0)
-        .polygon(4, TOOTH_BASE_W, forConstruction=False)
-        .extrude(THICKNESS_MM)
+        .workplane(offset=Z_OFF)
+        .polyline([p_back, p_tip, p_drive])
+        .close()
+        .extrude(FACE_W)
     )
     try:
-        ring = ring.union(tooth)
+        base = base.union(tooth)
     except Exception:
         pass
 
-result = ring
+result = base
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
