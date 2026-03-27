@@ -134,9 +134,15 @@ eas build --profile development --platform android
 - `hooks/useGymDevices.ts` — subscribe to all devices for a gym
 - `screens/climber/GymOnboardingScreen.tsx` — QR scan → BLE pair → navigate to live session
 - `screens/climber/LiveSessionScreen.tsx` — real-time tension bar, animated state badge, rope speed / current / battery
+- `screens/auth/LoginScreen.tsx` / `SignupScreen.tsx` / `RoleSelectScreen.tsx` / `ClaimGymScreen.tsx` — full auth flow
+- `screens/gym/DashboardScreen.tsx` — gym owner device overview
+- `screens/gym/DeviceDetailScreen.tsx` / `DeviceHealthScreen.tsx` / `DeviceSettingsScreen.tsx` — per-device management
+- `screens/gym/ProvisioningScreen.tsx` — guided BLE provisioning wizard
+- `screens/gym/AlertHistoryScreen.tsx` / `SessionHistoryScreen.tsx` / `RouteManagementScreen.tsx` / `SafetyCameraTestScreen.tsx`
 - `types/aria.ts` — `ARIAState`, `ARIATelemetry`, `ARIADevice`, `Incident`, `MaintenanceAction`, `COLLECTIONS`, physics constants
 - `types/device.ts` — `FirestoreDevice`, `ARIAAdvertisedDevice`, `ProvisioningStatus`
 - `utils/blePacketParser.ts` — 20-byte binary BLE packet parser with XOR checksum
+- `locales/` — i18n strings: en, de, es, fr, ja
 
 **To get BLE working:** native build only (`expo run:android` or EAS). Expo Go does not support `react-native-ble-plx`.
 **Firebase:** add `google-services.json` to `aria-climb/android/app/` before first build.
@@ -287,7 +293,10 @@ ROPE_SPEED_FALL_MS = 2.0
 - `tools/aria_simulator.py`: `PID_KP=2.5, PID_KI=0.8, PID_KD=0.1` — normalized simulation gains (PID output ±100, not volts). **Simulator only.**
 - `tools/aria_constants_sync.py` → firmware: `tensionPID_kp=0.022, ki=0.413, kd=0.0005` — hardware-validated gains from `aria_pid_tuner` (PID output 0–10V, safe for 360N max error). Marked `NEVER_PATCH`; update only after PID re-tuning on hardware.
 
-**Firmware status:** `firmware/stm32/` and `firmware/esp32/` files are null-byte stubs (hardware not yet arrived). Write firmware content here when hardware is in hand.
+**Firmware status:** All firmware files are implemented (merged 2026-03-27 from cursor/development-environment-setup branch). Hardware not yet arrived — untested on real hardware.
+- `firmware/stm32/aria_main.cpp` — 524 lines: SimpleFOC motor control, HX711 load cell, state machine, PID tension loop. First-time setup: flash → serial `"cal"` → copy HX711_OFFSET/HX711_SCALE → reflash.
+- `firmware/stm32/safety.cpp` — 404 lines: watchdog, fault recovery, power-on boot sequence.
+- `firmware/esp32/aria_wearable/aria_wearable.ino` — wearable companion firmware (BLE to phone).
 
 Fail-safe principle: ESP32 crash → STM32 holds tension. STM32/VESC fault → brake + centrifugal clutch. Power cut → power-off brake + clutch.
 
