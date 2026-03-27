@@ -1,11 +1,4 @@
-# ARIA dashboard and tools — install with: pip install -r requirements.txt
-# Use this with .python\ (START_DASHBOARD.bat) or system Python.
-
-streamlit
-pandas
-numpy
-plotly
 pyserial
-sounddevice
-soundfile
-firebase-admin
+plotly
+firebase-admin  # optional, only needed for Firebase session push
+

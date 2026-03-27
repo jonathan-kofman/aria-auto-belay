@@ -8,19 +8,13 @@ import { ClaimGymScreen } from '../screens/auth/ClaimGymScreen';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 
-const headerStyle = {
-  headerStyle: { backgroundColor: '#1a1a2e' },
-  headerTintColor: '#fff',
-  headerTitleStyle: { fontWeight: '600', fontSize: 17 },
-};
-
 type Props = { initialRoute?: keyof AuthStackParamList };
 
 export function AuthNavigator({ initialRoute = 'Login' }: Props) {
   return (
     <Stack.Navigator
       initialRouteName={initialRoute}
-      screenOptions={{ headerShown: true, ...headerStyle }}
+      screenOptions={{ headerShown: true }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />

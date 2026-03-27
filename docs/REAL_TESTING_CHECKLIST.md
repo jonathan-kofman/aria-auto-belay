@@ -6,25 +6,9 @@ Use this to confirm you have everything for **real** (hardware) testing and to r
 
 ## Before real testing (virtual)
 
-Do these in order. All can be run without hardware.
-
-1. **Constants sync** — Python model and firmware must match:
-   ```bash
-   python tools/aria_constants_sync.py
-   ```
-   Fix any mismatches (or run with `--patch` to auto-update firmware). See CURSOR_GUIDE.md “Golden Rule”.
-
-2. **Simulator** — Confirm state machine behavior:
-   ```bash
-   python tools/aria_simulator.py
-   ```
-   At the `ARIA>` prompt run: `scenario climb`, `scenario fall`, `scenario watch_me`, `scenario rest`, `scenario up`, then `status`. Confirm transitions match expectations. Type `quit` to exit.
-
-3. **Dashboard** — Virtual setups must PASS before relying on real tests:
-   ```bash
-   streamlit run aria_dashboard.py
-   ```
-   (Or double-click `START_DASHBOARD.bat` on Windows.) Run **Setup 1**, **2A**, **2B**, **3** and get **PASS** (or use design suggestions to iterate).
+- [ ] **Dashboard:** Run `START_DASHBOARD.bat` (or `streamlit run aria_dashboard.py`). Run Setup 1, 2A, 2B, 3 and get **PASS** (or use design suggestions to iterate).
+- [ ] **Simulator:** Run `python tools/aria_simulator.py`, run scenarios `climb`, `fall`, `watch_me`. Confirm state transitions match expectations.
+- [ ] **Constants:** Thresholds in `tools/aria_simulator.py` match `firmware/stm32/aria_main.cpp` (see CURSOR_GUIDE.md “Golden Rule”).
 
 ---
 

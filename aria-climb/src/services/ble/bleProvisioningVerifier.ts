@@ -1,60 +1,38 @@
-/**
- * After provisioning, poll Firestore to verify the device comes online.
- * The ESP32 writes its state to Firestore once WiFi + Firebase are connected.
- */
 import firestore from '@react-native-firebase/firestore';
-
-const POLL_INTERVAL_MS = 5_000;
-const TIMEOUT_MS = 120_000; // 2 minutes
+import { COLLECTIONS } from '../../types/aria';
 
 /**
- * Poll Firestore until the device document appears with a recent lastSeenAt.
- * Calls onSuccess when online, onTimeout if not online within TIMEOUT_MS.
- * Returns a stop function.
+ * After ESP32 reboots and connects to WiFi it will write its first heartbeat.
+ * We watch for that document to appear with isOnline: true.
  */
 export function waitForDeviceOnline(
   gymId: string,
   deviceId: string,
-  onSuccess: () => void,
-  onTimeout: () => void
+  onOnline: () => void,
+  onTimeout: () => void,
+  timeoutMs = 60_000   // 60s — ESP32 boot + WiFi connect + first push
 ): () => void {
-  const startedAt = Date.now();
-  let stopped = false;
-  let unsubscribe: (() => void) | null = null;
+  let timedOut = false;
 
-  unsubscribe = firestore()
-    .collection('gyms')
-    .doc(gymId)
-    .collection('devices')
-    .doc(deviceId)
-    .onSnapshot((snap) => {
-      if (stopped) return;
-      if (!snap.exists) return;
-      const data = snap.data()!;
-      const lastSeen: Date | undefined = data.lastSeenAt?.toDate?.();
-      if (lastSeen && lastSeen.getTime() > startedAt) {
-        stopped = true;
-        unsubscribe?.();
-        onSuccess();
-      } else if (Date.now() - startedAt > TIMEOUT_MS) {
-        stopped = true;
-        unsubscribe?.();
-        onTimeout();
+  const timer = setTimeout(() => {
+    timedOut = true;
+    unsub();
+    onTimeout();
+  }, timeoutMs);
+
+  const unsub = firestore()
+    .doc(COLLECTIONS.device(gymId, deviceId))
+    .onSnapshot(snap => {
+      if (timedOut) return;
+      if (snap.exists && snap.data()?.isOnline === true) {
+        clearTimeout(timer);
+        unsub();
+        onOnline();
       }
     });
 
-  // Also enforce timeout with a timer
-  const timer = setTimeout(() => {
-    if (!stopped) {
-      stopped = true;
-      unsubscribe?.();
-      onTimeout();
-    }
-  }, TIMEOUT_MS);
-
   return () => {
-    stopped = true;
     clearTimeout(timer);
-    unsubscribe?.();
+    unsub();
   };
 }

@@ -4,19 +4,6 @@ import auth from '@react-native-firebase/auth';
 import { useAuthStore } from '../../store/authStore';
 import { setUserProfile, getUser } from '../../services/firebase/firestore';
 import type { UserRole } from '../../types/user';
-import type { User } from '../../types/user';
-
-function makeDemoUser(role: UserRole, homeGymId: string): User {
-  return {
-    uid: 'demo-' + role,
-    displayName: 'Demo ' + (role === 'owner' ? 'owner' : role === 'staff' ? 'staff' : role === 'climber' ? 'climber' : 'guest'),
-    email: '',
-    role,
-    homeGymId: homeGymId || 'default-gym',
-    certifiedLead: false,
-    preferences: { tensionSensitivity: 5, slackAggressiveness: 'balanced' },
-  };
-}
 
 export function RoleSelectScreen() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -26,33 +13,19 @@ export function RoleSelectScreen() {
   const [error, setError] = useState('');
 
   async function handleSelect(role: UserRole, homeGymId: string) {
+    const firebaseUser = auth().currentUser;
+    if (!firebaseUser) return;
     setError('');
     setLoading(true);
-    const firebaseUser = auth().currentUser;
-
     try {
-      if (firebaseUser) {
-        try {
-          await setUserProfile(firebaseUser.uid, {
-            displayName: firebaseUser.displayName ?? '',
-            email: firebaseUser.email ?? '',
-            role,
-            homeGymId: homeGymId || 'default-gym',
-          });
-          const user = await getUser(firebaseUser.uid);
-          setUser(user ?? null);
-        } catch (firestoreError: any) {
-          const msg = firestoreError?.message ?? '';
-          if (msg.includes('permission-denied') || msg.includes('Permission')) {
-            setUser(makeDemoUser(role, homeGymId));
-            setError('');
-          } else {
-            throw firestoreError;
-          }
-        }
-      } else {
-        setUser(makeDemoUser(role, homeGymId));
-      }
+      await setUserProfile(firebaseUser.uid, {
+        displayName: firebaseUser.displayName ?? '',
+        email: firebaseUser.email ?? '',
+        role,
+        homeGymId: homeGymId || 'default-gym',
+      });
+      const user = await getUser(firebaseUser.uid);
+      setUser(user ?? null);
       setPendingRoleSelect(false);
     } catch (e: any) {
       setError(e?.message ?? 'Something went wrong');

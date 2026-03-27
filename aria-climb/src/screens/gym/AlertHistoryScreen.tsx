@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/authStore';
-import { useSafetyTestStore } from '../../store/safetyTestStore';
 import { subscribeToIncidents, resolveIncident } from '../../services/firebase/incidents';
 import type { Incident } from '../../types/aria';
 
@@ -64,7 +63,6 @@ export function AlertHistoryScreen() {
   const [resolveNotes, setResolveNotes] = useState('');
   const [resolving, setResolving] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Row | null>(null);
-  const mockZoneActive = useSafetyTestStore((s) => s.mockZoneIntrusionActive);
 
   useEffect(() => {
     if (!gymId) return;
@@ -95,24 +93,9 @@ export function AlertHistoryScreen() {
     : ALERTS.map((a) => ({ ...a, resolved: false }))).map((a) => a);
 
   const filteredAlerts = useMemo(() => {
-    let list = rows;
-    if (severityFilter !== 'all') list = list.filter((a) => a.severity === severityFilter);
-    if (mockZoneActive) {
-      list = [
-        {
-          id: 'mock-zone',
-          time: 'now',
-          deviceId: '(mock)',
-          type: 'zone_intrusion',
-          message: 'Fall zone occupied — from Safety / Camera test',
-          severity: 'high' as const,
-          resolved: false,
-        },
-        ...list,
-      ];
-    }
-    return list;
-  }, [rows, severityFilter, mockZoneActive]);
+    if (severityFilter === 'all') return rows;
+    return rows.filter((a) => a.severity === severityFilter);
+  }, [rows, severityFilter]);
 
   function openResolveModal(row: Row) {
     setSelectedIncident(row);

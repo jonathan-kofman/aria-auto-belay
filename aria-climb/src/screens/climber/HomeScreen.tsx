@@ -37,15 +37,9 @@ export function HomeScreen() {
         <Text style={styles.cardLine}>Next slot: {MOCK_STATUS.nextSlot}</Text>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => (navigation as any).navigate('PairDevice')}
-        >
-          <Text style={styles.primaryButtonText}>Pair with ARIA &amp; start climbing</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryButton}
           onPress={() => navigation.navigate('Sessions')}
         >
-          <Text style={styles.secondaryButtonText}>{t('climber.book_wall')}</Text>
+          <Text style={styles.primaryButtonText}>{t('climber.book_wall')}</Text>
         </TouchableOpacity>
       </View>
 

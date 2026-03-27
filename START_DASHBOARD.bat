@@ -27,10 +27,10 @@ if not exist ".python\python.exe" (
     echo.
 )
 
-.python\python.exe -c "import streamlit, plotly" 2>nul
+.python\python.exe -c "import streamlit" 2>nul
 if errorlevel 1 (
-    echo [1.5/2] Installing dashboard deps (streamlit, pandas, numpy, plotly, pyserial, ...)...
-    .python\python.exe -m pip install -r requirements.txt --quiet --disable-pip-version-check
+    echo [1.5/2] Installing streamlit, pandas, numpy...
+    .python\python.exe -m pip install streamlit pandas numpy --quiet --disable-pip-version-check
     if errorlevel 1 (
         echo Pip install failed.
         goto :end
