@@ -725,9 +725,9 @@ def _cq_escape_wheel(params: dict[str, Any]) -> str:
     step_path   = str(params.get("step_path", ""))
     stl_path    = str(params.get("stl_path", ""))
 
-    # Escape-wheel proportions — teeth are 3× taller than spur to be clearly visible
+    # Escape-wheel proportions — tooth height ~20% of pitch radius (real clock ratio)
     pitch_r = module_mm * n_teeth / 2.0
-    tip_r   = pitch_r + module_mm * 3.0     # 3× tooth height — recognisable spikes
+    tip_r   = pitch_r + module_mm * 1.5     # 1.5× module ≈ 20% of pitch radius
     root_r  = max(pitch_r - module_mm * 0.3, bore / 2.0 + 0.5)
 
     tooth_angle  = 2 * _m.pi / n_teeth
