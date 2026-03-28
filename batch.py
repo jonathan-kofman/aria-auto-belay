@@ -21,6 +21,7 @@ Usage:
 """
 import sys
 import gc
+import re
 import json
 import argparse
 from pathlib import Path
@@ -94,12 +95,19 @@ def run_batch(
     results: list[tuple[str, str, str, str, str]] = []  # (status, label, part_id, bbox, err)
 
     for i, entry in enumerate(parts, 1):
-        label   = entry["label"]
-        part_id = entry["part_id"]
-        params  = entry.get("params", {})
+        label    = entry["label"]
+        part_id  = entry.get("part_id", entry.get("template", "aria_spacer"))
+        # "template" key overrides "part_id" as the CadQuery template to use
+        template = entry.get("template", part_id)
+        params   = entry.get("params", {})
+        # Use template as the plan part_id so the right CadQuery function runs
+        part_id  = template
 
-        step_path = OUT_STEP / f"{part_id}.step"
-        stl_path  = OUT_STL  / f"{part_id}.stl"
+        # Use label-derived slug so parts sharing a template part_id (e.g. all
+        # gears share "aria_gear") each get a unique file rather than overwriting.
+        slug = re.sub(r"[^\w]+", "_", label.lower()).strip("_")
+        step_path = OUT_STEP / f"{slug}.step"
+        stl_path  = OUT_STL  / f"{slug}.stl"
 
         prefix = f"[{i:3d}/{total}]"
 

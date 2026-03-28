@@ -92,8 +92,12 @@ for i in range(N_TEETH):
     )
     try:
         base = base.union(tooth)
-    except Exception:
-        pass
+    except Exception as _te:
+        _failed_teeth = _failed_teeth + 1 if "_failed_teeth" in dir() else 1
+        print(f"[WARN] ratchet tooth {i} union failed: {_te}")
+
+if "_failed_teeth" in dir() and _failed_teeth > 0:
+    print(f"[WARN] {_failed_teeth}/{N_TEETH} teeth failed to union — geometry may be incomplete")
 
 result = base
 bb = result.val().BoundingBox()
@@ -176,10 +180,11 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_brake_drum(params: dict[str, Any]) -> str:
-    od      = float(params.get("diameter", params.get("od_mm", 200.0)))
-    w       = float(params.get("width", params.get("width_mm", 40.0)))
-    shaft_d = float(params.get("shaft_diameter", 20.0))
-    wall    = float(params.get("wall_thickness", 8.0))
+    od      = float(params.get("od_mm",        params.get("diameter",        200.0)))
+    w       = float(params.get("thickness_mm", params.get("height_mm",
+                               params.get("width_mm", params.get("width", 40.0)))))
+    shaft_d = float(params.get("bore_mm",      params.get("shaft_diameter",  20.0)))
+    wall    = float(params.get("wall_mm",      params.get("wall_thickness",   8.0)))
     return f"""
 import cadquery as cq
 
@@ -203,7 +208,7 @@ def _cq_catch_pawl(params: dict[str, Any]) -> str:
     length = float(params.get("length_mm", 60.0))
     w      = float(params.get("width_mm", 12.0))
     thick  = float(params.get("thickness_mm", 6.0))
-    bore   = float(params.get("pivot_hole_dia_mm", 6.0))
+    bore   = float(params.get("bore_mm", params.get("pivot_hole_dia_mm", 6.0)))
     return f"""
 import cadquery as cq
 
@@ -331,8 +336,8 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_shaft(params: dict[str, Any]) -> str:
-    d = float(params.get("diameter_mm", 20.0))
-    l = float(params.get("length_mm",  150.0))
+    d = float(params.get("od_mm", params.get("diameter_mm", params.get("diameter", 20.0))))
+    l = float(params.get("length_mm", 150.0))
     return f"""
 import cadquery as cq
 
@@ -429,7 +434,7 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 def _cq_spacer(params: dict[str, Any]) -> str:
     od    = float(params.get("od_mm", 20.0))
     bore  = float(params.get("bore_mm", 10.0))
-    thick = float(params.get("thickness_mm", 5.0))
+    thick = float(params.get("thickness_mm", params.get("height_mm", 5.0)))
     return f"""
 import cadquery as cq
 
@@ -506,7 +511,20 @@ def _cq_gear(params: dict[str, Any]) -> str:
     pitch_r = module_mm * n_teeth / 2.0
     base_r  = pitch_r * _m.cos(_m.radians(pa_deg))
     tip_r   = pitch_r + module_mm
-    root_r  = max(pitch_r - 1.25 * module_mm, bore / 2.0 + 0.5)
+    root_r  = pitch_r - 1.25 * module_mm
+
+    # Detect degenerate case: bore too large for this module/teeth combo.
+    # When bore/2 >= tip_r the involute polygon would be smaller than the bore —
+    # fall back to a simple disk + boolean bore cut (no inner-wire trick).
+    _bore_overshoot = (bore / 2.0) >= tip_r * 0.9
+    if _bore_overshoot:
+        import warnings as _w
+        _w.warn(
+            f"[gear] bore {bore}mm >= 90% of tip_r {tip_r*2:.1f}mm for "
+            f"{n_teeth}t m{module_mm} — switching to boolean bore cut",
+            stacklevel=2,
+        )
+    root_r = max(root_r, bore / 2.0 + 0.5)
 
     def _inv(t, rb):
         return rb * (_m.cos(t) + t * _m.sin(t)), rb * (_m.sin(t) - t * _m.cos(t))
@@ -584,17 +602,24 @@ STL_PATH     = r"{stl_path}"
 # No runtime math — points were calculated at template-generation time.
 all_pts = {pts_literal}
 
-# ── One extrude with bore as inner wire — zero bore boolean ──────────────────
-# CadQuery detects that the circle (bore/2) is inside the outer polygon wire
-# and builds an annular face automatically.  OCCT sees a face-with-hole extrude,
-# not a boolean subtract — dramatically cheaper on large polygon bodies.
-gear = (
-    cq.Workplane("XY")
-    .polyline(all_pts)
-    .close()
-    .circle(BORE / 2.0)   # inner wire → bore hole, no boolean needed
-    .extrude(FACE_W)
-)
+# ── Extrude gear polygon ─────────────────────────────────────────────────────
+# Normal path: bore expressed as inner wire → one extrude, zero bore boolean.
+# Fallback (bore too large for this module/teeth): extrude solid then cut bore.
+_BORE_OVERSHOOT = {str(_bore_overshoot)}
+if not _BORE_OVERSHOOT:
+    gear = (
+        cq.Workplane("XY")
+        .polyline(all_pts)
+        .close()
+        .circle(BORE / 2.0)   # inner wire → bore hole, no boolean needed
+        .extrude(FACE_W)
+    )
+else:
+    # bore >= 90% of tip circle — inner-wire approach would produce degenerate face
+    print(f"[gear] bore {BORE}mm large relative to OD — using boolean bore cut")
+    gear = cq.Workplane("XY").polyline(all_pts).close().extrude(FACE_W)
+    bore_cyl = cq.Workplane("XY").circle(BORE / 2.0).extrude(FACE_W + 2).translate((0,0,-1))
+    gear = gear.cut(bore_cyl)
 
 # Optional keyway (small rect cut on bore)
 if KEYWAY_W > 0:
@@ -1170,14 +1195,20 @@ print(f"EXPORTED STL: {{_stl}}")
             bbox = {"x": round(bb.xlen, 2), "y": round(bb.ylen, 2), "z": round(bb.zlen, 2)}
 
             # --- Output quality assertions ---
-            # Use bbox-relative threshold: any real part should occupy at least
-            # 5 % of its bounding box volume.  The old 1000 mm³ absolute limit
-            # was a false positive for small clock / precision parts (e.g. a
-            # 9 mm escape wheel has only ~325 mm³ bbox volume, but is valid).
-            _bbox_vol = bbox["x"] * bbox["y"] * bbox["z"]
-            _vol_threshold = max(10.0, _bbox_vol * 0.05)   # 5 % of bbox, floor 10 mm³
-            if _bbox_vol < _vol_threshold:
-                print(f"[VALIDATION FAIL] part_id={part_id}: bbox volume {_bbox_vol:.1f} mm³ looks degenerate")
+            # Check mesh volume vs bounding-box volume using trimesh.
+            # A real solid should fill at least 5% of its bbox envelope.
+            # (The old check compared bbox_vol to itself — a mathematical tautology.)
+            try:
+                import trimesh as _tm
+                _mesh = _tm.load(stl_path)
+                _mesh_vol = abs(float(_mesh.volume))
+                _bbox_vol = bbox["x"] * bbox["y"] * bbox["z"]
+                _fill = _mesh_vol / max(_bbox_vol, 1e-9)
+                if _fill < 0.02:  # < 2 % fill → almost certainly degenerate
+                    print(f"[VALIDATION FAIL] part_id={part_id}: "
+                          f"mesh fill {_fill*100:.1f}% of bbox — likely degenerate geometry")
+            except Exception:
+                pass  # trimesh optional; skip if unavailable
             for _fpath, _min, _label in [
                 (step_path, 1024, "STEP"), (stl_path, 500, "STL")
             ]:
