@@ -233,6 +233,16 @@ def extract_spec(description: str) -> dict[str, Any]:
         if dia:
             spec["diameter_mm"] = dia
 
+    # --- Gear module (metric) ---
+    module = _find([
+        r"(\d+(?:\.\d+)?)\s*mm\s+module",      # "1.5mm module"
+        r"module\s*[=:\s]\s*(\d+(?:\.\d+)?)\s*mm",  # "module 1.5mm", "module=1.5mm"
+        r"module\s*[=:]\s*(\d+(?:\.\d+)?)",    # "module=1.5" (no unit)
+        r"\bm\s*=\s*(\d+(?:\.\d+)?)\s*mm",    # "m=1.5mm"
+    ])
+    if module:
+        spec["module_mm"] = module
+
     # --- Teeth ---
     n_teeth = _find_int([
         r"(\d+)\s+teeth",

@@ -246,8 +246,8 @@ def _prompt_export_choice() -> ExportChoice:
         try:
             raw = input("  Your choice [1/2/3/4] (default: both): ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\n  (interrupted — defaulting to 'both')")
-            return "both"
+            print("\n  (interrupted — skipping export)")
+            return "skip"
         choice = _MAP.get(raw)
         if choice is not None:
             print(f"  Selected: {choice.upper()}")
