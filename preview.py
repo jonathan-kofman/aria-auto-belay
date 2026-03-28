@@ -93,13 +93,13 @@ src_step  = stl_file.with_suffix(".step").parent.parent / "step" / f"{base_name}
 if choice in ("step", "both"):
     if src_step.exists():
         shutil.copy2(src_step, out_step)
-        print(f"  STEP → {out_step}")
+        print(f"  STEP -> {out_step}")
     else:
         print(f"  [WARN] No STEP source found at {src_step}")
 
 if choice in ("stl", "both"):
     shutil.copy2(stl_file, out_stl)
-    print(f"  STL  → {out_stl}")
+    print(f"  STL  -> {out_stl}")
 
 if choice == "skip":
     print("  Skipped — files not exported.")
