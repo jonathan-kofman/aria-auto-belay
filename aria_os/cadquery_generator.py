@@ -700,6 +700,134 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
+def _cq_escape_wheel(params: dict[str, Any]) -> str:
+    """
+    Clock escape wheel — asymmetric spike teeth for anchor/recoil escapements.
+
+    Tooth geometry (all pre-computed at template time):
+      - Near-radial drive face (5° lean): pallet enters and receives impulse here
+      - ~45° impulse face: pallet slides off, giving the 'impulse' to the pendulum
+      - Pointed tip between the two faces
+    Root circle arcs fill the gaps between teeth.
+    The bore is expressed as a CadQuery inner wire (zero boolean).
+    Optional 3-arm star spokes give the 'skeleton' look.
+
+    Params: module_mm, n_teeth, face_width_mm, bore_mm, hub_od_mm,
+            drive_lean_deg (default 5), impulse_frac (default 0.35)
+    """
+    import math as _m
+
+    module_mm   = float(params.get("module_mm", 0.5))
+    n_teeth     = int(params.get("n_teeth", 15))
+    face_w      = float(params.get("face_width_mm", 4.0))
+    bore        = float(params.get("bore_mm", 3.0))
+    hub_od      = float(params.get("hub_od_mm", 8.0))
+    step_path   = str(params.get("step_path", ""))
+    stl_path    = str(params.get("stl_path", ""))
+
+    # Escape-wheel proportions (taller, thinner teeth than spur gears)
+    pitch_r = module_mm * n_teeth / 2.0
+    tip_r   = pitch_r + module_mm * 1.6    # tooth height 1.6× module
+    root_r  = max(pitch_r - module_mm * 0.4, bore / 2.0 + 0.5)
+    hub_r   = hub_od / 2.0
+
+    tooth_angle  = 2 * _m.pi / n_teeth
+    drive_lean   = _m.radians(5.0)            # drive face leans 5° behind radial
+    impulse_frac = 0.38                        # impulse foot at 38% of pitch angle
+
+    # ── Pre-compute full wheel outline ──────────────────────────────────────
+    full_pts: list[tuple[float, float]] = []
+    for i in range(n_teeth):
+        theta = i * tooth_angle
+
+        # 1. Drive-face root (trailing corner of tooth)
+        a_trail = theta - drive_lean
+        full_pts.append((round(root_r * _m.cos(a_trail), 5),
+                         round(root_r * _m.sin(a_trail), 5)))
+
+        # 2. Tooth tip (radially outward at theta)
+        full_pts.append((round(tip_r * _m.cos(theta), 5),
+                         round(tip_r * _m.sin(theta), 5)))
+
+        # 3. Impulse-face root (leading corner of tooth)
+        a_lead = theta + tooth_angle * impulse_frac
+        full_pts.append((round(root_r * _m.cos(a_lead), 5),
+                         round(root_r * _m.sin(a_lead), 5)))
+
+        # 4. Arc along root circle to next tooth's trailing corner (2 mid-pts)
+        a_next_trail = (i + 1) * tooth_angle - drive_lean
+        arc_span = a_next_trail - a_lead
+        if arc_span < 0:
+            arc_span += 2 * _m.pi
+        for k in (1, 2):
+            a = a_lead + arc_span * k / 3.0
+            full_pts.append((round(root_r * _m.cos(a), 5),
+                             round(root_r * _m.sin(a), 5)))
+
+    pts_literal = repr(full_pts)
+
+    # ── Spoke geometry (3-arm star, pre-computed) ────────────────────────────
+    spoke_r   = (hub_r + root_r) / 2.0
+    spoke_len = root_r - hub_r - module_mm * 0.5
+    spoke_w   = max(0.8, module_mm * 1.2)
+
+    return f"""
+import cadquery as cq
+import math
+
+FACE_W    = {face_w}
+BORE      = {bore}
+HUB_OD    = {hub_od}
+STEP_PATH = r"{step_path}"
+STL_PATH  = r"{stl_path}"
+
+# Pre-computed escape wheel outline ({len(full_pts)} pts, {n_teeth}t, m={module_mm}mm)
+# Asymmetric spike teeth: 5-deg radial drive face + 45-deg impulse face
+all_pts = {pts_literal}
+
+# ── Extrude: outer spike profile + bore hole in one operation ────────────────
+wheel = (
+    cq.Workplane("XY")
+    .polyline(all_pts)
+    .close()
+    .circle(BORE / 2.0)   # bore as inner wire — no boolean
+    .extrude(FACE_W)
+)
+
+# ── 3-arm star spokes (skeleton aesthetic) ───────────────────────────────────
+SPOKE_R   = {spoke_r:.5f}
+SPOKE_LEN = {spoke_len:.5f}
+SPOKE_W   = {spoke_w:.5f}
+
+if SPOKE_LEN > 1.5:
+    compound = None
+    for i in range(3):
+        ang = i * 2.0 * math.pi / 3.0
+        cx  = SPOKE_R * math.cos(ang)
+        cy  = SPOKE_R * math.sin(ang)
+        c = (cq.Workplane("XY")
+             .transformed(rotate=cq.Vector(0, 0, math.degrees(ang)))
+             .rect(SPOKE_LEN, SPOKE_W)
+             .extrude(FACE_W + 2)
+             .translate((cx, cy, -1)))
+        compound = c if compound is None else compound.union(c)
+    if compound is not None:
+        wheel = wheel.cut(compound)
+
+result = wheel
+
+if STEP_PATH:
+    import cadquery as _cq_exp
+    _cq_exp.exporters.export(result, STEP_PATH)
+if STL_PATH:
+    import cadquery as _cq_exp2
+    _cq_exp2.exporters.export(result, STL_PATH)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
 _CQ_TEMPLATE_MAP: dict[str, Any] = {
     # ARIA structural parts
     "aria_ratchet_ring": _cq_ratchet_ring,
@@ -719,6 +847,7 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "aria_spacer":       _cq_spacer,
     "aria_tube":         _cq_tube,
     "aria_gear":         _cq_gear,
+    "aria_escape_wheel": _cq_escape_wheel,
     # LRE / nozzle
     "lre_nozzle":        _cq_nozzle,
     "aria_nozzle":       _cq_nozzle,

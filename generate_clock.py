@@ -75,6 +75,9 @@ from aria_os.cadquery_generator import _CQ_TEMPLATE_MAP
 def resolve_template(part_id: str, params: dict) -> str:
     """Map clock part IDs to the right CadQuery template."""
     pid = part_id.lower()
+    # Escape wheel → dedicated template (spike teeth, not involute)
+    if "escape" in pid and "wheel" in pid:
+        return "aria_escape_wheel"
     # Gear parts → aria_gear
     if any(k in pid for k in ("wheel","pinion","cannon")):
         return "aria_gear"
