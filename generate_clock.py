@@ -28,7 +28,7 @@ PARTS = [
     ("Center wheel 80t",        "clock_center_wheel",    {"module_mm":1.0,"n_teeth":80,"face_width_mm":6,"bore_mm":10,"hub_od_mm":22,"spoke_style":"petal","n_spokes":5}),
     ("Third wheel 48t",         "clock_third_wheel",     {"module_mm":1.0,"n_teeth":48,"face_width_mm":6,"bore_mm":6, "hub_od_mm":16,"spoke_style":"petal","n_spokes":5}),
     ("Fourth wheel 64t",        "clock_fourth_wheel",    {"module_mm":1.0,"n_teeth":64,"face_width_mm":6,"bore_mm":8, "hub_od_mm":20,"spoke_style":"petal","n_spokes":5}),
-    ("Escape wheel 15t",        "clock_escape_wheel",    {"module_mm":0.5,"n_teeth":15,"face_width_mm":4,"bore_mm":3, "hub_od_mm":8, "spoke_style":"minimal","n_spokes":5}),
+    ("Escape wheel 15t",        "clock_escape_wheel",    {"module_mm":1.5,"n_teeth":15,"face_width_mm":4,"bore_mm":3, "hub_od_mm":6, "spoke_style":"minimal","n_spokes":3}),
 
     # Gear train — pinions (all 8-leaf)
     ("Center pinion p8",        "clock_center_pinion",   {"module_mm":0.5,"n_teeth":8,"face_width_mm":6,"bore_mm":10,"hub_od_mm":16,"spoke_style":"straight"}),

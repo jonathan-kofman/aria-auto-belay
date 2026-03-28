@@ -704,16 +704,17 @@ def _cq_escape_wheel(params: dict[str, Any]) -> str:
     """
     Clock escape wheel — asymmetric spike teeth for anchor/recoil escapements.
 
-    Tooth geometry (all pre-computed at template time):
-      - Near-radial drive face (5° lean): pallet enters and receives impulse here
-      - ~45° impulse face: pallet slides off, giving the 'impulse' to the pendulum
-      - Pointed tip between the two faces
-    Root circle arcs fill the gaps between teeth.
-    The bore is expressed as a CadQuery inner wire (zero boolean).
-    Optional 3-arm star spokes give the 'skeleton' look.
+    Tooth geometry (pre-computed at template time):
+      - Near-radial drive face (2° lean): steep, almost radial — characteristic
+        of a recoil escapement and clearly different from the impulse side
+      - Impulse face at 50% of tooth pitch: shallow ramp, pallet slides off here
+      - Tooth height = 3× module (much taller than spur gear, clearly visible)
+      - Pointed tip: drives the pendulum via pallet fork
 
-    Params: module_mm, n_teeth, face_width_mm, bore_mm, hub_od_mm,
-            drive_lean_deg (default 5), impulse_frac (default 0.35)
+    Spokes are based on bore radius (not hub_od) so they always appear on
+    escape wheels regardless of the hub_od parameter.
+
+    Params: module_mm, n_teeth, face_width_mm, bore_mm, hub_od_mm
     """
     import math as _m
 
@@ -721,88 +722,93 @@ def _cq_escape_wheel(params: dict[str, Any]) -> str:
     n_teeth     = int(params.get("n_teeth", 15))
     face_w      = float(params.get("face_width_mm", 4.0))
     bore        = float(params.get("bore_mm", 3.0))
-    hub_od      = float(params.get("hub_od_mm", 8.0))
     step_path   = str(params.get("step_path", ""))
     stl_path    = str(params.get("stl_path", ""))
 
-    # Escape-wheel proportions (taller, thinner teeth than spur gears)
+    # Escape-wheel proportions — teeth are 3× taller than spur to be clearly visible
     pitch_r = module_mm * n_teeth / 2.0
-    tip_r   = pitch_r + module_mm * 1.6    # tooth height 1.6× module
-    root_r  = max(pitch_r - module_mm * 0.4, bore / 2.0 + 0.5)
-    hub_r   = hub_od / 2.0
+    tip_r   = pitch_r + module_mm * 3.0     # 3× tooth height — recognisable spikes
+    root_r  = max(pitch_r - module_mm * 0.3, bore / 2.0 + 0.5)
 
     tooth_angle  = 2 * _m.pi / n_teeth
-    drive_lean   = _m.radians(5.0)            # drive face leans 5° behind radial
-    impulse_frac = 0.38                        # impulse foot at 38% of pitch angle
+    drive_lean   = _m.radians(2.0)   # almost radial drive face (2° lean)
+    impulse_frac = 0.52               # impulse foot at 52% of pitch — shallow ramp
 
     # ── Pre-compute full wheel outline ──────────────────────────────────────
     full_pts: list[tuple[float, float]] = []
     for i in range(n_teeth):
         theta = i * tooth_angle
 
-        # 1. Drive-face root (trailing corner of tooth)
+        # 1. Drive-face root (trailing side — nearly radial face starts here)
         a_trail = theta - drive_lean
         full_pts.append((round(root_r * _m.cos(a_trail), 5),
                          round(root_r * _m.sin(a_trail), 5)))
 
-        # 2. Tooth tip (radially outward at theta)
+        # 2. Tooth tip
         full_pts.append((round(tip_r * _m.cos(theta), 5),
                          round(tip_r * _m.sin(theta), 5)))
 
-        # 3. Impulse-face root (leading corner of tooth)
+        # 3. Impulse-face root (leading side — shallow ramp ends here)
         a_lead = theta + tooth_angle * impulse_frac
         full_pts.append((round(root_r * _m.cos(a_lead), 5),
                          round(root_r * _m.sin(a_lead), 5)))
 
-        # 4. Arc along root circle to next tooth's trailing corner (2 mid-pts)
+        # 4. Arc along root circle to next tooth's trailing root (3 mid-pts for
+        #    smooth valley between teeth)
         a_next_trail = (i + 1) * tooth_angle - drive_lean
         arc_span = a_next_trail - a_lead
         if arc_span < 0:
             arc_span += 2 * _m.pi
-        for k in (1, 2):
-            a = a_lead + arc_span * k / 3.0
+        for k in (1, 2, 3):
+            a = a_lead + arc_span * k / 4.0
             full_pts.append((round(root_r * _m.cos(a), 5),
                              round(root_r * _m.sin(a), 5)))
 
     pts_literal = repr(full_pts)
 
-    # ── Spoke geometry (3-arm star, pre-computed) ────────────────────────────
-    spoke_r   = (hub_r + root_r) / 2.0
-    spoke_len = root_r - hub_r - module_mm * 0.5
-    spoke_w   = max(0.8, module_mm * 1.2)
+    # ── Spoke geometry — based on bore radius, always shows on escape wheels ─
+    # hub_od is intentionally ignored here: escape wheels have a small hub ring
+    # just outside the bore, not a large hub disk.
+    spoke_inner = bore / 2.0 + 0.4          # spokes start just outside bore
+    spoke_len   = root_r - spoke_inner - 0.3  # radial length of each spoke slot
+    spoke_r     = (spoke_inner + root_r) / 2.0
+    spoke_w     = max(0.5, module_mm * 0.9)
+    n_spk       = 3 if n_teeth <= 20 else 5   # 3-arm for small wheels, 5-arm for large
 
     return f"""
 import cadquery as cq
 import math
 
-FACE_W    = {face_w}
-BORE      = {bore}
-HUB_OD    = {hub_od}
-STEP_PATH = r"{step_path}"
-STL_PATH  = r"{stl_path}"
+FACE_W       = {face_w}
+BORE         = {bore}
+SPOKE_INNER  = {spoke_inner:.4f}
+SPOKE_R      = {spoke_r:.4f}
+SPOKE_LEN    = {spoke_len:.4f}
+SPOKE_W      = {spoke_w:.4f}
+N_SPOKES     = {n_spk}
+STEP_PATH    = r"{step_path}"
+STL_PATH     = r"{stl_path}"
 
 # Pre-computed escape wheel outline ({len(full_pts)} pts, {n_teeth}t, m={module_mm}mm)
-# Asymmetric spike teeth: 5-deg radial drive face + 45-deg impulse face
+# Spike teeth: 2-deg radial drive face + 52%-pitch impulse ramp + 3× module height
 all_pts = {pts_literal}
 
-# ── Extrude: outer spike profile + bore hole in one operation ────────────────
+# ── One extrude: outer spike profile + bore hole (inner wire, no boolean) ───
 wheel = (
     cq.Workplane("XY")
     .polyline(all_pts)
     .close()
-    .circle(BORE / 2.0)   # bore as inner wire — no boolean
+    .circle(BORE / 2.0)
     .extrude(FACE_W)
 )
 
-# ── 3-arm star spokes (skeleton aesthetic) ───────────────────────────────────
-SPOKE_R   = {spoke_r:.5f}
-SPOKE_LEN = {spoke_len:.5f}
-SPOKE_W   = {spoke_w:.5f}
-
-if SPOKE_LEN > 1.5:
+# ── Slim spoke slots (skeleton aesthetic) ───────────────────────────────────
+# Spokes radiate from just outside the bore to just inside the root circle.
+# Cut as a compound (N spokes → 2 booleans total).
+if SPOKE_LEN > 0.4:
     compound = None
-    for i in range(3):
-        ang = i * 2.0 * math.pi / 3.0
+    for i in range(N_SPOKES):
+        ang = i * 2.0 * math.pi / N_SPOKES
         cx  = SPOKE_R * math.cos(ang)
         cy  = SPOKE_R * math.sin(ang)
         c = (cq.Workplane("XY")
