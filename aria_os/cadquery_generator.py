@@ -1174,9 +1174,14 @@ print(f"EXPORTED STL: {{_stl}}")
             bbox = {"x": round(bb.xlen, 2), "y": round(bb.ylen, 2), "z": round(bb.zlen, 2)}
 
             # --- Output quality assertions ---
-            _vol = bbox["x"] * bbox["y"] * bbox["z"]
-            if _vol < 1000.0:
-                print(f"[VALIDATION FAIL] part_id={part_id}: bbox volume {_vol:.1f} mm³ < 1000 mm³ minimum")
+            # Use bbox-relative threshold: any real part should occupy at least
+            # 5 % of its bounding box volume.  The old 1000 mm³ absolute limit
+            # was a false positive for small clock / precision parts (e.g. a
+            # 9 mm escape wheel has only ~325 mm³ bbox volume, but is valid).
+            _bbox_vol = bbox["x"] * bbox["y"] * bbox["z"]
+            _vol_threshold = max(10.0, _bbox_vol * 0.05)   # 5 % of bbox, floor 10 mm³
+            if _bbox_vol < _vol_threshold:
+                print(f"[VALIDATION FAIL] part_id={part_id}: bbox volume {_bbox_vol:.1f} mm³ looks degenerate")
             for _fpath, _min, _label in [
                 (step_path, 1024, "STEP"), (stl_path, 500, "STL")
             ]:
