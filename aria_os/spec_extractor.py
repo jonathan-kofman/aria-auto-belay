@@ -41,7 +41,7 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("spur gear",     "gear"),
     ("clock gear",    "gear"),
     ("click wheel",   "gear"),
-    ("escape wheel",  "gear"),
+    ("escape wheel",  "escape_wheel"),
     ("hour wheel",    "gear"),
     ("minute wheel",  "gear"),
     ("cannon pinion", "gear"),

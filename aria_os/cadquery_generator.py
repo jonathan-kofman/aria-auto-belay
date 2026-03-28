@@ -848,6 +848,7 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "aria_tube":         _cq_tube,
     "aria_gear":         _cq_gear,
     "aria_escape_wheel": _cq_escape_wheel,
+    "escape_wheel":      _cq_escape_wheel,
     # LRE / nozzle
     "lre_nozzle":        _cq_nozzle,
     "aria_nozzle":       _cq_nozzle,
