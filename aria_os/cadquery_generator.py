@@ -734,79 +734,69 @@ def _cq_escape_wheel(params: dict[str, Any]) -> str:
     drive_lean   = _m.radians(2.0)   # almost radial drive face (2° lean)
     impulse_frac = 0.52               # impulse foot at 52% of pitch — shallow ramp
 
-    # ── Pre-compute full wheel outline ──────────────────────────────────────
-    full_pts: list[tuple[float, float]] = []
+    # ── Pre-compute per-tooth triangle points (3 pts each) ──────────────────
+    # Each tooth is stored as [root_trail, tip, root_lead] — a tiny triangle.
+    # Keeping teeth as separate small prisms (not one giant polygon) means OCCT
+    # only needs to triangulate simple flat triangles, giving a clean STL mesh.
+    tooth_pts_list: list[list[tuple[float, float]]] = []
     for i in range(n_teeth):
-        theta = i * tooth_angle
-
-        # 1. Drive-face root (trailing side — nearly radial face starts here)
+        theta   = i * tooth_angle
         a_trail = theta - drive_lean
-        full_pts.append((round(root_r * _m.cos(a_trail), 5),
-                         round(root_r * _m.sin(a_trail), 5)))
+        a_lead  = theta + tooth_angle * impulse_frac
+        tooth_pts_list.append([
+            (round(root_r * _m.cos(a_trail), 5), round(root_r * _m.sin(a_trail), 5)),
+            (round(tip_r  * _m.cos(theta),   5), round(tip_r  * _m.sin(theta),   5)),
+            (round(root_r * _m.cos(a_lead),  5), round(root_r * _m.sin(a_lead),  5)),
+        ])
 
-        # 2. Tooth tip
-        full_pts.append((round(tip_r * _m.cos(theta), 5),
-                         round(tip_r * _m.sin(theta), 5)))
-
-        # 3. Impulse-face root (leading side — shallow ramp ends here)
-        a_lead = theta + tooth_angle * impulse_frac
-        full_pts.append((round(root_r * _m.cos(a_lead), 5),
-                         round(root_r * _m.sin(a_lead), 5)))
-
-        # 4. Arc along root circle to next tooth's trailing root (3 mid-pts for
-        #    smooth valley between teeth)
-        a_next_trail = (i + 1) * tooth_angle - drive_lean
-        arc_span = a_next_trail - a_lead
-        if arc_span < 0:
-            arc_span += 2 * _m.pi
-        for k in (1, 2, 3):
-            a = a_lead + arc_span * k / 4.0
-            full_pts.append((round(root_r * _m.cos(a), 5),
-                             round(root_r * _m.sin(a), 5)))
-
-    pts_literal = repr(full_pts)
-
-    # ── Spoke geometry — based on bore radius, always shows on escape wheels ─
-    # hub_od is intentionally ignored here: escape wheels have a small hub ring
-    # just outside the bore, not a large hub disk.
-    spoke_inner = bore / 2.0 + 0.4          # spokes start just outside bore
-    spoke_len   = root_r - spoke_inner - 0.3  # radial length of each spoke slot
+    # ── Spoke geometry — based on bore radius ───────────────────────────────
+    spoke_inner = bore / 2.0 + 0.4
+    spoke_len   = root_r - spoke_inner - 0.3
     spoke_r     = (spoke_inner + root_r) / 2.0
     spoke_w     = max(0.5, module_mm * 0.9)
-    n_spk       = 3 if n_teeth <= 20 else 5   # 3-arm for small wheels, 5-arm for large
+    n_spk       = 3 if n_teeth <= 20 else 5
 
     return f"""
 import cadquery as cq
 import math
 
-FACE_W       = {face_w}
-BORE         = {bore}
-SPOKE_INNER  = {spoke_inner:.4f}
-SPOKE_R      = {spoke_r:.4f}
-SPOKE_LEN    = {spoke_len:.4f}
-SPOKE_W      = {spoke_w:.4f}
-N_SPOKES     = {n_spk}
-STEP_PATH    = r"{step_path}"
-STL_PATH     = r"{stl_path}"
+FACE_W      = {face_w}
+BORE        = {bore}
+ROOT_R      = {root_r:.5f}
+SPOKE_INNER = {spoke_inner:.4f}
+SPOKE_R     = {spoke_r:.4f}
+SPOKE_LEN   = {spoke_len:.4f}
+SPOKE_W     = {spoke_w:.4f}
+N_SPOKES    = {n_spk}
+STEP_PATH   = r"{step_path}"
+STL_PATH    = r"{stl_path}"
 
-# Pre-computed escape wheel outline ({len(full_pts)} pts, {n_teeth}t, m={module_mm}mm)
-# Spike teeth: 2-deg radial drive face + 52%-pitch impulse ramp + 3× module height
-all_pts = {pts_literal}
-
-# ── One extrude: outer spike profile + bore hole (inner wire, no boolean) ───
+# ── Body: clean annular disk (bore to root circle) ───────────────────────────
+# A simple circle-to-circle extrude gives OCCT a clean cylindrical body with
+# flat smooth top/bottom faces — no non-convex polygon triangulation issues.
 wheel = (
     cq.Workplane("XY")
-    .polyline(all_pts)
-    .close()
+    .circle(ROOT_R)
     .circle(BORE / 2.0)
     .extrude(FACE_W)
 )
 
-# ── Slim spoke slots (skeleton aesthetic) ───────────────────────────────────
-# Spokes radiate from just outside the bore to just inside the root circle.
-# Cut as a compound (N spokes → 2 booleans total).
+# ── Teeth: individual triangle prisms, union-compounded onto the rim ─────────
+# Each tooth is a 3-point polygon (root_trail → tip → root_lead).
+# OCCT can triangulate a flat triangle perfectly — no mesh artifacts.
+# Union the 15 teeth into one compound first, then one union with the body.
+tooth_pts_list = {repr(tooth_pts_list)}
+
+tooth_cmp = None
+for pts in tooth_pts_list:
+    t = cq.Workplane("XY").polyline(pts).close().extrude(FACE_W)
+    tooth_cmp = t if tooth_cmp is None else tooth_cmp.union(t)
+if tooth_cmp is not None:
+    wheel = wheel.union(tooth_cmp)
+
+# ── Spoke slots (skeleton look) ──────────────────────────────────────────────
 if SPOKE_LEN > 0.4:
-    compound = None
+    sp_cmp = None
     for i in range(N_SPOKES):
         ang = i * 2.0 * math.pi / N_SPOKES
         cx  = SPOKE_R * math.cos(ang)
@@ -816,9 +806,9 @@ if SPOKE_LEN > 0.4:
              .rect(SPOKE_LEN, SPOKE_W)
              .extrude(FACE_W + 2)
              .translate((cx, cy, -1)))
-        compound = c if compound is None else compound.union(c)
-    if compound is not None:
-        wheel = wheel.cut(compound)
+        sp_cmp = c if sp_cmp is None else sp_cmp.union(c)
+    if sp_cmp is not None:
+        wheel = wheel.cut(sp_cmp)
 
 result = wheel
 
