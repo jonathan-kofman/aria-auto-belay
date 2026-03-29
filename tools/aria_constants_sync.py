@@ -175,7 +175,7 @@ def get_sync_constants(from_cem: bool, cem_json_path: Path, repo_root: Path) -> 
 
 def find_firmware_files(repo_root: Path) -> list[Path]:
     """Find all .cpp and .h files under firmware/stm32/"""
-    fw_dir = repo_root / 'firmware' / 'stm32'
+    fw_dir = repo_root / 'device' / 'firmware' / 'stm32'
     if not fw_dir.exists():
         return []
     files = list(fw_dir.rglob('*.cpp')) + list(fw_dir.rglob('*.h'))
@@ -183,7 +183,7 @@ def find_firmware_files(repo_root: Path) -> list[Path]:
 
 def find_esp32_files(repo_root: Path) -> list[Path]:
     """Find all .ino and .cpp/.h files under firmware/esp32/"""
-    esp32_dir = repo_root / "firmware" / "esp32"
+    esp32_dir = repo_root / 'device' / 'firmware' / 'esp32'
     if not esp32_dir.exists():
         return []
     files: list[Path] = []

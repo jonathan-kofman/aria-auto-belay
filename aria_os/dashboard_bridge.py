@@ -114,7 +114,7 @@ def get_assembly_status() -> dict[str, Any]:
     Returns: part count, optimization_notes, which STEPs exist vs missing.
     """
     root = _repo_root()
-    cfg_path = root / "assembly_configs" / "aria_clutch_assembly.json"
+    cfg_path = root / "cad-pipeline" / "assembly_configs" / "aria_clutch_assembly.json"
     if not cfg_path.exists():
         return {}
     cfg = json.loads(cfg_path.read_text(encoding="utf-8"))

@@ -497,7 +497,7 @@ def _write_assembly_config(
     slug  = "_".join(words[:6])
     slug  = _re.sub(r"_+", "_", slug).strip("_")
 
-    config_dir = repo_root / "assembly_configs"
+    config_dir = repo_root / "cad-pipeline" / "assembly_configs"
     config_dir.mkdir(parents=True, exist_ok=True)
     out_path = config_dir / f"{slug}.json"
 

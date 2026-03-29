@@ -739,7 +739,7 @@ def run_lattice(args: list[str]):
 
 def _run_full(goal: str) -> None:
     """
-    --full mode: generate → FEA → GD&T drawing → PNG render → CAM script.
+    --full mode: generate → FEA → GD&T drawing → PNG render → CAM script + setup sheet.
     All outputs are produced in one shot without any interactive prompts.
     """
     from pathlib import Path as _Path
@@ -798,15 +798,37 @@ def _run_full(goal: str) -> None:
         except Exception as e:
             print(f"[FULL] Render skipped: {e}")
 
-    # 5. CAM script (requires STEP)
+    # 5. CAM script + setup sheet (requires STEP)
     if step and _Path(step).exists():
         print("\n[FULL] Generating CAM script...")
+        _cam_script_path = None
+        _mat = params.get("material", "aluminium_6061")
         try:
             from aria_os.cam_generator import generate_cam_script
-            _mat = params.get("material", "aluminium_6061")
-            generate_cam_script(step, material=_mat)
+            _cam_result = generate_cam_script(step, material=_mat)
+            # cam_generator returns a Path to the written script
+            if _cam_result and _Path(_cam_result).exists():
+                _cam_script_path = _Path(_cam_result)
         except Exception as e:
             print(f"[FULL] CAM skipped: {e}")
+
+        if _cam_script_path:
+            print("\n[FULL] Generating setup sheet...")
+            try:
+                from aria_os.cam_setup import write_setup_sheet
+                _machine = "tormach_1100"
+                if "--machine" in sys.argv:
+                    _machine = sys.argv[sys.argv.index("--machine") + 1]
+                write_setup_sheet(
+                    step_path=step,
+                    cam_script_path=str(_cam_script_path),
+                    material=_mat,
+                    out_dir=_cam_script_path.parent,
+                    part_id=_Path(step).stem,
+                    machine_name=_machine,
+                )
+            except Exception as e:
+                print(f"[FULL] Setup sheet skipped: {e}")
 
     print(f"\n{'='*64}")
     print(f"  FULL PIPELINE COMPLETE")
@@ -854,6 +876,56 @@ def main():
         generate_cam_script(step_arg, material=mat)
         return
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--setup":
+        # Usage: python run_aria_os.py --setup <step_file> <cam_script> [--material aluminium_6061]
+        if len(sys.argv) < 4:
+            print("Usage: python run_aria_os.py --setup <step_file> <cam_script> [--material aluminium_6061]")
+            sys.exit(1)
+        from aria_os.cam_setup import write_setup_sheet
+        _setup_step = sys.argv[2]
+        _setup_cam  = sys.argv[3]
+        _setup_mat  = "aluminium_6061"
+        if "--material" in sys.argv:
+            _setup_mat = sys.argv[sys.argv.index("--material") + 1]
+        _setup_part = Path(_setup_step).stem
+        _setup_out  = ROOT / "outputs" / "cam" / _setup_part
+        _setup_out.mkdir(parents=True, exist_ok=True)
+        write_setup_sheet(
+            step_path=_setup_step,
+            cam_script_path=_setup_cam,
+            material=_setup_mat,
+            out_dir=_setup_out,
+            part_id=_setup_part,
+        )
+        print(f"[setup] setup_sheet.md  : {_setup_out / 'setup_sheet.md'}")
+        print(f"[setup] setup_sheet.json: {_setup_out / 'setup_sheet.json'}")
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--cam-validate":
+        # Usage: python run_aria_os.py --cam-validate <step_file> [--retries 2]
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --cam-validate <step_file> [--retries 2]")
+            sys.exit(1)
+        from aria_os.cam_validator import check_machinability
+        _cv_step = sys.argv[2]
+        _cv_retries = 2
+        if "--retries" in sys.argv:
+            _cv_retries = int(sys.argv[sys.argv.index("--retries") + 1])
+        _cv_result = None
+        for _cv_attempt in range(1, _cv_retries + 2):  # attempts = retries + 1
+            print(f"\n[CAM-VALIDATE] Attempt {_cv_attempt}...")
+            _cv_result = check_machinability(_cv_step)
+            if not _cv_result.get("failures"):
+                print(f"[CAM-VALIDATE] PASS — machinable with {_cv_result.get('machinable_with', '?')}")
+                sys.exit(0)
+            print(f"[CAM-VALIDATE] {len(_cv_result['failures'])} failure(s):")
+            for _f in _cv_result["failures"]:
+                print(f"  - {_f}")
+            if _cv_attempt <= _cv_retries:
+                print(f"[CAM-VALIDATE] Retrying ({_cv_attempt}/{_cv_retries})...")
+        print(f"\n[CAM-VALIDATE] FAIL after {_cv_retries + 1} attempt(s).")
+        sys.exit(1)
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--draw":
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --draw <step_file>")
@@ -887,6 +959,41 @@ def main():
         from aria_os.ecad_generator import generate_ecad
         generate_ecad(_ecad_desc, out_dir=Path(_ecad_out) if _ecad_out else ROOT / "outputs" / "ecad")
         return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--ecad-variants":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --ecad-variants \"base description\" [--variants path/to/variants.json]")
+            sys.exit(1)
+        # Collect args after the flag; strip known option flags
+        _ev_args = sys.argv[2:]
+        _ev_variants_path = None
+        if "--variants" in _ev_args:
+            _vi = _ev_args.index("--variants")
+            if _vi + 1 < len(_ev_args):
+                _ev_variants_path = _ev_args[_vi + 1]
+            _ev_args = [a for j, a in enumerate(_ev_args) if a != "--variants" and (j == 0 or _ev_args[j - 1] != "--variants")]
+        _ev_base_desc = " ".join(a for a in _ev_args if not a.startswith("--"))
+        # Resolve variants JSON path
+        if _ev_variants_path is None:
+            _ev_variants_path = str(ROOT / "variants" / "aria_board_variants.json")
+        _ev_variants_file = Path(_ev_variants_path)
+        if not _ev_variants_file.is_absolute():
+            _ev_variants_file = ROOT / _ev_variants_file
+        if not _ev_variants_file.exists():
+            print(f"[VARIANT] Variants file not found: {_ev_variants_file}")
+            print("[VARIANT] Create a JSON file with a list of variant dicts, each with a 'name' key.")
+            sys.exit(1)
+        _ev_variants = json.loads(_ev_variants_file.read_text(encoding="utf-8"))
+        if not isinstance(_ev_variants, list):
+            print("[VARIANT] Variants JSON must be a list of dicts.")
+            sys.exit(1)
+        from aria_os.ecad_variant_runner import run_variant_study, print_variant_table, save_variant_study, _slug
+        _ev_results = run_variant_study(_ev_base_desc, _ev_variants, ROOT)
+        print_variant_table(_ev_results)
+        _ev_slug = _slug(_ev_base_desc)
+        _ev_out = save_variant_study(_ev_results, _ev_slug, ROOT)
+        print(f"[VARIANT] Saved: {_ev_out}")
+        sys.exit(0)
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--constrain":
         if len(sys.argv) < 3:
@@ -1165,8 +1272,10 @@ def main():
         print("       python run_aria_os.py --draw <step_file>")
         print("       python run_aria_os.py --ecad \"board description\" [--out outputs/ecad/]")
         print("       python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
+        print("       python run_aria_os.py --cam-validate <step_file> [--retries 2]")
+        print("       python run_aria_os.py --setup <step_file> <cam_script> [--material aluminium_6061]")
         print("       python run_aria_os.py \"part description\" --render")
-        print("       python run_aria_os.py --full \"part description\"  # generate+FEA+draw+render+CAM in one shot")
+        print("       python run_aria_os.py --full \"part description\"  # generate+FEA+draw+render+CAM+setup in one shot")
         print("Example: python run_aria_os.py \"generate the ARIA housing shell\"")
         sys.exit(1)
 

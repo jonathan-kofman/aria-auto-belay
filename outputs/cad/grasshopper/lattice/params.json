@@ -1,0 +1,15 @@
+{
+  "goal": "Metal additive manufactured (SLM/DMLS titanium or stainless steel) rectangular lattice panel approximately 120x70x8mm overall, comprising a solid flat perimeter frame with 2mm wall thickness and approximately 3mm height base plate, filled with a repeating triply-periodic-inspired woven coil lattice infill pattern consisting of interlocking circular arc strut elements approximately 10mm cell pitch arranged in a 10-column by 6-row array, where each unit cell contains two orthogonal sinusoidal/circular coil strands of approximately 1.5mm strut diameter that weave over and under one another in an alternating over-under interlaced topology creating open through-holes between the crossings, the entire structure having a total height of approximately 8mm with the lattice rising 5mm above the base frame floor, as-built surface finish with visible powder fusion texture, no threads or additional fastener features.",
+  "part_id": "lattice",
+  "params": {
+    "part_type": "base_plate",
+    "material": "stainless_steel",
+    "thickness_mm": 3.0,
+    "height_mm": 3.0,
+    "width_mm": 120.0,
+    "depth_mm": 8.0,
+    "wall_mm": 2.0
+  },
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_lattice.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_lattice.stl"
+}

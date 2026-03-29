@@ -1,0 +1,143 @@
+{
+  "_comment": "Component registry — maps preset keys to CadQuery template + params. Add 'url' key for vendor STEP downloads (cached to components/cache/).",
+
+  "nema17": {
+    "template": "nema_motor",
+    "description": "NEMA 17 stepper motor (42mm frame, 5mm shaft, 40mm body)",
+    "params": { "frame_mm": 42.3, "length_mm": 40.0, "shaft_d_mm": 5.0, "shaft_l_mm": 24.0, "boss_d_mm": 22.0, "bolt_circle_mm": 31.0, "bolt_d_mm": 3.0 }
+  },
+  "nema17_long": {
+    "template": "nema_motor",
+    "description": "NEMA 17 stepper motor — long body (60mm)",
+    "params": { "frame_mm": 42.3, "length_mm": 60.0, "shaft_d_mm": 5.0, "shaft_l_mm": 24.0, "boss_d_mm": 22.0, "bolt_circle_mm": 31.0, "bolt_d_mm": 3.0 }
+  },
+  "nema23": {
+    "template": "nema_motor",
+    "description": "NEMA 23 stepper motor (57mm frame, 6.35mm shaft)",
+    "params": { "frame_mm": 57.15, "length_mm": 56.0, "shaft_d_mm": 6.35, "shaft_l_mm": 21.0, "boss_d_mm": 38.1, "bolt_circle_mm": 47.14, "bolt_d_mm": 5.0 }
+  },
+  "nema34": {
+    "template": "nema_motor",
+    "description": "NEMA 34 stepper motor (86mm frame, 14mm shaft)",
+    "params": { "frame_mm": 86.36, "length_mm": 98.0, "shaft_d_mm": 14.0, "shaft_l_mm": 33.0, "boss_d_mm": 73.025, "bolt_circle_mm": 69.58, "bolt_d_mm": 5.5 }
+  },
+
+  "mgn12_200": {
+    "template": "mgn_rail",
+    "description": "MGN12 linear rail, 200mm",
+    "params": { "width_mm": 12.0, "height_mm": 8.0, "length_mm": 200.0, "hole_spacing_mm": 20.0, "hole_d_mm": 3.5 }
+  },
+  "mgn12_300": {
+    "template": "mgn_rail",
+    "description": "MGN12 linear rail, 300mm",
+    "params": { "width_mm": 12.0, "height_mm": 8.0, "length_mm": 300.0, "hole_spacing_mm": 20.0, "hole_d_mm": 3.5 }
+  },
+  "mgn12_400": {
+    "template": "mgn_rail",
+    "description": "MGN12 linear rail, 400mm",
+    "params": { "width_mm": 12.0, "height_mm": 8.0, "length_mm": 400.0, "hole_spacing_mm": 20.0, "hole_d_mm": 3.5 }
+  },
+  "mgn12_500": {
+    "template": "mgn_rail",
+    "description": "MGN12 linear rail, 500mm",
+    "params": { "width_mm": 12.0, "height_mm": 8.0, "length_mm": 500.0, "hole_spacing_mm": 20.0, "hole_d_mm": 3.5 }
+  },
+  "mgn15_400": {
+    "template": "mgn_rail",
+    "description": "MGN15 linear rail, 400mm",
+    "params": { "width_mm": 15.0, "height_mm": 10.0, "length_mm": 400.0, "hole_spacing_mm": 25.0, "hole_d_mm": 4.0 }
+  },
+  "mgn15_600": {
+    "template": "mgn_rail",
+    "description": "MGN15 linear rail, 600mm",
+    "params": { "width_mm": 15.0, "height_mm": 10.0, "length_mm": 600.0, "hole_spacing_mm": 25.0, "hole_d_mm": 4.0 }
+  },
+  "mgn25_600": {
+    "template": "mgn_rail",
+    "description": "MGN25 linear rail, 600mm (heavy-duty robot axis)",
+    "params": { "width_mm": 25.0, "height_mm": 16.0, "length_mm": 600.0, "hole_spacing_mm": 40.0, "hole_d_mm": 5.5 }
+  },
+  "mgn25_1000": {
+    "template": "mgn_rail",
+    "description": "MGN25 linear rail, 1000mm (robot linear axis)",
+    "params": { "width_mm": 25.0, "height_mm": 16.0, "length_mm": 1000.0, "hole_spacing_mm": 40.0, "hole_d_mm": 5.5 }
+  },
+
+  "bearing_608": {
+    "template": "ball_bearing",
+    "description": "608 bearing — 8mm bore, 22mm OD, 7mm wide (skateboard/common)",
+    "params": { "od_mm": 22.0, "bore_mm": 8.0, "width_mm": 7.0, "wall_mm": 2.0 }
+  },
+  "bearing_6200": {
+    "template": "ball_bearing",
+    "description": "6200 bearing — 10mm bore, 30mm OD, 9mm wide",
+    "params": { "od_mm": 30.0, "bore_mm": 10.0, "width_mm": 9.0, "wall_mm": 2.5 }
+  },
+  "bearing_6201": {
+    "template": "ball_bearing",
+    "description": "6201 bearing — 12mm bore, 32mm OD, 10mm wide",
+    "params": { "od_mm": 32.0, "bore_mm": 12.0, "width_mm": 10.0, "wall_mm": 2.5 }
+  },
+  "bearing_6205": {
+    "template": "ball_bearing",
+    "description": "6205 bearing — 25mm bore, 52mm OD, 15mm wide",
+    "params": { "od_mm": 52.0, "bore_mm": 25.0, "width_mm": 15.0, "wall_mm": 4.0 }
+  },
+  "bearing_6800": {
+    "template": "ball_bearing",
+    "description": "6800 thin-section bearing — 10mm bore, 19mm OD, 5mm wide",
+    "params": { "od_mm": 19.0, "bore_mm": 10.0, "width_mm": 5.0, "wall_mm": 1.5 }
+  },
+  "bearing_6900": {
+    "template": "ball_bearing",
+    "description": "6900 thin-section bearing — 10mm bore, 22mm OD, 6mm wide",
+    "params": { "od_mm": 22.0, "bore_mm": 10.0, "width_mm": 6.0, "wall_mm": 2.0 }
+  },
+
+  "coupling_5x5": {
+    "template": "shaft_coupling",
+    "description": "Rigid shaft coupling, 5mm to 5mm, OD20mm",
+    "params": { "od_mm": 20.0, "bore1_mm": 5.0, "bore2_mm": 5.0, "length_mm": 25.0 }
+  },
+  "coupling_5x8": {
+    "template": "shaft_coupling",
+    "description": "Rigid shaft coupling, 5mm to 8mm, OD20mm",
+    "params": { "od_mm": 20.0, "bore1_mm": 5.0, "bore2_mm": 8.0, "length_mm": 25.0 }
+  },
+  "coupling_8x8": {
+    "template": "shaft_coupling",
+    "description": "Rigid shaft coupling, 8mm to 8mm, OD25mm",
+    "params": { "od_mm": 25.0, "bore1_mm": 8.0, "bore2_mm": 8.0, "length_mm": 30.0 }
+  },
+  "coupling_10x10": {
+    "template": "shaft_coupling",
+    "description": "Rigid shaft coupling, 10mm to 10mm, OD30mm",
+    "params": { "od_mm": 30.0, "bore1_mm": 10.0, "bore2_mm": 10.0, "length_mm": 35.0 }
+  },
+
+  "2020_200": {
+    "template": "profile_extrusion",
+    "description": "2020 V-slot aluminium extrusion, 200mm",
+    "params": { "size_mm": 20.0, "length_mm": 200.0 }
+  },
+  "2020_400": {
+    "template": "profile_extrusion",
+    "description": "2020 V-slot aluminium extrusion, 400mm",
+    "params": { "size_mm": 20.0, "length_mm": 400.0 }
+  },
+  "3030_400": {
+    "template": "profile_extrusion",
+    "description": "3030 T-slot aluminium extrusion, 400mm",
+    "params": { "size_mm": 30.0, "length_mm": 400.0, "slot_w_mm": 8.2, "slot_d_mm": 7.2, "neck_w_mm": 7.0 }
+  },
+  "4040_400": {
+    "template": "profile_extrusion",
+    "description": "4040 T-slot aluminium extrusion, 400mm",
+    "params": { "size_mm": 40.0, "length_mm": 400.0, "slot_w_mm": 10.2, "slot_d_mm": 8.8, "neck_w_mm": 9.2 }
+  },
+  "4040_600": {
+    "template": "profile_extrusion",
+    "description": "4040 T-slot aluminium extrusion, 600mm",
+    "params": { "size_mm": 40.0, "length_mm": 600.0, "slot_w_mm": 10.2, "slot_d_mm": 8.8, "neck_w_mm": 9.2 }
+  }
+}

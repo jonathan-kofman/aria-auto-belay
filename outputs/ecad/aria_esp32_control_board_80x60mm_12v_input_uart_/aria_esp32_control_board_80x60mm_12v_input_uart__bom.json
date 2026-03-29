@@ -1,0 +1,147 @@
+{
+  "components": [
+    {
+      "ref": "U1",
+      "value": "ESP32-S3-WROOM-1",
+      "footprint": "RF_Module:ESP32-S3-WROOM-1",
+      "description": "ESP32-S3 WiFi/BLE module",
+      "qty": 1,
+      "x_mm": 31.0,
+      "y_mm": 14.5
+    },
+    {
+      "ref": "U2",
+      "value": "STM32F405RGT6",
+      "footprint": "Package_QFP:LQFP-64_10x10mm_P0.5mm",
+      "description": "STM32 ARM Cortex-M4 MCU",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 5.0
+    },
+    {
+      "ref": "J1",
+      "value": "Barrel-Jack-2.1mm",
+      "footprint": "Connector_BarrelJack:BarrelJack_Horizontal",
+      "description": "DC barrel jack (12-24 V input)",
+      "qty": 1,
+      "x_mm": 66.0,
+      "y_mm": 5.0
+    },
+    {
+      "ref": "U3",
+      "value": "AMS1117-3.3",
+      "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+      "description": "3.3 V LDO regulator",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 17.0
+    },
+    {
+      "ref": "J2",
+      "value": "JST-XH-4P-UART",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "UART header (TX/RX/3V3/GND)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 5.0
+    },
+    {
+      "ref": "ANT1",
+      "value": "BLE-Antenna-Keepout",
+      "footprint": "RF_Antenna:Antenna_Chip_TDK_ANT1608AI_0603",
+      "description": "BLE antenna keepout zone marker",
+      "qty": 1,
+      "x_mm": 0.0,
+      "y_mm": 0.0
+    },
+    {
+      "ref": "U4",
+      "value": "HX711",
+      "footprint": "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm",
+      "description": "HX711 24-bit load cell ADC",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 25.5
+    },
+    {
+      "ref": "J3",
+      "value": "JST-XH-4P-LoadCell",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "Load cell connector (E+/E-/A+/A-)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 14.5
+    },
+    {
+      "ref": "J4",
+      "value": "Molex-6P-Motor",
+      "footprint": "Connector_Molex:Molex_Mini-Fit_Jr_5566-06A2_2x03_P4.20mm_Vertical",
+      "description": "Motor / VESC 6-pin power connector",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 24.0
+    },
+    {
+      "ref": "C1",
+      "value": "100nF",
+      "footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "description": "100 nF decoupling capacitor",
+      "qty": 4,
+      "x_mm": 5.0,
+      "y_mm": 51.0
+    },
+    {
+      "ref": "C2",
+      "value": "10uF",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "description": "10 \u00b5F bulk decoupling capacitor",
+      "qty": 2,
+      "x_mm": 8.0,
+      "y_mm": 51.0
+    },
+    {
+      "ref": "D1",
+      "value": "LED-Green",
+      "footprint": "LED_SMD:LED_0402_1005Metric",
+      "description": "Power indicator LED",
+      "qty": 1,
+      "x_mm": 12.0,
+      "y_mm": 51.0
+    },
+    {
+      "ref": "R1",
+      "value": "330R",
+      "footprint": "Resistor_SMD:R_0402_1005Metric",
+      "description": "LED current-limiting resistor",
+      "qty": 1,
+      "x_mm": 15.0,
+      "y_mm": 51.0
+    }
+  ],
+  "firmware_pins": {
+    "PIN_AS5048_CS": "PA4",
+    "PIN_HX711_DOUT": "PB0",
+    "PIN_HX711_SCK": "PB1",
+    "PIN_UH": "PA8",
+    "PIN_VH": "PA9",
+    "PIN_WH": "PA10",
+    "PIN_EN": "PB10",
+    "PIN_LED": "PC13",
+    "PIN_ESTOP": "PB12",
+    "PIN_BRAKE": "PB13",
+    "XCLK_GPIO_NUM": "10",
+    "SIOD_GPIO_NUM": "40",
+    "SIOC_GPIO_NUM": "39",
+    "Y9_GPIO_NUM": "48",
+    "Y8_GPIO_NUM": "11",
+    "Y7_GPIO_NUM": "12",
+    "Y6_GPIO_NUM": "14",
+    "Y5_GPIO_NUM": "16",
+    "Y4_GPIO_NUM": "18",
+    "Y3_GPIO_NUM": "17",
+    "Y2_GPIO_NUM": "15",
+    "VSYNC_GPIO_NUM": "38",
+    "HREF_GPIO_NUM": "47",
+    "PCLK_GPIO_NUM": "13"
+  }
+}

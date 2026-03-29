@@ -1,0 +1,22 @@
+{
+  "part_name": "aria_lattice",
+  "bbox_mm": {
+    "x": 50.0,
+    "y": 50.0,
+    "z": 5.0
+  },
+  "dims_mm": {
+    "WIDTH_MM": 100.0,
+    "HEIGHT_MM": 100.0,
+    "DEPTH_MM": 10.0,
+    "CELL_SIZE_MM": 10.0,
+    "STRUT_DIAMETER_MM": 1.5
+  },
+  "lattice": {
+    "pattern": "honeycomb",
+    "form": "volumetric",
+    "interlaced": false,
+    "weave_offset_mm": 0.0,
+    "generator": "blender_headless"
+  }
+}

@@ -20,8 +20,9 @@ ARIA (Autonomous Rope Intelligence Architecture) — a wall-mounted lead climbin
 # Generate a part (natural language goal)
 python run_aria_os.py "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
 
-# Full pipeline: generate + FEA + GD&T drawing + PNG render + CAM script in one shot
+# Full pipeline: generate + FEA + GD&T drawing + PNG render + CAM script + setup sheet
 python run_aria_os.py --full "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
+python run_aria_os.py --full "ARIA ratchet ring, 213mm OD" --machine "HAAS VF2"  # optional machine override
 
 # List all generated parts with validation status, CEM SF, git SHA, generated-at
 python run_aria_os.py --list
@@ -76,10 +77,23 @@ python run_aria_os.py --draw outputs/cad/step/aria_spool.step
 # Generate Fusion 360 CAM script from a STEP file
 python run_aria_os.py --cam outputs/cad/step/aria_housing.step --material aluminium_6061
 
+# Run machinability check on a STEP file (undercut detection, axis classification)
+python run_aria_os.py --cam-validate outputs/cad/step/aria_housing.step [--retries 2]
+# → exits 0 on pass, 1 on fail; machinability.json written by validator
+
+# Generate CNC operator setup sheet (markdown + JSON) from STEP + CAM script
+python run_aria_os.py --setup outputs/cad/step/aria_housing.step outputs/cam/aria_housing/aria_housing_cam.py [--material aluminium_6061]
+# → outputs/cam/<part>/setup_sheet.md
+# → outputs/cam/<part>/setup_sheet.json  (validates against contracts/cam_setup_schema_v1.json)
+
 # Generate KiCad PCB script from a board description
 python run_aria_os.py --ecad "ARIA ESP32 board, 80x60mm, 12V, UART, BLE, HX711"
 # → outputs/ecad/<board_name>/<board_name>_pcbnew.py  (run in KiCad scripting console)
-# → outputs/ecad/<board_name>/<board_name>_bom.json
+# → outputs/ecad/<board_name>/<board_name>_bom.json   (validates against contracts/ecad_bom_schema_v1.json)
+
+# Run ECAD variant study (compare multiple board configurations)
+python run_aria_os.py --ecad-variants "ARIA ESP32 board, 80x60mm" --variants variants/aria_board_variants.json
+# → outputs/ecad/<board_slug>/variant_study.json
 
 # Run FEA or CFD on a specific STEP file
 python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step [--fea|--cfd|--auto]
@@ -120,7 +134,7 @@ python assemble_constrain.py assembly_configs/f1_2026.json --proximity 80
 ### Dashboard
 ```bash
 # Windows (sets up .python/ local env automatically)
-START_DASHBOARD.bat
+scripts/START_DASHBOARD.bat
 
 # System Python
 pip install -r requirements.txt
@@ -268,12 +282,45 @@ Reads STEP geometry → selects tools from `tools/fusion_tool_library.json` → 
 - Materials: `aluminium_6061` (SFM=300), `aluminium_7075` (SFM=260), `x1_420i` (SFM=85), `inconel_718` (SFM=40), `steel_4140` (SFM=90), `pla`, `abs`
 - Operations: 3D Adaptive Clearing → Parallel Finish → Contour → Drill cycles
 - Run in Fusion: Tools → Scripts → add generated `.py` → Run
+- Returns `Path` to written script — callers must not cast to `str` before using `.parent`
+
+### CAM validation (`aria_os/cam_validator.py`)
+Machinability checks on generated STEP files.
+- `check_machinability(step_path)` — runs radii, cavity depth, thin wall, undercut checks → writes `outputs/cam/<part>/machinability.json`
+- `check_undercuts(step_path)` — OCC face-normal analysis against 6 cardinal directions
+- `classify_machining_axes(undercut_results)` → `["3axis"]` / `["4axis"]` / `["5axis"]`
+- `run_machinability_check()` — backward-compat wrapper (copies `failures` → `violations`)
+
+### CAM setup sheet (`aria_os/cam_setup.py`)
+Generates operator-facing setup sheet from STEP + CAM script.
+- `write_setup_sheet(step_path, cam_script_path, material, out_dir, part_id, machine_name)` → writes `setup_sheet.md` + `setup_sheet.json`
+- `detect_second_op(step_path)` — bottom face area analysis; flags flip requirement
+- `suggest_fixturing(bbox_mm)` — returns vise / fixture plate / V-block recommendation
+- `CAM_SETUP_SCHEMA_VERSION = "1.0"` — injected as `"schema_version"` first key in JSON
+- `stock_dims` falls back to `{"x_mm": 0.1, "y_mm": 0.1, "z_mm": 0.1}` when no STEP exists (keeps JSON schema-valid)
+
+### CAM physics (`aria_os/cam_physics.py`)
+- `get_machine_profile(name)` → Tormach 1100 (1.5 kW / 10 Nm) or HAAS VF2 (22 kW / 122 Nm); key is `max_spindle_power_w`
+- `validate_feeds_speeds(tool_dia_mm, material, depth_of_cut_mm, width_of_cut_mm, overhang_mm, spindle_power_w=1500)` → MRR, required power, Ra, deflection, `passed`
 
 ### ECAD generation (`aria_os/ecad_generator.py`)
 Generates KiCad pcbnew Python script from board description (no LLM, keyword matching).
 - Extracts board dims (`80x60mm` pattern), selects components (ESP32, STM32, barrel jack, JST connectors, HX711, VESC, etc.)
 - `extract_firmware_pins(repo_root)` scrapes `#define PIN_*` and `const int *PIN*` from STM32/ESP32 firmware — injects into pcbnew script + BOM
-- Outputs: `<board_name>_pcbnew.py` (run in KiCad scripting console) + `<board_name>_bom.json`
+- `ECAD_BOM_SCHEMA_VERSION = "1.0"` — injected as `"schema_version"` first key in BOM JSON
+- Outputs: `<board_name>_pcbnew.py` (run in KiCad scripting console) + `<board_name>_bom.json` + `validation.json`
+- Retry loop (max 2): on ERC errors with LLM available, rebuilds component list with failure context injected
+
+### ECAD variant runner (`aria_os/ecad_variant_runner.py`)
+- `run_variant_study(base_description, variants, repo_root)` — generates and validates multiple board configs
+- `print_variant_table(results)` — ASCII table (ERC/DRC pass, power draw mA, cost $)
+- `save_variant_study(results, board_slug, repo_root)` → `outputs/ecad/<board>/variant_study.json`
+
+### Output contracts (`contracts/`)
+All structured JSON outputs carry `"schema_version"` as first key and validate against JSON Schema (draft 2020-12) files in `contracts/`.
+- `contracts/cam_setup_schema_v1.json` — `setup_sheet.json` schema (fields, types, units)
+- `contracts/ecad_bom_schema_v1.json` — BOM JSON schema (components, firmware_pins, validation block)
+- Test coverage: `tests/test_output_contracts.py` — 20 tests (unit schema checks + integration round-trips)
 
 ### GD&T drawing generator (`aria_os/drawing_generator.py`)
 Generates A3 landscape SVG engineering drawings with 3 orthographic views, dimension annotations, GD&T symbols, title block.
@@ -328,11 +375,13 @@ goal → cem_registry.resolve_cem_module() → "cem_aria" | "cem_lre" | ...
 ```
 
 Key files:
-- `cem_registry.py` — maps goal keywords to CEM module names; **register new domains here** (current: `aria`, `lre`/`nozzle`/`rocket`/`turbopump`/`injector`). `resolve_cem_module(goal, part_id)` returns module name or `None`.
-- `cem_core.py` — base `Material` and `Fluid` classes; pre-defined materials (X1 420i, Inconel 718, 6061 Al) and fluids (LOX, kerosene, IPA) — import from here, never redefine
-- `cem_aria.py` — thin shim that re-exports `aria_cem.py` (avoids shadowing by `aria_cem/` package). `compute_for_goal(goal, params)` entry point used by the orchestrator.
-- `cem_lre.py` — standalone LRE (liquid rocket engine) CEM module; `compute_lre_nozzle(LREInputs)` derives nozzle geometry from thrust + chamber pressure. `compute_for_goal(goal, params)` entry point. Supports LOX/RP-1, LOX/LH2, LOX/IPA, N2O4/UDMH propellants.
-- `cem_to_geometry.py` — CEM scalars → CadQuery scripts (deterministic, no LLM). `scalars_to_cq_script(part_id, params)` dispatches to per-part templates for: `aria_ratchet_ring`, `aria_brake_drum`, `aria_spool`, `aria_housing`, `aria_cam_collar`, `aria_rope_guide`, `lre_nozzle`. `write_cq_script(part_id, params, path)` writes to disk.
+- `cem/cem_registry.py` — maps goal keywords to CEM module names; **register new domains here** (current: `aria`, `lre`/`nozzle`/`rocket`/`turbopump`/`injector`). `resolve_cem_module(goal, part_id)` returns module name or `None`.
+- `cem/cem_core.py` — base `Material` and `Fluid` classes; pre-defined materials (X1 420i, Inconel 718, 6061 Al) and fluids (LOX, kerosene, IPA) — import from here, never redefine
+- `cem/cem_aria.py` — thin shim that re-exports `aria_cem.py` (avoids shadowing by `aria_cem/` package). `compute_for_goal(goal, params)` entry point used by the orchestrator.
+- `cem/cem_lre.py` — standalone LRE (liquid rocket engine) CEM module; `compute_lre_nozzle(LREInputs)` derives nozzle geometry from thrust + chamber pressure. `compute_for_goal(goal, params)` entry point. Supports LOX/RP-1, LOX/LH2, LOX/IPA, N2O4/UDMH propellants.
+- `cem/cem_to_geometry.py` — CEM scalars → CadQuery scripts (deterministic, no LLM). `scalars_to_cq_script(part_id, params)` dispatches to per-part templates for: `aria_ratchet_ring`, `aria_brake_drum`, `aria_spool`, `aria_housing`, `aria_cam_collar`, `aria_rope_guide`, `lre_nozzle`. `write_cq_script(part_id, params, path)` writes to disk.
+
+Note: backward-compat shims remain at the original root paths (`cem_registry.py`, `cem_core.py`, etc.) so all existing imports continue to work.
 - `aria_os/cem_context.py` — loads live CEM geometry from `cem_design_history.json` for LLM prompt injection
 - `aria_os/cem_checks.py` — per-part static + dynamic physics checks; SF < 1.5 = hard fail, 1.5–2.0 = warning. `_run_cem_system_check` calls `compute_for_goal()` on the resolved CEM module (fixed 2026-03 — previously called non-existent `ARIAModule` class).
 - `aria_os/cem_generator.py` — `resolve_and_compute(goal, part_id, params, repo_root)` — the orchestrator entry point; resolves CEM module via registry then calls `compute_for_goal()`.
@@ -414,23 +463,25 @@ Fail-safe principle: ESP32 crash → STM32 holds tension. STM32/VESC fault → b
 | `outputs/cad/generated_code/` | Raw LLM CadQuery scripts | No |
 | `outputs/cad/grasshopper/<part>/` | Grasshopper params.json + script | Yes |
 | `outputs/cad/learning_log.json` | Attempt outcomes (success/fail + error) | Yes |
-| `outputs/cam/<part>/` | Fusion 360 CAM script + BOM summary JSON | No |
+| `outputs/cam/<part>/` | Fusion 360 CAM script + CAM summary JSON + `setup_sheet.md` + `setup_sheet.json` + `machinability.json` | No |
 | `outputs/drawings/` | GD&T engineering drawing SVGs | No |
-| `outputs/ecad/<board>/` | KiCad pcbnew script + BOM JSON | No |
+| `outputs/ecad/<board>/` | KiCad pcbnew script + BOM JSON + `validation.json` + `variant_study.json` | No |
 | `outputs/screenshots/` | PNG renders of STL files (via `--render` or `batch.py --render`) | No |
 | `outputs/aria_generation_log.json` | GH pipeline runs with CEM SF values + STEP/STL paths | No |
 | `outputs/api_run_log.json` | API server run log (persisted from `_RUN_LOG`, last 500 entries) | No |
 | `cem_design_history.json` | Latest CEM parameter snapshots (used by LLM prompt injection) | No |
+| `contracts/cam_setup_schema_v1.json` | JSON Schema for `setup_sheet.json` (all fields, types, units) | Yes |
+| `contracts/ecad_bom_schema_v1.json` | JSON Schema for `<board>_bom.json` | Yes |
 | `sessions/` | Agent session logs | Yes |
 
 ---
 
-## Dashboard CEM Tab (`aria_cem_tab.py`)
+## Dashboard CEM Tab (`dashboard/aria_cem_tab.py`)
 
 `render_cem_tab()` is a Streamlit tab for live parameter tuning → CSV generation for Fusion 360 import. To wire it into `aria_dashboard.py`:
 
 ```python
-from aria_cem_tab import render_cem_tab
+from dashboard.aria_cem_tab import render_cem_tab
 # Add "CEM Design (physics-derived geometry)" to the sidebar setups list
 # Route: elif setup.startswith("CEM Design"): render_cem_tab()
 ```

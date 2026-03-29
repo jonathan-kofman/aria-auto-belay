@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import cadquery; print\\(''CadQuery OK:'', cadquery.__version__\\)\")",
+      "Bash(conda --version)",
+      "Bash(mamba --version)",
+      "Bash(python -c \"import cadquery; print\\(''''OK:'''', cadquery.__version__\\)\")",
+      "Bash(find C:UsersjonkoDownloadsaria-auto-belayoutputs -name *.stl -o -name *.step)",
+      "Bash(find /c/Users/jonko/Downloads/aria-auto-belay/outputs -name *.stl -o -name *.step)",
+      "Bash(find /c/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl -name *.stl)",
+      "Bash(gh pr:*)",
+      "Bash(gh repo:*)",
+      "Bash(git merge:*)",
+      "Bash(python -c \"import json; d=json.load\\(open\\(''outputs/cad/meta/aria_spool.json''\\)\\); print\\(json.dumps\\(d,indent=2\\)\\)\")",
+      "Bash(python -c \"from cem_registry import resolve_cem_module; print\\(resolve_cem_module\\(''skeleton clock'', ''aria_gear''\\)\\)\")",
+      "Bash(python cem_clock.py)",
+      "Bash(python preview.py \"gear wheel 144mm OD, 96 teeth, module 1.5, 9mm face width, 18mm bore, petal spokes, 5 spokes\")",
+      "Bash(python preview.py \"gear wheel 80mm OD, 80 teeth, module 1.0, 6mm face width, 10mm bore, petal spokes, 5 spokes\")",
+      "Bash(python preview.py \"gear wheel 48mm OD, 48 teeth, module 1.0, 6mm face width, 6mm bore, petal spokes, 5 spokes\")",
+      "Bash(python -c \"from PIL import ImageGrab; print\\(''PIL OK''\\)\")",
+      "Bash(python:*)",
+      "Bash(find /c/Users/jonko/Downloads/aria-auto-belay -type f -name *.py -o -name *.ts -o -name *.tsx -o -name *.cpp -o -name *.ino -o -name *.h)"
+    ]
+  }
+}

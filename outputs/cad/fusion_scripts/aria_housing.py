@@ -1,17 +1,37 @@
-"""
-ARIA-OS Generated Fusion 360 Script — ARIA motor housing shell, 260mm OD, 10mm wall, 180mm length
-Standard parametric script stub.
-"""
+# ARIA-OS Fusion 360 Parametric
+# Run: Utilities > Scripts and Add-Ins > Run Script
 import adsk.core, adsk.fusion, traceback
+
+OD_MM=260.0; HEIGHT_MM=180.0; BORE_MM=78.0
+PART_NAME='aria_housing'; STL_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-18/test_fusion_script_references_0/h.stl'; STEP_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-18/test_fusion_script_references_0/h.step'
 
 def run(context):
     ui = None
     try:
-        app = adsk.core.Application.get()
-        ui = app.userInterface
-        design = app.activeProduct
-        root = design.rootComponent
-        ui.messageBox("ARIA-OS script generated for: ARIA motor housing shell, 260mm OD, 10mm wall, 180mm length\nExport targets:\nSTEP: /tmp/pytest-of-root/pytest-8/test_fusion_script_references_0/h.step\nSTL: /tmp/pytest-of-root/pytest-8/test_fusion_script_references_0/h.stl")
-    except:
-        if ui:
-            ui.messageBox("Fusion script failed:\n" + traceback.format_exc())
+        app    = adsk.core.Application.get(); ui = app.userInterface
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        design.designType = adsk.fusion.DesignTypes.DirectDesignType
+        root   = design.rootComponent
+        sk = root.sketches.add(root.xYConstructionPlane)
+        sk.sketchCurves.sketchCircles.addByCenterRadius(
+            adsk.core.Point3D.create(0,0,0), OD_MM/20.0)
+        ei = root.features.extrudeFeatures.createInput(
+            sk.profiles.item(0),
+            adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        ei.setDistanceExtent(False, adsk.core.ValueInput.createByReal(HEIGHT_MM/10.0))
+        root.features.extrudeFeatures.add(ei).bodies.item(0).name = PART_NAME
+        if BORE_MM > 0:
+            sk2 = root.sketches.add(root.xYConstructionPlane)
+            sk2.sketchCurves.sketchCircles.addByCenterRadius(
+                adsk.core.Point3D.create(0,0,0), BORE_MM/20.0)
+            ci = root.features.extrudeFeatures.createInput(
+                sk2.profiles.item(0),
+                adsk.fusion.FeatureOperations.CutFeatureOperation)
+            ci.setAllExtent(adsk.fusion.ExtentDirections.PositiveExtentDirection)
+            root.features.extrudeFeatures.add(ci)
+        mgr = design.exportManager
+        mgr.execute(mgr.createSTEPExportOptions(STEP_PATH))
+        so = mgr.createSTLExportOptions(root); so.filename=STL_PATH; mgr.execute(so)
+        ui.messageBox(f'{PART_NAME} done\nSTEP: {STEP_PATH}')
+    except Exception:
+        if ui: ui.messageBox('Fusion failed:\n' + traceback.format_exc())

@@ -174,6 +174,7 @@ def show_preview(
     stl_path: str | Path,
     part_id: str = "aria_part",
     script_path: str | Path | None = None,
+    view_only: bool = False,
 ) -> ExportChoice:
     """
     Render the generated part in the browser and ask the user to choose a
@@ -184,6 +185,7 @@ def show_preview(
     stl_path    : path to the generated STL (must exist)
     part_id     : display name shown in the viewer title bar
     script_path : path to the .py source (shown in terminal output only)
+    view_only   : if True, keep server alive until Ctrl+C (no export prompt)
 
     Returns
     -------
@@ -230,14 +232,28 @@ def show_preview(
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
-    http_url = f"http://127.0.0.1:{port}/{html_path.name}"
+    http_url = f"http://localhost:{port}/{html_path.name}"
 
-    print(f"\n[PREVIEW] Opening 3D viewer in browser...")
+    print(f"\n[PREVIEW] 3D viewer ready.")
     if script_path:
         print(f"[PREVIEW] Source: {script_path}")
     print(f"[PREVIEW] STL:    {stl_path}  ({stl_kb:.1f} KB)")
-    print(f"[PREVIEW] URL:    {http_url}")
-    print(f"[PREVIEW] Paste the URL above into Simple Browser (Ctrl+Shift+P → Simple Browser: Show)")
+    print(f"[PREVIEW]")
+    print(f"[PREVIEW] URL --> http://localhost:{port}/{html_path.name}")
+    print(f"[PREVIEW]")
+    print(f"[PREVIEW] In Cursor: Ctrl+Shift+P -> 'Simple Browser: Show' -> paste URL above")
+    print(f"[PREVIEW] Keep this terminal open while viewing.")
+
+    if view_only:
+        print(f"\n[PREVIEW] Server running — press Ctrl+C to stop.")
+        try:
+            while True:
+                import time
+                time.sleep(1)
+        except KeyboardInterrupt:
+            server.shutdown()
+            print("\n[PREVIEW] Server stopped.")
+        return "skip"
 
     return _prompt_export_choice()
 

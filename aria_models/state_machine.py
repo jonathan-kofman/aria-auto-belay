@@ -20,7 +20,7 @@ VOICE_CONFIDENCE_MIN    = 0.85
 CLIP_DETECT_CONFIDENCE  = 0.75
 CLIP_PAYOUT_M           = 0.65
 TENSION_TARGET_N        = 40.0
-TENSION_TIGHT_N         = 60.0
+TENSION_TIGHT_N         = 25.0   # matches T_WATCH_ME in firmware/stm32/aria_main.cpp
 REST_TIMEOUT_S          = 600.0
 WATCH_ME_TIMEOUT_S      = 180.0
 ZONE_PAUSE_TIMEOUT_S    = 10.0
@@ -84,6 +84,7 @@ class Inputs:
     voice: str       = ""
     tension_N: float = 0.0
     cv_clip: bool    = False
+    cv_detected: bool = False  # climber present in frame (mirrors g_cvDetected in firmware)
     cv_zone: bool    = False   # unexpected body in camera zone
     estop: bool      = False
     operator_reset: bool = False  # physical key-switch / panel reset input
@@ -164,7 +165,8 @@ class AriaStateMachine:
             return self._out()
 
         if s == State.IDLE:
-            if inp.tension_N > TENSION_CLIMB_MIN_N:
+            # Mirror firmware: require cv_detected AND tension above ground threshold
+            if inp.cv_detected and inp.tension_N > TENSION_CLIMB_MIN_N:
                 self._go(State.CLIMBING)
                 return self._out()
             return self._out()
