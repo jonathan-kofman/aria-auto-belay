@@ -219,10 +219,11 @@ def show_preview(
     # Use os.startfile on Windows so the OS default browser opens the HTML,
     # not whichever app Python's webbrowser module happens to pick up
     # (e.g. Cursor's embedded browser when running inside the IDE).
-    import platform
+    import platform, subprocess
     if platform.system() == "Windows":
-        import os
-        os.startfile(str(html_path))
+        # cmd /c start uses the Windows URL handler (default browser),
+        # not the .html file association (which Cursor may have claimed).
+        subprocess.Popen(["cmd", "/c", "start", "", url], shell=False)
     else:
         webbrowser.open(url)
 
