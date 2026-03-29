@@ -263,17 +263,16 @@ def extract_spec(description: str) -> dict[str, Any]:
         spec["n_teeth"] = n_teeth
 
     # --- WxHxD box notation (e.g. "50x100x200mm" or "50 x 100 x 200 mm") ---
+    # Always overrides single-value prose extractions — a WxHxD triple is more
+    # authoritative than any individual "4mm wide" or "8mm tall" substring.
     _box_m = re.search(
         r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm",
         text, re.I,
     )
     if _box_m:
-        if "width_mm" not in spec:
-            spec["width_mm"] = float(_box_m.group(1))
-        if "height_mm" not in spec:
-            spec["height_mm"] = float(_box_m.group(2))
-        if "depth_mm" not in spec:
-            spec["depth_mm"] = float(_box_m.group(3))
+        spec["width_mm"]  = float(_box_m.group(1))
+        spec["height_mm"] = float(_box_m.group(2))
+        spec["depth_mm"]  = float(_box_m.group(3))
 
     # --- 2D WxH box notation (e.g. "200x200mm" square plate, "100x60mm" rectangle) ---
     # Only runs when the 3D pattern didn't already fire
