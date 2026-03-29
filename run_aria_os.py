@@ -1003,6 +1003,22 @@ def main():
             print("[autocad] Opening viewer...")
         return
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--review-view":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --review-view <file.dxf>")
+            sys.exit(1)
+        from aria_os.preview_ui import show_dxf_preview
+        _rv_dxf = Path(sys.argv[2])
+        show_dxf_preview(_rv_dxf, title=_rv_dxf.stem)
+        print("[DXF PREVIEW] Server running — press Ctrl+C to stop.")
+        try:
+            import time
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+        return
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--review":
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --review <file> [--hint \"add pipe labels\"] [--state TX] [--yes]")

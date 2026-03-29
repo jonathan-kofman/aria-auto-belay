@@ -733,5 +733,6 @@ def review_dxf(
         f"Revised DXF: {out_path}"
     )
     print(f"[DXF REVIEW] Sidecar: {sidecar_path}")
+    print(f"[DXF REVIEW] To view: python run_aria_os.py --review-view {out_path}")
 
     return out_path

@@ -1152,9 +1152,9 @@ def generate_civil_dxf(
 
     # Launch viewer if requested
     if view_after:
-        import subprocess
-        import sys as _sys
-        subprocess.Popen([_sys.executable, "-m", "ezdxf", "view", str(output_path)])
+        from aria_os.preview_ui import show_dxf_preview
+        show_dxf_preview(output_path, title=output_path.stem,
+                         discipline=discipline or "", state=state)
 
     return output_path
 
