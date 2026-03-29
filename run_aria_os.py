@@ -1003,6 +1003,45 @@ def main():
             print("[autocad] Opening viewer...")
         return
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--review":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --review <file> [--hint \"add pipe labels\"] [--state TX] [--yes]")
+            print("  Supported: .dxf (civil review), .step (CAD redesign), .py (ECAD/KiCad review)")
+            sys.exit(1)
+        _rv_args = sys.argv[2:]
+        _rv_hint = ""
+        _rv_state = "national"
+        _rv_yes = "--yes" in _rv_args
+        _rv_file = None
+        _rv_i = 0
+        while _rv_i < len(_rv_args):
+            if _rv_args[_rv_i] == "--hint" and _rv_i + 1 < len(_rv_args):
+                _rv_hint = _rv_args[_rv_i + 1]
+                _rv_i += 2
+            elif _rv_args[_rv_i] == "--state" and _rv_i + 1 < len(_rv_args):
+                _rv_state = _rv_args[_rv_i + 1]
+                _rv_i += 2
+            elif _rv_args[_rv_i] == "--yes":
+                _rv_i += 1
+            elif _rv_file is None:
+                _rv_file = _rv_args[_rv_i]
+                _rv_i += 1
+            else:
+                _rv_i += 1
+        if _rv_file is None:
+            print("[review] Error: no file specified.")
+            sys.exit(1)
+        from aria_os.reviewer import review_file
+        _rv_out = review_file(
+            _rv_file,
+            hint=_rv_hint,
+            state=_rv_state,
+            interactive=not _rv_yes,
+            repo_root=ROOT,
+        )
+        print(f"[review] Revised file: {_rv_out}")
+        return
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--ecad-variants":
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --ecad-variants \"base description\" [--variants path/to/variants.json]")
@@ -1314,6 +1353,7 @@ def main():
         print("       python run_aria_os.py --constrain <config.json> [--proximity 50]")
         print("       python run_aria_os.py --draw <step_file>")
         print("       python run_aria_os.py --autocad \"drainage plan\" [--state TX] [--discipline drainage] [--out path/]")
+        print("       python run_aria_os.py --review <file.dxf|.step|.py> [--hint \"add pipe labels\"] [--state TX] [--yes]")
         print("       python run_aria_os.py --ecad \"board description\" [--out outputs/ecad/]")
         print("       python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
         print("       python run_aria_os.py --cam-validate <step_file> [--retries 2]")
