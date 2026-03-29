@@ -998,9 +998,15 @@ def main():
         )
         print(f"[autocad] DXF  : {_autocad_path}")
         print(f"[autocad] JSON : {_autocad_path.with_suffix('.json')}")
-        print(f"[autocad] To view later: python -m ezdxf view {_autocad_path}")
+        print(f"[autocad] To view: python run_aria_os.py --review-view {_autocad_path}")
         if _autocad_view:
-            print("[autocad] Opening viewer...")
+            print("[autocad] Viewer open — press Ctrl+C to exit.")
+            try:
+                import time
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
         return
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--review-view":
