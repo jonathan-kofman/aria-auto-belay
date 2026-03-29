@@ -209,36 +209,35 @@ def show_preview(
     html_path = tmp_dir / f"aria_preview_{part_id}.html"
     html_path.write_text(html, encoding="utf-8")
 
-    url = html_path.as_uri()
+    # Serve via a local HTTP server so Simple Browser (http:// only) can load it.
+    import http.server, threading, socket
+
+    def _find_free_port() -> int:
+        with socket.socket() as s:
+            s.bind(("", 0))
+            return s.getsockname()[1]
+
+    port = _find_free_port()
+    serve_dir = tmp_dir
+
+    class _Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, directory=str(serve_dir), **kw)
+        def log_message(self, *_):
+            pass  # silence request log
+
+    server = http.server.HTTPServer(("127.0.0.1", port), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    http_url = f"http://127.0.0.1:{port}/{html_path.name}"
+
     print(f"\n[PREVIEW] Opening 3D viewer in browser...")
     if script_path:
         print(f"[PREVIEW] Source: {script_path}")
     print(f"[PREVIEW] STL:    {stl_path}  ({stl_kb:.1f} KB)")
-    print(f"[PREVIEW] Viewer: {html_path}")
-
-    import platform, subprocess
-    if platform.system() == "Windows":
-        # Try common browser executables directly — bypasses both the .html
-        # file association and the URL handler (both can be claimed by Cursor).
-        _browsers = [
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-        ]
-        _launched = False
-        for _exe in _browsers:
-            if Path(_exe).exists():
-                subprocess.Popen([_exe, str(html_path)])
-                _launched = True
-                break
-        if not _launched:
-            # Last resort: rundll32 URL handler (avoids file association)
-            subprocess.Popen(
-                ["rundll32", "url.dll,FileProtocolHandler", str(html_path)]
-            )
-    else:
-        webbrowser.open(url)
+    print(f"[PREVIEW] URL:    {http_url}")
+    print(f"[PREVIEW] Paste the URL above into Simple Browser (Ctrl+Shift+P → Simple Browser: Show)")
 
     return _prompt_export_choice()
 
