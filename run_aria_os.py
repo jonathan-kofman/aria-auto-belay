@@ -962,12 +962,13 @@ def main():
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--autocad":
         if len(sys.argv) < 3:
-            print("Usage: python run_aria_os.py --autocad \"drainage plan\" [--state TX] [--discipline drainage] [--out outputs/cad/dxf/]")
+            print("Usage: python run_aria_os.py --autocad \"drainage plan\" [--state TX] [--discipline drainage] [--out outputs/cad/dxf/] [--view]")
             sys.exit(1)
         _autocad_args = sys.argv[2:]
         _autocad_state = "national"
         _autocad_discipline = None
         _autocad_out = None
+        _autocad_view = "--view" in _autocad_args
         _autocad_desc_parts = []
         i = 0
         while i < len(_autocad_args):
@@ -980,6 +981,8 @@ def main():
             elif _autocad_args[i] == "--out" and i + 1 < len(_autocad_args):
                 _autocad_out = _autocad_args[i + 1]
                 i += 2
+            elif _autocad_args[i] == "--view":
+                i += 1
             else:
                 _autocad_desc_parts.append(_autocad_args[i])
                 i += 1
@@ -991,9 +994,13 @@ def main():
             state=_autocad_state,
             discipline=_autocad_discipline,
             output_path=_Path(_autocad_out) if _autocad_out else None,
+            view_after=_autocad_view,
         )
         print(f"[autocad] DXF  : {_autocad_path}")
         print(f"[autocad] JSON : {_autocad_path.with_suffix('.json')}")
+        print(f"[autocad] To view later: python -m ezdxf view {_autocad_path}")
+        if _autocad_view:
+            print("[autocad] Opening viewer...")
         return
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--ecad-variants":
