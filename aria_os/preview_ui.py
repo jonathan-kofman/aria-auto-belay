@@ -216,14 +216,27 @@ def show_preview(
     print(f"[PREVIEW] STL:    {stl_path}  ({stl_kb:.1f} KB)")
     print(f"[PREVIEW] Viewer: {html_path}")
 
-    # Use os.startfile on Windows so the OS default browser opens the HTML,
-    # not whichever app Python's webbrowser module happens to pick up
-    # (e.g. Cursor's embedded browser when running inside the IDE).
     import platform, subprocess
     if platform.system() == "Windows":
-        # cmd /c start uses the Windows URL handler (default browser),
-        # not the .html file association (which Cursor may have claimed).
-        subprocess.Popen(["cmd", "/c", "start", "", url], shell=False)
+        # Try common browser executables directly — bypasses both the .html
+        # file association and the URL handler (both can be claimed by Cursor).
+        _browsers = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        ]
+        _launched = False
+        for _exe in _browsers:
+            if Path(_exe).exists():
+                subprocess.Popen([_exe, str(html_path)])
+                _launched = True
+                break
+        if not _launched:
+            # Last resort: rundll32 URL handler (avoids file association)
+            subprocess.Popen(
+                ["rundll32", "url.dll,FileProtocolHandler", str(html_path)]
+            )
     else:
         webbrowser.open(url)
 
