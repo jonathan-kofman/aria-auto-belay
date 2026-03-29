@@ -68,6 +68,11 @@ CADQUERY_KEYWORDS = [
     "nozzle", "rocket", "lre", "liquid rocket", "turbopump", "injector",
 ]
 
+# part_ids that should always use Blender (lattice/SDF-based generation)
+BLENDER_PART_IDS = {
+    "lattice", "gyroid_lattice", "aria_lattice", "sdf_lattice",
+}
+
 
 def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
     """
@@ -86,6 +91,8 @@ def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
 
     if any(kw in goal_lower for kw in CADQUERY_KEYWORDS):
         return "cadquery"
+    if part_id in BLENDER_PART_IDS:
+        return "blender"   # lattice/gyroid always use Blender SDF pipeline
     if part_id in GRASSHOPPER_PART_IDS:
         return "grasshopper"
     if part_id in FUSION_PART_IDS:
