@@ -1095,6 +1095,35 @@ def main():
             print(f"\n[ANALYZE] {_result['analysis_type']}  {'PASS' if _result['passed'] else 'FAIL'}")
         return
 
+    # --- --view: open an existing STL/STEP file in the Three.js browser viewer ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--view":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --view <file.stl|file.step>")
+            sys.exit(1)
+        _view_path = Path(sys.argv[2])
+        if not _view_path.exists():
+            # Try relative to repo root
+            _view_path = ROOT / sys.argv[2]
+        if not _view_path.exists():
+            print(f"[VIEW] File not found: {sys.argv[2]}")
+            sys.exit(1)
+        # Convert STEP → STL if needed (preview_ui only reads STL)
+        _stl_for_view = _view_path
+        if _view_path.suffix.lower() in (".step", ".stp"):
+            _stl_for_view = _view_path.with_suffix(".stl")
+            if not _stl_for_view.exists():
+                print(f"[VIEW] Converting STEP → STL for viewer...")
+                try:
+                    import cadquery as cq
+                    _shape = cq.importers.importStep(str(_view_path))
+                    cq.exporters.export(_shape, str(_stl_for_view))
+                except Exception as _e:
+                    print(f"[VIEW] STEP→STL conversion failed: {_e}")
+                    sys.exit(1)
+        from aria_os.preview_ui import show_preview
+        show_preview(str(_stl_for_view), _view_path.stem)
+        return
+
     # --- --image: analyse a photo and derive a goal, then run pipeline ---
     if len(sys.argv) >= 2 and sys.argv[1] == "--image":
         if len(sys.argv) < 3:
@@ -1122,6 +1151,7 @@ def main():
         print("       python run_aria_os.py \"part description\" --fea   # force FEA after export")
         print("       python run_aria_os.py \"part description\" --cfd   # force CFD after export")
         print("       python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step")
+        print("       python run_aria_os.py --view <file.stl|file.step>  # open existing file in 3D viewer")
         print("       python run_aria_os.py --image <photo.jpg> [\"hint\"] [--preview]")
         print("       python run_aria_os.py --scenario \"real-world situation\" [--auto-confirm]")
         print("       python run_aria_os.py --scenario-dry-run \"real-world situation\"")
