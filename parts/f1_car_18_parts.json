@@ -1,0 +1,425 @@
+[
+  {
+    "label": "Monocoque chassis",
+    "part_id": "monocoque_chassis",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 250,
+      "height_mm": 75,
+      "depth_mm": 50,
+      "wall_mm": 4
+    }
+  },
+  {
+    "label": "Nose cone",
+    "part_id": "nose_cone",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 75,
+      "height_mm": 25,
+      "depth_mm": 22,
+      "wall_mm": 3
+    }
+  },
+  {
+    "label": "Front wing main plane",
+    "part_id": "front_wing_main_plane",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 250,
+      "height_mm": 44,
+      "thickness_mm": 1,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Front wing endplate L",
+    "part_id": "front_wing_endplate_l",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 44,
+      "height_mm": 37,
+      "thickness_mm": 0.8,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Front wing endplate R",
+    "part_id": "front_wing_endplate_r",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 44,
+      "height_mm": 37,
+      "thickness_mm": 0.8,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Rear wing main plane",
+    "part_id": "rear_wing_main_plane",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 138,
+      "height_mm": 37,
+      "thickness_mm": 1.2,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Rear wing endplate L",
+    "part_id": "rear_wing_endplate_l",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 44,
+      "height_mm": 44,
+      "thickness_mm": 0.8,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Rear wing endplate R",
+    "part_id": "rear_wing_endplate_r",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 44,
+      "height_mm": 44,
+      "thickness_mm": 0.8,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "DRS flap",
+    "part_id": "drs_flap",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 138,
+      "height_mm": 19,
+      "thickness_mm": 1,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Floor panel",
+    "part_id": "floor_panel",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 500,
+      "height_mm": 150,
+      "thickness_mm": 0.8,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Diffuser",
+    "part_id": "diffuser",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 125,
+      "height_mm": 150,
+      "depth_mm": 25,
+      "wall_mm": 2
+    }
+  },
+  {
+    "label": "Sidepod L",
+    "part_id": "sidepod_l",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 112,
+      "height_mm": 44,
+      "depth_mm": 37,
+      "wall_mm": 3
+    }
+  },
+  {
+    "label": "Sidepod R",
+    "part_id": "sidepod_r",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 112,
+      "height_mm": 44,
+      "depth_mm": 37,
+      "wall_mm": 3
+    }
+  },
+  {
+    "label": "Engine cover",
+    "part_id": "engine_cover",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 150,
+      "height_mm": 62,
+      "depth_mm": 50,
+      "wall_mm": 3
+    }
+  },
+  {
+    "label": "Halo",
+    "part_id": "halo",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 87,
+      "height_mm": 15,
+      "depth_mm": 50,
+      "wall_mm": 5
+    }
+  },
+  {
+    "label": "Front wheel FL",
+    "part_id": "front_wheel_fl",
+    "template": "aria_spacer",
+    "params": {
+      "od_mm": 82,
+      "bore_mm": 25,
+      "thickness_mm": 37
+    }
+  },
+  {
+    "label": "Front wheel FR",
+    "part_id": "front_wheel_fr",
+    "template": "aria_spacer",
+    "params": {
+      "od_mm": 82,
+      "bore_mm": 25,
+      "thickness_mm": 37
+    }
+  },
+  {
+    "label": "Rear wheel RL",
+    "part_id": "rear_wheel_rl",
+    "template": "aria_spacer",
+    "params": {
+      "od_mm": 84,
+      "bore_mm": 28,
+      "thickness_mm": 46
+    }
+  },
+  {
+    "label": "Rear wheel RR",
+    "part_id": "rear_wheel_rr",
+    "template": "aria_spacer",
+    "params": {
+      "od_mm": 84,
+      "bore_mm": 28,
+      "thickness_mm": 46
+    }
+  },
+  {
+    "label": "Front axle L",
+    "part_id": "front_axle_l",
+    "template": "aria_shaft",
+    "params": {
+      "od_mm": 25,
+      "length_mm": 94
+    }
+  },
+  {
+    "label": "Front axle R",
+    "part_id": "front_axle_r",
+    "template": "aria_shaft",
+    "params": {
+      "od_mm": 25,
+      "length_mm": 94
+    }
+  },
+  {
+    "label": "Rear axle L",
+    "part_id": "rear_axle_l",
+    "template": "aria_shaft",
+    "params": {
+      "od_mm": 28,
+      "length_mm": 87
+    }
+  },
+  {
+    "label": "Rear axle R",
+    "part_id": "rear_axle_r",
+    "template": "aria_shaft",
+    "params": {
+      "od_mm": 28,
+      "length_mm": 87
+    }
+  },
+  {
+    "label": "Front upright L",
+    "part_id": "front_upright_l",
+    "template": "housing",
+    "params": {
+      "od_mm": 45,
+      "height_mm": 80,
+      "bore_mm": 25,
+      "n_bolts": 4,
+      "bolt_dia_mm": 4,
+      "bolt_circle_r_mm": 35
+    }
+  },
+  {
+    "label": "Front upright R",
+    "part_id": "front_upright_r",
+    "template": "housing",
+    "params": {
+      "od_mm": 45,
+      "height_mm": 80,
+      "bore_mm": 25,
+      "n_bolts": 4,
+      "bolt_dia_mm": 4,
+      "bolt_circle_r_mm": 35
+    }
+  },
+  {
+    "label": "Rear upright L",
+    "part_id": "rear_upright_l",
+    "template": "housing",
+    "params": {
+      "od_mm": 50,
+      "height_mm": 90,
+      "bore_mm": 28,
+      "n_bolts": 4,
+      "bolt_dia_mm": 4,
+      "bolt_circle_r_mm": 38
+    }
+  },
+  {
+    "label": "Rear upright R",
+    "part_id": "rear_upright_r",
+    "template": "housing",
+    "params": {
+      "od_mm": 50,
+      "height_mm": 90,
+      "bore_mm": 28,
+      "n_bolts": 4,
+      "bolt_dia_mm": 4,
+      "bolt_circle_r_mm": 38
+    }
+  },
+  {
+    "label": "Front upper wishbone L",
+    "part_id": "front_upper_wishbone_l",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 56,
+      "height_mm": 4,
+      "depth_mm": 2.5,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Front upper wishbone R",
+    "part_id": "front_upper_wishbone_r",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 56,
+      "height_mm": 4,
+      "depth_mm": 2.5,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Front lower wishbone L",
+    "part_id": "front_lower_wishbone_l",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 62,
+      "height_mm": 4,
+      "depth_mm": 3,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Front lower wishbone R",
+    "part_id": "front_lower_wishbone_r",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 62,
+      "height_mm": 4,
+      "depth_mm": 3,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Rear upper wishbone L",
+    "part_id": "rear_upper_wishbone_l",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 56,
+      "height_mm": 4,
+      "depth_mm": 2.5,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Rear upper wishbone R",
+    "part_id": "rear_upper_wishbone_r",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 56,
+      "height_mm": 4,
+      "depth_mm": 2.5,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Rear lower wishbone L",
+    "part_id": "rear_lower_wishbone_l",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 62,
+      "height_mm": 4,
+      "depth_mm": 3,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Rear lower wishbone R",
+    "part_id": "rear_lower_wishbone_r",
+    "template": "hollow_rect",
+    "params": {
+      "width_mm": 62,
+      "height_mm": 4,
+      "depth_mm": 3,
+      "wall_mm": 1
+    }
+  },
+  {
+    "label": "Mirror L",
+    "part_id": "mirror_l",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 25,
+      "height_mm": 10,
+      "thickness_mm": 0.5,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Mirror R",
+    "part_id": "mirror_r",
+    "template": "flat_plate",
+    "params": {
+      "width_mm": 25,
+      "height_mm": 10,
+      "thickness_mm": 0.5,
+      "bore_mm": 0.1,
+      "n_bolts": 0
+    }
+  },
+  {
+    "label": "Steering wheel",
+    "part_id": "steering_wheel",
+    "template": "aria_spacer",
+    "params": {
+      "od_mm": 30,
+      "bore_mm": 10,
+      "thickness_mm": 4
+    }
+  }
+]

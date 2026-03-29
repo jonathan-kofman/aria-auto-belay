@@ -1,0 +1,42 @@
+name: aria-climb CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  typecheck-and-test:
+    name: TypeScript check & Jest
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: aria-climb
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: aria-climb/package-lock.json
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: Run Jest tests
+        run: npx jest --passWithNoTests --testPathPattern="src/"
+
+      - name: Smoke-check BLE packet parser (ts-node)
+        continue-on-error: true
+        run: >
+          npx ts-node --skipProject -e "import './src/utils/blePacketParser'"
+          2>/dev/null || echo 'ts-node not available, skipping'

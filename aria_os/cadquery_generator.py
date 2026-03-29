@@ -106,11 +106,41 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_housing(params: dict[str, Any]) -> str:
-    w = float(params.get("width_mm", 700.0))
-    h = float(params.get("height_mm", 680.0))
-    d = float(params.get("depth_mm", 344.0))
-    wall = float(params.get("wall_mm", 10.0))
-    return f"""
+    import math as _math
+    od = params.get("od_mm")
+    if od:
+        # Cylindrical joint housing (robot joints, bearing housings)
+        od    = float(od)
+        bore  = float(params.get("bore_mm", od * 0.4))
+        h     = float(params.get("height_mm", params.get("width_mm", od * 0.8)))
+        bolt_r = float(params.get("bolt_circle_r_mm", od * 0.4))
+        n     = int(params.get("n_bolts", 4))
+        bdia  = float(params.get("bolt_dia_mm", 6.0))
+        pts   = [(round(bolt_r * _math.cos(_math.radians(i * 360 / n)), 3),
+                  round(bolt_r * _math.sin(_math.radians(i * 360 / n)), 3))
+                 for i in range(n)]
+        return f"""
+import cadquery as cq
+
+OD_MM        = {od}
+BORE_MM      = {bore}
+HEIGHT_MM    = {h}
+BOLT_R_MM    = {bolt_r}
+BOLT_DIA_MM  = {bdia}
+
+result = cq.Workplane("XY").circle(OD_MM / 2.0).extrude(HEIGHT_MM)
+result = result.faces(">Z").workplane().circle(BORE_MM / 2.0).cutThruAll()
+result = result.faces(">Z").workplane().pushPoints({pts!r}).circle(BOLT_DIA_MM / 2.0).cutThruAll()
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+    else:
+        # Rectangular ARIA-style enclosure
+        w    = float(params.get("width_mm", 700.0))
+        h    = float(params.get("height_mm", 680.0))
+        d    = float(params.get("depth_mm", 344.0))
+        wall = float(params.get("wall_mm", 10.0))
+        return f"""
 import cadquery as cq
 
 WIDTH_MM  = {w}
@@ -123,6 +153,33 @@ result = (
     .box(WIDTH_MM, DEPTH_MM, HEIGHT_MM)
     .shell(-WALL_MM)
 )
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_hollow_rect(params: dict[str, Any]) -> str:
+    """Hollow rectangular tube — structural arm links, extrusion profiles."""
+    w    = float(params.get("width_mm",  80.0))
+    d    = float(params.get("depth_mm",  params.get("height_mm", 60.0)))
+    l    = float(params.get("length_mm", 300.0))
+    wall = float(params.get("wall_mm",   5.0))
+    # Inner cavity must leave at least 1mm wall on each side
+    iw   = max(w - 2 * wall, 1.0)
+    id_  = max(d - 2 * wall, 1.0)
+    return f"""
+import cadquery as cq
+
+WIDTH_MM  = {w}
+DEPTH_MM  = {d}
+LENGTH_MM = {l}
+WALL_MM   = {wall}
+INNER_W   = {iw}
+INNER_D   = {id_}
+
+outer = cq.Workplane("XY").box(WIDTH_MM, DEPTH_MM, LENGTH_MM)
+inner = cq.Workplane("XY").box(INNER_W, INNER_D, LENGTH_MM + 2.0)
+result = outer.cut(inner)
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
@@ -248,6 +305,57 @@ boss  = (cq.Workplane("XY").workplane(offset=BRACKET_T_MM - 0.01)
 axle  = (cq.Workplane("XY").workplane(offset=-1.0)
          .circle(BORE_MM / 2.0).extrude(BRACKET_T_MM + ROLLER_D_MM + 2.0))
 result = plate.union(boss).cut(axle)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_flat_plate(params: dict[str, Any]) -> str:
+    """Square or rectangular flat plate with optional center bore and bolt holes."""
+    import math as _math
+    w    = float(params.get("width_mm",  100.0))
+    d    = float(params.get("depth_mm",  params.get("width_mm", 100.0)))
+    t    = float(params.get("thickness_mm", params.get("height_mm", 10.0)))
+    bore = params.get("bore_mm")
+    n    = int(params.get("n_bolts", 0))
+    bdia = float(params.get("bolt_dia_mm", 6.0))
+    bcr  = params.get("bolt_circle_r_mm")
+    bsq  = params.get("bolt_square_mm")
+
+    bore_line = ""
+    if bore:
+        bore_line = f"result = result.faces('>Z').workplane().circle(BORE_MM / 2.0).cutThruAll()"
+
+    hole_line = ""
+    if n > 0:
+        if bsq:
+            half = bsq / 2.0
+            pts  = [(half, half), (-half, half), (-half, -half), (half, -half)]
+        elif bcr:
+            step = 2 * _math.pi / n
+            pts  = [(round(bcr * _math.cos(i * step), 3), round(bcr * _math.sin(i * step), 3)) for i in range(n)]
+        else:
+            margin  = min(w * 0.15, 15.0)
+            x_start = -(w / 2.0 - margin)
+            x_end   =  (w / 2.0 - margin)
+            pts = [(round(x_start + (x_end - x_start) * i / max(n - 1, 1), 3), 0.0) for i in range(n)]
+        hole_line = (
+            f"result = result.faces('>Z').workplane()"
+            f".pushPoints({pts!r}).circle(BOLT_DIA_MM / 2.0).cutThruAll()"
+        )
+
+    return f"""
+import cadquery as cq
+
+WIDTH_MM     = {w}
+DEPTH_MM     = {d}
+THICKNESS_MM = {t}
+BORE_MM      = {bore if bore else 0.0}
+BOLT_DIA_MM  = {bdia}
+
+result = cq.Workplane("XY").box(WIDTH_MM, DEPTH_MM, THICKNESS_MM)
+{bore_line}
+{hole_line}
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
@@ -602,24 +710,16 @@ STL_PATH     = r"{stl_path}"
 # No runtime math — points were calculated at template-generation time.
 all_pts = {pts_literal}
 
-# ── Extrude gear polygon ─────────────────────────────────────────────────────
-# Normal path: bore expressed as inner wire → one extrude, zero bore boolean.
-# Fallback (bore too large for this module/teeth): extrude solid then cut bore.
-_BORE_OVERSHOOT = {str(_bore_overshoot)}
-if not _BORE_OVERSHOOT:
-    gear = (
-        cq.Workplane("XY")
-        .polyline(all_pts)
-        .close()
-        .circle(BORE / 2.0)   # inner wire → bore hole, no boolean needed
-        .extrude(FACE_W)
-    )
-else:
-    # bore >= 90% of tip circle — inner-wire approach would produce degenerate face
-    print(f"[gear] bore {BORE}mm large relative to OD — using boolean bore cut")
+# ── Extrude gear polygon then boolean-cut bore ───────────────────────────────
+# Falls back to annular cylinder when polygon is degenerate (undercut small pinion).
+TIP_R = {tip_r:.5f}
+try:
     gear = cq.Workplane("XY").polyline(all_pts).close().extrude(FACE_W)
-    bore_cyl = cq.Workplane("XY").circle(BORE / 2.0).extrude(FACE_W + 2).translate((0,0,-1))
+    bore_cyl = cq.Workplane("XY").circle(BORE / 2.0).extrude(FACE_W + 2).translate((0, 0, -1))
     gear = gear.cut(bore_cyl)
+except Exception:
+    # Polygon degenerate (undercut pinion) — fall back to annular cylinder
+    gear = cq.Workplane("XY").circle(TIP_R).circle(BORE / 2.0).extrude(FACE_W)
 
 # Optional keyway (small rect cut on bore)
 if KEYWAY_W > 0:
@@ -849,6 +949,250 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
+# ---------------------------------------------------------------------------
+# Standard mechanical component templates
+# ---------------------------------------------------------------------------
+
+def _cq_nema_motor(params: dict[str, Any]) -> str:
+    frame   = float(params.get("frame_mm",      42.3))
+    length  = float(params.get("length_mm",     40.0))
+    shaft_d = float(params.get("shaft_d_mm",     5.0))
+    shaft_l = float(params.get("shaft_l_mm",    24.0))
+    boss_d  = float(params.get("boss_d_mm",     frame * 0.519))  # 22mm for NEMA17
+    boss_h  = float(params.get("boss_h_mm",      2.0))
+    bolt_r  = float(params.get("bolt_circle_mm", frame * 0.731)) / 2  # 15.5mm for NEMA17
+    bolt_d  = float(params.get("bolt_d_mm",      3.0))
+    flat_d  = float(params.get("flat_depth_mm",  0.5))   # D-flat shave depth
+
+    import math as _m
+    pts = [(round(bolt_r * _m.cos(_m.radians(a)), 4),
+            round(bolt_r * _m.sin(_m.radians(a)), 4)) for a in [45, 135, 225, 315]]
+
+    return f"""
+import cadquery as cq, math
+FRAME   = {frame}
+LENGTH  = {length}
+SHAFT_D = {shaft_d}
+SHAFT_L = {shaft_l}
+BOSS_D  = {boss_d}
+BOSS_H  = {boss_h}
+BOLT_D  = {bolt_d}
+FLAT_D  = {flat_d}
+
+# Body — square prism
+body = cq.Workplane("XY").box(FRAME, FRAME, LENGTH)
+
+# Mounting holes from front face (4x on bolt circle)
+body = (body.faces(">Z").workplane()
+    .pushPoints({pts})
+    .circle(BOLT_D / 2).cutThruAll()
+)
+
+# Front boss
+boss = cq.Workplane("XY").workplane(offset=LENGTH/2).circle(BOSS_D/2).extrude(BOSS_H)
+result = body.union(boss)
+
+# Shaft
+shaft = cq.Workplane("XY").workplane(offset=LENGTH/2 + BOSS_H).circle(SHAFT_D/2).extrude(SHAFT_L)
+result = result.union(shaft)
+
+# D-flat: box positioned so its -Y face is at flat_d from shaft centre
+flat_edge = SHAFT_D / 2 - FLAT_D
+cut = (cq.Workplane("XY")
+    .workplane(offset=LENGTH/2 + BOSS_H)
+    .center(0, flat_edge + SHAFT_D)
+    .rect(SHAFT_D * 4, SHAFT_D * 2)
+    .extrude(SHAFT_L)
+)
+result = result.cut(cut)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_mgn_rail(params: dict[str, Any]) -> str:
+    width  = float(params.get("width_mm",   12.0))
+    height = float(params.get("height_mm",   8.0))
+    length = float(params.get("length_mm", 400.0))
+    hole_spacing = float(params.get("hole_spacing_mm", 20.0))
+    hole_d = float(params.get("hole_d_mm", 3.5))
+    slot_w = float(params.get("slot_w_mm", width * 0.50))   # top T-slot width
+    slot_d = float(params.get("slot_d_mm", height * 0.45))  # slot depth
+
+    import math as _m
+    n_holes = max(2, int(length / hole_spacing) - 1)
+    first_hole = hole_spacing
+    return f"""
+import cadquery as cq, math
+WIDTH  = {width}
+HEIGHT = {height}
+LENGTH = {length}
+HOLE_D = {hole_d}
+HOLE_SPACING = {hole_spacing}
+N_HOLES = {n_holes}
+FIRST_HOLE = {first_hole}
+SLOT_W = {slot_w}
+SLOT_D = {slot_d}
+
+# Rail body
+result = cq.Workplane("XZ").box(WIDTH, HEIGHT, LENGTH)
+
+# Mounting holes through base (along length)
+hole_xs = [-(LENGTH/2) + FIRST_HOLE + i * HOLE_SPACING for i in range(N_HOLES)]
+result = (result
+    .faces(">Y")
+    .workplane()
+    .pushPoints([(x, 0) for x in hole_xs])
+    .circle(HOLE_D / 2)
+    .cutThruAll()
+)
+
+# Top T-slot channel (simplified: rectangular groove cut from top face)
+slot_cutter = (cq.Workplane("XY")
+    .box(SLOT_W, LENGTH, SLOT_D + 1.0)
+    .translate((0, 0, HEIGHT / 2 - SLOT_D / 2 + 0.5))
+)
+result = result.cut(slot_cutter)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_ball_bearing(params: dict[str, Any]) -> str:
+    od    = float(params.get("od_mm",     30.0))
+    bore  = float(params.get("bore_mm",   10.0))
+    width = float(params.get("width_mm",   9.0))
+    wall  = float(params.get("wall_mm",    2.5))   # ring wall thickness
+
+    return f"""
+import cadquery as cq
+OD    = {od}
+BORE  = {bore}
+WIDTH = {width}
+WALL  = {wall}
+
+# Outer ring
+outer = (cq.Workplane("XY")
+    .circle(OD / 2).circle(OD / 2 - WALL)
+    .extrude(WIDTH)
+)
+
+# Inner ring
+inner = (cq.Workplane("XY")
+    .circle(BORE / 2 + WALL).circle(BORE / 2)
+    .extrude(WIDTH)
+)
+
+# Retainer ring (thin disk between rings)
+mid_r = (OD / 2 - WALL + BORE / 2 + WALL) / 2
+ret_w = mid_r - BORE / 2 - WALL
+retainer = (cq.Workplane("XY")
+    .workplane(offset=WIDTH * 0.4)
+    .circle(OD / 2 - WALL).circle(BORE / 2 + WALL)
+    .extrude(WIDTH * 0.2)
+)
+
+result = outer.union(inner).union(retainer)
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_shaft_coupling(params: dict[str, Any]) -> str:
+    od      = float(params.get("od_mm",      20.0))
+    bore1   = float(params.get("bore1_mm",    5.0))   # shaft 1 bore
+    bore2   = float(params.get("bore2_mm",    params.get("bore_mm", 5.0)))  # shaft 2 bore
+    length  = float(params.get("length_mm",  30.0))
+    clamp_w = float(params.get("clamp_slot_mm", 1.0))   # clamping split width
+    screw_d = float(params.get("screw_d_mm",  3.0))     # clamp screw diameter
+
+    return f"""
+import cadquery as cq, math
+OD      = {od}
+BORE1   = {bore1}
+BORE2   = {bore2}
+LENGTH  = {length}
+CLAMP_W = {clamp_w}
+SCREW_D = {screw_d}
+
+# Body cylinder
+body = cq.Workplane("XY").circle(OD / 2).extrude(LENGTH)
+
+# Bore 1 from bottom face
+body = body.faces("<Z").workplane().circle(BORE1 / 2).cutBlind(-LENGTH / 2)
+
+# Bore 2 from top face
+body = body.faces(">Z").workplane().circle(BORE2 / 2).cutBlind(-LENGTH / 2)
+
+# Clamping split slot (axial, through full length, one side)
+split = (cq.Workplane("YZ")
+    .center(0, LENGTH / 2)
+    .rect(CLAMP_W, LENGTH)
+    .extrude(OD / 2)
+)
+result = body.cut(split)
+
+# Clamp screw holes (2 per end, perpendicular to split)
+screw_z_offsets = [LENGTH * 0.2, LENGTH * 0.8]
+for z in screw_z_offsets:
+    result = (result
+        .faces(">X")
+        .workplane(origin=(0, 0, z))
+        .circle(SCREW_D / 2)
+        .cutThruAll()
+    )
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_profile_extrusion(params: dict[str, Any]) -> str:
+    size   = float(params.get("size_mm",     20.0))   # 20=2020, 40=4040
+    length = float(params.get("length_mm",  400.0))
+    slot_w = float(params.get("slot_w_mm",   6.2))    # T-slot opening width
+    slot_d = float(params.get("slot_d_mm",   5.8))    # T-slot depth
+    neck_w = float(params.get("neck_w_mm",   5.2))    # T-slot neck width
+    bore_d = float(params.get("bore_d_mm",   size * 0.21))  # centre bore (~4.2mm for 2020)
+
+    return f"""
+import cadquery as cq
+SIZE   = {size}
+LENGTH = {length}
+SLOT_W = {slot_w}
+SLOT_D = {slot_d}
+NECK_W = {neck_w}
+BORE_D = {bore_d}
+
+# Square extrusion body
+result = cq.Workplane("XY").box(SIZE, SIZE, LENGTH)
+
+# Centre bore
+result = result.faces(">Z").workplane().circle(BORE_D / 2).cutThruAll()
+
+# T-slots on all 4 faces — neck cut then undercut for each face
+for face_sel, is_x in [(">X", True), ("<X", True), (">Y", False), ("<Y", False)]:
+    # Neck: narrow slot at surface
+    neck = (cq.Workplane("XY")
+        .workplane(offset=LENGTH / 2)
+        .rect(NECK_W if is_x else SIZE * 2, SIZE * 2 if is_x else NECK_W)
+        .cutBlind(-SLOT_D)
+    )
+    # Undercut: wider slot deeper in
+    under = (cq.Workplane("XY")
+        .workplane(offset=LENGTH / 2 - (SLOT_D - SLOT_D * 0.45))
+        .rect(SLOT_W if is_x else SIZE * 2, SIZE * 2 if is_x else SLOT_W)
+        .cutBlind(-(SLOT_D * 0.45))
+    )
+    result = result.cut(neck).cut(under)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
 _CQ_TEMPLATE_MAP: dict[str, Any] = {
     # ARIA structural parts
     "aria_ratchet_ring": _cq_ratchet_ring,
@@ -858,7 +1202,47 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "aria_brake_drum":   _cq_brake_drum,
     "aria_catch_pawl":   _cq_catch_pawl,
     "aria_rope_guide":   _cq_rope_guide,
-    # Generic mechanical parts
+    # ── Generic / user-facing names (no ARIA prefix) ─────────────────────────
+    # Flat panels & bars
+    "hollow_rect":       _cq_hollow_rect,
+    "box_shell":         _cq_hollow_rect,
+    "hollow_box":        _cq_hollow_rect,
+    "flat_plate":        _cq_flat_plate,
+    "flat_panel":        _cq_flat_plate,
+    "mounting_plate":    _cq_flat_plate,
+    "flat_bar":          _cq_catch_pawl,   # length×width×thickness strip
+    "flat_strip":        _cq_catch_pawl,
+    "aero_surface":      _cq_catch_pawl,
+    "wing_element":      _cq_catch_pawl,
+    "panel":             _cq_catch_pawl,
+    "bar":               _cq_catch_pawl,
+    # Cylinders & discs
+    "rod":               _cq_shaft,
+    "cylinder":          _cq_shaft,
+    "round_rod":         _cq_shaft,
+    "shaft":             _cq_shaft,
+    "pin":               _cq_pin,
+    "disc":              _cq_spacer,
+    "ring":              _cq_spacer,
+    "washer":            _cq_spacer,
+    "annulus":           _cq_spacer,
+    "spacer":            _cq_spacer,
+    "wheel":             _cq_spacer,
+    "tube":              _cq_tube,
+    "round_tube":        _cq_tube,
+    # Housings & hubs
+    "housing":           _cq_housing,
+    "hub":               _cq_housing,
+    "flange_hub":        _cq_housing,
+    "bearing_housing":   _cq_housing,
+    "upright":           _cq_housing,
+    # Brackets & flanges
+    "bracket":           _cq_bracket,
+    "flange":            _cq_flange,
+    "pulley":            _cq_pulley,
+    "gear":              _cq_gear,
+    "cam":               _cq_cam,
+    # Generic mechanical parts (ARIA-prefixed kept for backward compat)
     "aria_bracket":      _cq_bracket,
     "aria_flange":       _cq_flange,
     "aria_shaft":        _cq_shaft,
@@ -870,6 +1254,28 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "aria_gear":         _cq_gear,
     "aria_escape_wheel": _cq_escape_wheel,
     "escape_wheel":      _cq_escape_wheel,
+    # Standard mechanical components
+    "nema_motor":              _cq_nema_motor,
+    "nema17":                  _cq_nema_motor,
+    "nema23":                  _cq_nema_motor,
+    "nema34":                  _cq_nema_motor,
+    "stepper_motor":           _cq_nema_motor,
+    "servo_motor":             _cq_nema_motor,
+    "mgn_rail":                _cq_mgn_rail,
+    "linear_rail":             _cq_mgn_rail,
+    "mgn12":                   _cq_mgn_rail,
+    "mgn15":                   _cq_mgn_rail,
+    "mgn25":                   _cq_mgn_rail,
+    "ball_bearing":            _cq_ball_bearing,
+    "bearing":                 _cq_ball_bearing,
+    "shaft_coupling":          _cq_shaft_coupling,
+    "rigid_coupling":          _cq_shaft_coupling,
+    "coupler":                 _cq_shaft_coupling,
+    "profile_extrusion":       _cq_profile_extrusion,
+    "aluminum_extrusion":      _cq_profile_extrusion,
+    "vslot":                   _cq_profile_extrusion,
+    "2020_extrusion":          _cq_profile_extrusion,
+    "4040_extrusion":          _cq_profile_extrusion,
     # LRE / nozzle
     "lre_nozzle":        _cq_nozzle,
     "aria_nozzle":       _cq_nozzle,
@@ -889,9 +1295,14 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "tube":                         _cq_tube,
     "pipe":                         _cq_tube,
     "sleeve":                       _cq_tube,
-    "plate":                        _cq_bracket,
-    "base_plate":                   _cq_bracket,
-    "mounting_plate":               _cq_bracket,
+    "flat_plate":                   _cq_flat_plate,
+    "plate":                        _cq_flat_plate,
+    "base_plate":                   _cq_flat_plate,
+    "mounting_plate":               _cq_flat_plate,
+    "face_plate":                   _cq_flat_plate,
+    "hollow_rect":                  _cq_hollow_rect,
+    "arm_link":                     _cq_hollow_rect,
+    "structural_link":              _cq_hollow_rect,
     "housing":                      _cq_housing,
     "enclosure":                    _cq_housing,
     "box":                          _cq_housing,
@@ -908,8 +1319,10 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["catch_pawl", "trip_pawl"],                              _cq_catch_pawl),
     (["rope_guide"],                                           _cq_rope_guide),
     (["spool"],                                                _cq_spool),
+    (["hollow_rect", "arm_link", "link"],                      _cq_hollow_rect),
     (["housing", "enclosure"],                                 _cq_housing),
     (["flange"],                                               _cq_flange),
+    (["base_plate", "mounting_plate", "face_plate", "flat_plate"], _cq_flat_plate),
     (["bracket", "plate", "mount"],                            _cq_bracket),
     (["shaft", "axle", "drive_shaft"],                         _cq_shaft),
     (["tube", "pipe", "sleeve"],                               _cq_tube),
@@ -919,6 +1332,11 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["spacer", "washer", "bushing"],                          _cq_spacer),
     (["gear", "sprocket", "cog"],                              _cq_gear),
     (["ring", "collar", "annular"],                            _cq_spacer),
+    (["nema", "stepper", "servo_motor"],                       _cq_nema_motor),
+    (["mgn", "linear_rail"],                                   _cq_mgn_rail),
+    (["bearing"],                                              _cq_ball_bearing),
+    (["coupling", "coupler"],                                  _cq_shaft_coupling),
+    (["extrusion", "vslot", "tslot"],                          _cq_profile_extrusion),
 ]
 
 
@@ -1187,12 +1605,18 @@ print(f"EXPORTED STL: {{_stl}}")
         else:
             Path(step_path).parent.mkdir(parents=True, exist_ok=True)
             Path(stl_path).parent.mkdir(parents=True, exist_ok=True)
-            exporters.export(geom, step_path, exporters.ExportTypes.STEP)
-            exporters.export(geom, stl_path,  exporters.ExportTypes.STL)
-            result_step = step_path
-            result_stl  = stl_path
             bb = geom.val().BoundingBox()
             bbox = {"x": round(bb.xlen, 2), "y": round(bb.ylen, 2), "z": round(bb.zlen, 2)}
+            # Gate export on non-degenerate geometry — catches LLM zero-volume output early
+            if bb.xlen < 0.1 or bb.ylen < 0.1 or bb.zlen < 0.1:
+                error = (f"Degenerate bbox {bb.xlen:.3f}×{bb.ylen:.3f}×{bb.zlen:.3f} mm"
+                         " — geometry invalid, skipping export")
+            else:
+                exporters.export(geom, step_path, exporters.ExportTypes.STEP)
+                exporters.export(geom, stl_path,  exporters.ExportTypes.STL,
+                                 tolerance=0.01)   # finer mesh for smooth preview
+                result_step = step_path
+                result_stl  = stl_path
 
             # --- Output quality assertions ---
             # Check mesh volume vs bounding-box volume using trimesh.

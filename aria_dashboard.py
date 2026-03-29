@@ -23,6 +23,7 @@ from aria_drop_parser import render_drop_parser_tab
 from aria_fault_behavior import render_fault_table_tab
 from aria_cad_tab import render_cad_tab
 from aria_api_tab import render_api_tab
+from aria_outputs_tab import render_outputs_tab
 
 try:  # optional, used for live serial connection
     import serial  # type: ignore
@@ -187,6 +188,9 @@ SETUPS = {
     ],
     "State Machine Visualizer": [
         "Interactive timeline",
+    ],
+    "Outputs Browser": [
+        "All generated files",
     ],
 }
 
@@ -514,6 +518,9 @@ else:
 
     elif setup.startswith("State Machine Visualizer"):
         render_statemachine_tab()
+
+    elif setup.startswith("Outputs Browser"):
+        render_outputs_tab()
 
     elif setup.startswith("Design History"):
         render_history_tab()

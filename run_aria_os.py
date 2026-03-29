@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """ARIA-OS CLI: python run_aria_os.py \"describe the part you want\"
-  --list       List all generated parts with file sizes and validation status
-  --validate   Re-validate all existing STEP outputs (size + re-import)
-  --modify     Modify existing part: --modify <path_to_.py> \"modification description\"
-  --assemble   Create assembly from JSON: --assemble assembly_configs/foo.json
+  --list                List all generated parts with file sizes and validation status
+  --validate            Re-validate all existing STEP outputs (size + re-import)
+  --modify              Modify existing part: --modify <path_to_.py> \"modification description\"
+  --assemble            Create assembly from JSON: --assemble assembly_configs/foo.json
+  --scenario            Interpret a real-world situation and generate all needed parts
+  --scenario-dry-run    Show parts list for a scenario without generating
+  --system              Two-pass whole-machine design: decompose to subsystems, expand to parts, generate all
+  --system-dry-run      Show full subsystem + parts breakdown without generating
 """
 import sys
 import json
@@ -31,34 +35,19 @@ def run_modify(base_part_path: str, modification: str):
 
 
 def run_assemble(config_path: str):
-    """Load JSON config, run Assembler, export STEP/STL."""
-    from aria_os.assembler import Assembler, AssemblyPart
+    """Load JSON config and build assembly via assemble.py (handles component: prefix, pos/rot keys)."""
+    from assemble import build_assembly
     path = ROOT / config_path if not Path(config_path).is_absolute() else Path(config_path)
     if not path.exists():
         print(f"Config not found: {path}")
         sys.exit(1)
-    cfg = json.loads(path.read_text(encoding="utf-8"))
-    name = cfg.get("name", "assembly")
-    parts = []
-    for p in cfg.get("parts", []):
-        step_path = p.get("step_path")
-        if not Path(step_path).is_absolute():
-            step_path = str(ROOT / step_path)
-        parts.append(AssemblyPart(
-            step_path=step_path,
-            position=tuple(p.get("position", [0, 0, 0])),
-            rotation=tuple(p.get("rotation", [0, 0, 0])),
-            name=p.get("name", "part"),
-        ))
-    assy = Assembler(repo_root=ROOT)
-    constraints = cfg.get("constraints", [])
-    # run_assemble does not load full context; assembler will do so if needed
-    out_path = assy.assemble(parts, name, constraints=constraints or None, context=None)
+    out_path = build_assembly(config_path=path, open_preview=False)
     print(f"Assembly exported: {out_path}")
 
 
 def list_parts():
-    """List all .step files in outputs/cad/step with size and validation status."""
+    """List all .step files in outputs/cad/step with size, validation, and version info."""
+    import json as _json
     step_dir = ROOT / "outputs" / "cad" / "step"
     if not step_dir.exists():
         print("No outputs/cad/step directory.")
@@ -68,17 +57,41 @@ def list_parts():
     if not steps:
         print("No STEP files found.")
         return
-    print(f"{'Part':<25} {'STEP size':<12} {'STL size':<12} {'Valid':<8}")
-    print("-" * 60)
-    stl_dir = ROOT / "outputs" / "cad" / "stl"
+    print(f"{'Part':<28} {'STEP':<10} {'STL':<10} {'Valid':<6} {'CEM SF':<8} {'Generated':<20} {'SHA'}")
+    print("-" * 100)
+    stl_dir  = ROOT / "outputs" / "cad" / "stl"
+    meta_dir = ROOT / "outputs" / "cad" / "meta"
     for p in steps:
         name = p.stem
-        step_kb = p.stat().st_size / 1024
-        stl_path = stl_dir / (name + ".stl")
-        stl_kb = stl_path.stat().st_size / 1024 if stl_path.exists() else 0
+        step_kb   = p.stat().st_size / 1024
+        stl_path  = stl_dir / (name + ".stl")
+        meta_path = meta_dir / (name + ".json")
+        stl_kb    = stl_path.stat().st_size / 1024 if stl_path.exists() else 0
         valid, count, errs = validate_step_file(p, min_size_kb=1.0)
-        status = "OK" if valid else ("FAIL: " + "; ".join(errs[:1]))
-        print(f"{name:<25} {step_kb:>8.1f} KB   {stl_kb:>8.1f} KB   {status:<8}")
+        status = "OK" if valid else "FAIL"
+
+        # Version tracking fields
+        cem_sf  = ""
+        gen_at  = ""
+        git_sha = ""
+        stale   = ""
+        if meta_path.exists():
+            try:
+                _m = _json.loads(meta_path.read_text(encoding="utf-8"))
+                _sf = _m.get("cem_sf")
+                cem_sf  = f"{_sf:.2f}" if _sf is not None else "-"
+                gen_at  = (_m.get("generated_at") or "")[:16]
+                git_sha = _m.get("git_sha") or ""
+                # Stale if STEP file is newer than meta (regenerated outside pipeline)
+                _meta_mtime = meta_path.stat().st_mtime
+                _step_mtime = p.stat().st_mtime
+                stale = " [STALE]" if _step_mtime > _meta_mtime + 2 else ""
+            except Exception:
+                pass
+
+        size_str = f"{step_kb:>6.0f}KB" if step_kb < 1024 else f"{step_kb/1024:>5.1f}MB"
+        stl_str  = f"{stl_kb:>6.0f}KB" if stl_kb < 1024 else f"{stl_kb/1024:>5.1f}MB"
+        print(f"{name+stale:<28} {size_str:<10} {stl_str:<10} {status:<6} {cem_sf:<8} {gen_at:<20} {git_sha}")
 
 
 def validate_all():
@@ -724,7 +737,97 @@ def run_lattice(args: list[str]):
         console.print("  Process check: FAIL - see warnings")
 
 
+def _run_full(goal: str) -> None:
+    """
+    --full mode: generate → FEA → GD&T drawing → PNG render → CAM script.
+    All outputs are produced in one shot without any interactive prompts.
+    """
+    from pathlib import Path as _Path
+    _root = _Path(__file__).resolve().parent
+
+    print(f"\n{'='*64}")
+    print(f"  FULL PIPELINE  —  {goal}")
+    print(f"{'='*64}\n")
+
+    # 1. Generate (auto_draw=True so drawing is made without interactive prompt)
+    from aria_os import run as _ario_run
+    session = _ario_run(goal, repo_root=_root, auto_draw=True)
+    if not isinstance(session, dict):
+        print("[FULL] Generation returned no session — aborting.")
+        return
+
+    step = session.get("step_path", "")
+    stl  = session.get("stl_path", "")
+    params = session.get("params") or {}
+    part_id = session.get("part_id") or goal.split()[0]
+
+    # 2. FEA (if not already run by orchestrator)
+    if step and _Path(step).exists() and not session.get("physics_analysis"):
+        print("\n[FULL] Running FEA...")
+        try:
+            from aria_os.physics_analyzer import analyze as _phys
+            _r = _phys(part_id=part_id, analysis_type="auto", params=params, goal=goal, repo_root=_root)
+            print(_r["report"])
+            sf = _r.get("safety_factor")
+            print(f"[FULL] FEA: {'PASS' if _r['passed'] else 'FAIL'}" + (f"  SF={sf:.2f}" if sf else ""))
+        except Exception as e:
+            print(f"[FULL] FEA skipped: {e}")
+
+    # 3. GD&T drawing (if not already made by auto_draw)
+    if step and _Path(step).exists() and not session.get("drawing_path"):
+        print("\n[FULL] Generating GD&T drawing...")
+        try:
+            from aria_os.drawing_generator import generate_gdnt_drawing
+            _svg = generate_gdnt_drawing(step, part_id, params=params, repo_root=_root)
+            print(f"[FULL] Drawing: {_svg}")
+        except Exception as e:
+            print(f"[FULL] Drawing skipped: {e}")
+
+    # 4. PNG render
+    if stl and _Path(stl).exists():
+        print("\n[FULL] Rendering PNG preview...")
+        try:
+            from batch import _render_stl, OUT_SHOTS
+            _slug = _Path(stl).stem
+            _png = OUT_SHOTS / f"{_slug}.png"
+            _err = _render_stl(stl, _png)
+            if _err:
+                print(f"[FULL] Render WARN: {_err}")
+            else:
+                print(f"[FULL] Preview: {_png}")
+        except Exception as e:
+            print(f"[FULL] Render skipped: {e}")
+
+    # 5. CAM script (requires STEP)
+    if step and _Path(step).exists():
+        print("\n[FULL] Generating CAM script...")
+        try:
+            from aria_os.cam_generator import generate_cam_script
+            _mat = params.get("material", "aluminium_6061")
+            generate_cam_script(step, material=_mat)
+        except Exception as e:
+            print(f"[FULL] CAM skipped: {e}")
+
+    print(f"\n{'='*64}")
+    print(f"  FULL PIPELINE COMPLETE")
+    print(f"{'='*64}")
+    print(f"  STEP    : {step or '(none)'}")
+    print(f"  STL     : {stl or '(none)'}")
+    if session.get("drawing_path"):
+        print(f"  Drawing : {session['drawing_path']}")
+    print(f"  CAM     : outputs/cam/{_Path(step).stem if step else '?'}/")
+    print(f"  Preview : outputs/screenshots/{_Path(stl).stem if stl else '?'}.png")
+    print(f"{'='*64}\n")
+
+
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == "--full":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --full \"part description\"")
+            sys.exit(1)
+        _full_goal = " ".join(sys.argv[2:])
+        _run_full(_full_goal)
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "--list":
         list_parts()
         return
@@ -739,6 +842,70 @@ def main():
         modification = " ".join(sys.argv[3:])
         run_modify(base_part_path, modification)
         return
+    if len(sys.argv) >= 2 and sys.argv[1] == "--cam":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
+            sys.exit(1)
+        from aria_os.cam_generator import generate_cam_script
+        step_arg = sys.argv[2]
+        mat = "aluminium_6061"
+        if "--material" in sys.argv:
+            mat = sys.argv[sys.argv.index("--material") + 1]
+        generate_cam_script(step_arg, material=mat)
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--draw":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --draw <step_file>")
+            sys.exit(1)
+        _draw_step = Path(sys.argv[2])
+        if not _draw_step.is_absolute():
+            _draw_step = ROOT / _draw_step
+        if not _draw_step.exists():
+            print(f"STEP file not found: {_draw_step}")
+            sys.exit(1)
+        _part_stub = _draw_step.stem
+        _meta_path = ROOT / "outputs" / "cad" / "meta" / f"{_part_stub}.json"
+        _params: dict = {}
+        if _meta_path.exists():
+            _params = json.loads(_meta_path.read_text(encoding="utf-8"))
+        from aria_os.drawing_generator import generate_gdnt_drawing
+        _svg = generate_gdnt_drawing(_draw_step, _part_stub, _params, repo_root=ROOT)
+        print(f"[DRAW] SVG: {_svg}")
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--ecad":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --ecad \"board description\" [--out outputs/ecad/]")
+            sys.exit(1)
+        _ecad_args = sys.argv[2:]
+        _ecad_out = None
+        if "--out" in _ecad_args:
+            _ecad_out = _ecad_args[_ecad_args.index("--out") + 1]
+            _ecad_args = [a for i, a in enumerate(_ecad_args) if a != "--out" and (i == 0 or _ecad_args[i-1] != "--out")]
+        _ecad_desc = " ".join(a for a in _ecad_args if not a.startswith("--"))
+        from aria_os.ecad_generator import generate_ecad
+        generate_ecad(_ecad_desc, out_dir=Path(_ecad_out) if _ecad_out else ROOT / "outputs" / "ecad")
+        return
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--constrain":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --constrain assembly_configs/foo.json [--proximity 50]")
+            sys.exit(1)
+        import importlib.util as _ilu
+        _ac_path = ROOT / "assemble_constrain.py"
+        _spec = _ilu.spec_from_file_location("assemble_constrain", _ac_path)
+        _ac = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_ac)
+        _prox = 50.0
+        if "--proximity" in sys.argv:
+            _prox = float(sys.argv[sys.argv.index("--proximity") + 1])
+        _cfg_path = Path(sys.argv[2])
+        if not _cfg_path.is_absolute():
+            _cfg_path = ROOT / _cfg_path
+        _ac.generate_constrained_script(_cfg_path, proximity_mm=_prox)
+        return
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--assemble":
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --assemble assembly_configs/aria_clutch_assembly.json")
@@ -831,6 +998,103 @@ def main():
             sys.exit(1)
         run_generate_and_assemble(description, into_path, part_label, at_vec, rot_vec)
         return
+    # --- --scenario: interpret a real-world scenario and generate all parts ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--scenario":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --scenario \"description of situation\" [--auto-confirm]")
+            sys.exit(1)
+        _argv_rest = sys.argv[2:]
+        _auto_confirm = "--auto-confirm" in _argv_rest
+        _scenario_text = " ".join(a for a in _argv_rest if a != "--auto-confirm")
+        from aria_os.scenario_interpreter import interpret_and_generate
+        interpret_and_generate(_scenario_text, repo_root=ROOT, auto_confirm=_auto_confirm)
+        return
+
+    # --- --scenario-dry-run: show parts list without generating ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--scenario-dry-run":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --scenario-dry-run \"description of situation\"")
+            sys.exit(1)
+        _scenario_text = " ".join(sys.argv[2:])
+        from aria_os.scenario_interpreter import interpret_scenario, _print_plan
+        _goals = interpret_scenario(_scenario_text, repo_root=ROOT)
+        _print_plan(_goals, _scenario_text)
+        print(f"\nDry run complete. {len(_goals)} part(s) identified. Use --scenario to generate.")
+        return
+
+    # --- --system: two-pass whole-machine decomposition + generation ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--system":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --system \"describe the full machine/device\" [--auto-confirm]")
+            sys.exit(1)
+        _argv_rest   = sys.argv[2:]
+        _auto_confirm = "--auto-confirm" in _argv_rest
+        _system_text  = " ".join(a for a in _argv_rest if a != "--auto-confirm")
+        from aria_os.scenario_interpreter import interpret_system_and_generate
+        interpret_system_and_generate(_system_text, repo_root=ROOT, auto_confirm=_auto_confirm)
+        return
+
+    # --- --system-dry-run: show subsystem+parts plan without generating ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--system-dry-run":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --system-dry-run \"describe the full machine/device\"")
+            sys.exit(1)
+        _system_text = " ".join(sys.argv[2:])
+        from aria_os.scenario_interpreter import interpret_system, _print_system_plan
+        _result = interpret_system(_system_text, repo_root=ROOT)
+        _print_system_plan(_result["subsystems"], _result["parts"], _system_text)
+        print(f"\nDry run complete. {len(_result['subsystems'])} subsystem(s), "
+              f"{len(_result['parts'])} part(s). Use --system to generate.")
+        if _result.get("assembly_path"):
+            print(f"Assembly config: {_result['assembly_path']}")
+        return
+
+    # --- --analyze-part: run FEA/CFD on an existing STEP file ---
+    if len(sys.argv) >= 2 and sys.argv[1] == "--analyze-part":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --analyze-part <path_to.step> [--fea|--cfd|--auto]")
+            sys.exit(1)
+        _step_arg = sys.argv[2]
+        _atype_arg = "auto"
+        for _a in sys.argv[3:]:
+            if _a in ("--fea", "--cfd", "--auto"):
+                _atype_arg = _a.lstrip("-")
+        _step_path = Path(_step_arg) if Path(_step_arg).is_absolute() else ROOT / _step_arg
+        if not _step_path.exists():
+            print(f"STEP file not found: {_step_path}")
+            sys.exit(1)
+        # Try to load params from meta JSON
+        _part_stub = _step_path.stem
+        _meta_path = ROOT / "outputs" / "cad" / "meta" / f"{_part_stub}.json"
+        _params: dict = {}
+        if _meta_path.exists():
+            _params = json.loads(_meta_path.read_text(encoding="utf-8"))
+            print(f"[ANALYZE] Loaded params from {_meta_path}")
+        else:
+            print(f"[ANALYZE] No meta JSON found at {_meta_path} — running with empty params")
+        from aria_os.physics_analyzer import analyze as _phys_analyze
+        _result = _phys_analyze(
+            part_id=_part_stub,
+            analysis_type=_atype_arg,
+            params=_params,
+            goal=_part_stub.replace("_", " "),
+            repo_root=ROOT,
+        )
+        print()
+        print(_result["report"])
+        if _result.get("failures"):
+            for _f in _result["failures"]:
+                print(f"  [FAIL] {_f}")
+        if _result.get("warnings"):
+            for _w in _result["warnings"]:
+                print(f"  [WARN] {_w}")
+        _sf_val = _result.get("safety_factor")
+        if _sf_val is not None:
+            print(f"\n[ANALYZE] {_result['analysis_type']}  SF={_sf_val:.2f}  {'PASS' if _result['passed'] else 'FAIL'}")
+        else:
+            print(f"\n[ANALYZE] {_result['analysis_type']}  {'PASS' if _result['passed'] else 'FAIL'}")
+        return
+
     # --- --image: analyse a photo and derive a goal, then run pipeline ---
     if len(sys.argv) >= 2 and sys.argv[1] == "--image":
         if len(sys.argv) < 3:
@@ -855,21 +1119,79 @@ def main():
 
     if len(sys.argv) < 2:
         print("Usage: python run_aria_os.py \"describe the part you want\"")
+        print("       python run_aria_os.py \"part description\" --fea   # force FEA after export")
+        print("       python run_aria_os.py \"part description\" --cfd   # force CFD after export")
+        print("       python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step")
         print("       python run_aria_os.py --image <photo.jpg> [\"hint\"] [--preview]")
+        print("       python run_aria_os.py --scenario \"real-world situation\" [--auto-confirm]")
+        print("       python run_aria_os.py --scenario-dry-run \"real-world situation\"")
+        print("       python run_aria_os.py --system \"design a desktop CNC router 300x300x100mm\" [--auto-confirm]")
+        print("       python run_aria_os.py --system-dry-run \"design a 6-DOF robot arm, 1kg payload\"")
         print("       python run_aria_os.py --list")
         print("       python run_aria_os.py --validate")
         print("       python run_aria_os.py --modify <path_to_.py> \"modification\"")
         print("       python run_aria_os.py --assemble <config.json>")
+        print("       python run_aria_os.py --constrain <config.json> [--proximity 50]")
+        print("       python run_aria_os.py --draw <step_file>")
+        print("       python run_aria_os.py --ecad \"board description\" [--out outputs/ecad/]")
+        print("       python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
+        print("       python run_aria_os.py \"part description\" --render")
+        print("       python run_aria_os.py --full \"part description\"  # generate+FEA+draw+render+CAM in one shot")
         print("Example: python run_aria_os.py \"generate the ARIA housing shell\"")
         sys.exit(1)
 
-    # Strip --preview from args before joining into goal
+    # Strip control flags from args before joining into goal
     _args = sys.argv[1:]
     _preview = "--preview" in _args
-    _args = [a for a in _args if a != "--preview"]
+    _force_fea = "--fea" in _args
+    _force_cfd = "--cfd" in _args
+    _render = "--render" in _args
+    _args = [a for a in _args if a not in ("--preview", "--fea", "--cfd", "--render")]
     goal = " ".join(_args)
     from aria_os import run
-    run(goal, repo_root=ROOT, preview=_preview)
+    session = run(goal, repo_root=ROOT, preview=_preview)
+
+    # --render: save a PNG preview of the generated STL
+    if _render and isinstance(session, dict):
+        _stl_p = session.get("stl_path") or session.get("stl")
+        if _stl_p and Path(_stl_p).exists():
+            from batch import _render_stl, OUT_SHOTS
+            _slug = Path(_stl_p).stem
+            _png = OUT_SHOTS / f"{_slug}.png"
+            _err = _render_stl(str(_stl_p), _png)
+            if _err:
+                print(f"[RENDER] WARN: {_err}")
+            else:
+                print(f"[RENDER] -> outputs/screenshots/{_slug}.png")
+
+    # --fea / --cfd: run physics analysis immediately after pipeline finishes
+    if (_force_fea or _force_cfd) and isinstance(session, dict):
+        _forced_type = "fea" if _force_fea else "cfd"
+        _plan_params = session.get("params") or {}
+        _part_id_f   = goal.split()[0] if goal else "aria_part"
+        print(f"\n[PHYSICS] Running forced {_forced_type.upper()} analysis...")
+        from aria_os.physics_analyzer import analyze as _phys_analyze
+        _result = _phys_analyze(
+            part_id=_part_id_f,
+            analysis_type=_forced_type,
+            params=_plan_params,
+            goal=goal,
+            repo_root=ROOT,
+        )
+        print()
+        print(_result["report"])
+        if _result.get("failures"):
+            for _f in _result["failures"]:
+                print(f"  [FAIL] {_f}")
+        if _result.get("warnings"):
+            for _w in _result["warnings"]:
+                print(f"  [WARN] {_w}")
+        _sf_val = _result.get("safety_factor")
+        if _sf_val is not None:
+            print(f"[PHYSICS] {_result['analysis_type']}  SF={_sf_val:.2f}  {'PASS' if _result['passed'] else 'FAIL'}")
+        else:
+            print(f"[PHYSICS] {_result['analysis_type']}  {'PASS' if _result['passed'] else 'FAIL'}")
+
     print("Done.")
 
 

@@ -1,0 +1,80 @@
+[
+  {
+    "label": "Robot Base Plate",
+    "part_id": "base_plate",
+    "params": {
+      "width_mm": 200.0, "depth_mm": 200.0, "thickness_mm": 15.0,
+      "bore_mm": 120.0, "n_bolts": 4, "bolt_dia_mm": 8.0, "bolt_square_mm": 160.0
+    }
+  },
+  {
+    "label": "Robot Waist Housing",
+    "part_id": "housing",
+    "params": {
+      "od_mm": 130.0, "height_mm": 120.0, "bore_mm": 80.0,
+      "n_bolts": 6, "bolt_dia_mm": 6.0, "bolt_circle_r_mm": 100.0
+    }
+  },
+  {
+    "label": "Robot Shoulder Housing",
+    "part_id": "housing",
+    "params": {
+      "od_mm": 110.0, "height_mm": 100.0, "bore_mm": 60.0,
+      "n_bolts": 4, "bolt_dia_mm": 8.0, "bolt_circle_r_mm": 85.0
+    }
+  },
+  {
+    "label": "Robot Upper Arm Link",
+    "part_id": "hollow_rect",
+    "params": {
+      "width_mm": 80.0, "depth_mm": 60.0, "length_mm": 400.0, "wall_mm": 6.0
+    }
+  },
+  {
+    "label": "Robot Elbow Housing",
+    "part_id": "housing",
+    "params": {
+      "od_mm": 90.0, "height_mm": 80.0, "bore_mm": 40.0,
+      "n_bolts": 4, "bolt_dia_mm": 6.0, "bolt_circle_r_mm": 70.0
+    }
+  },
+  {
+    "label": "Robot Forearm Link",
+    "part_id": "hollow_rect",
+    "params": {
+      "width_mm": 60.0, "depth_mm": 50.0, "length_mm": 300.0, "wall_mm": 5.0
+    }
+  },
+  {
+    "label": "Robot Wrist Roll Housing",
+    "part_id": "housing",
+    "params": {
+      "od_mm": 70.0, "height_mm": 60.0, "bore_mm": 30.0,
+      "n_bolts": 4, "bolt_dia_mm": 5.0, "bolt_circle_r_mm": 55.0
+    }
+  },
+  {
+    "label": "Robot Wrist Pitch Housing",
+    "part_id": "housing",
+    "params": {
+      "od_mm": 65.0, "height_mm": 55.0, "bore_mm": 25.0,
+      "n_bolts": 4, "bolt_dia_mm": 5.0, "bolt_circle_r_mm": 50.0
+    }
+  },
+  {
+    "label": "Robot Tool Flange",
+    "part_id": "flange",
+    "params": {
+      "od_mm": 60.0, "bore_mm": 25.0, "thickness_mm": 20.0,
+      "n_bolts": 4, "bolt_dia_mm": 5.0, "bolt_circle_r_mm": 45.0
+    }
+  },
+  {
+    "label": "Welding Torch Bracket",
+    "part_id": "base_plate",
+    "params": {
+      "width_mm": 80.0, "depth_mm": 60.0, "thickness_mm": 15.0,
+      "bore_mm": 35.0, "n_bolts": 4, "bolt_dia_mm": 5.0, "bolt_square_mm": 50.0
+    }
+  }
+]

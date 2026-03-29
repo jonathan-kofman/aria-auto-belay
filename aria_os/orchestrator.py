@@ -1,4 +1,5 @@
 """ARIA-OS orchestrator: load context -> plan -> route -> generate -> validate -> export -> log."""
+import sys as _sys
 from pathlib import Path
 from .context_loader import load_context
 from .planner import plan as planner_plan
@@ -16,7 +17,19 @@ from .validator import validate_grasshopper_script
 from .post_gen_validator import run_validation_loop, check_output_quality
 
 
-def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, preview: bool = False):
+def _prompt_gdnt_drawing() -> bool:
+    """Ask user if they want a GD&T drawing. Returns True if yes. Non-blocking if not a tty."""
+    if not _sys.stdin.isatty():
+        return False
+    try:
+        print()
+        ans = input("[GD&T] Generate engineering drawing for this part? [y/N]: ").strip().lower()
+        return ans in ("y", "yes")
+    except (EOFError, KeyboardInterrupt):
+        return False
+
+
+def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, preview: bool = False, auto_draw: bool = False):
     """Run the ARIA-OS pipeline: plan → route → generate artifacts → validate → log."""
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent
@@ -39,6 +52,9 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
         # Sync user-specified dims back into base_shape so validation expected_bbox
         # reflects what the user actually asked for, not the planner's template defaults.
         _base = plan.get("base_shape")
+        if not isinstance(_base, dict):
+            plan["base_shape"] = {}
+            _base = plan["base_shape"]
         if isinstance(_base, dict):
             _DIM_KEYS = (
                 "od_mm", "bore_mm", "id_mm", "thickness_mm", "height_mm",
@@ -121,7 +137,6 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
     print(f"[AUTOMATION] Primary CAD: {cad_tool} (artifacts -> outputs/cad/...)")
     print("-" * 64)
     # Encode-safe: replace chars the Windows console can't handle
-    import sys as _sys
     _enc = getattr(_sys.stdout, "encoding", "utf-8") or "utf-8"
     print(plan_text.encode(_enc, errors="replace").decode(_enc))
     print("=" * 64 + "\n")
@@ -135,6 +150,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
 
     if cad_tool == "grasshopper":
         _gh_previous_failures: list[str] = []
+        _gh_succeeded = False
         for _gh_attempt in range(max_attempts):
             try:
                 artifacts = write_grasshopper_artifacts(
@@ -144,6 +160,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                     str(stl_path),
                     repo_root=repo_root,
                 )
+                _gh_succeeded = True
                 break
             except RuntimeError as _gh_err:
                 _gh_reason = str(_gh_err)
@@ -153,26 +170,31 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                 if _gh_attempt + 1 >= max_attempts:
                     print(f"[GH FAIL] All {max_attempts} attempts exhausted.")
                     artifacts = {"status": "failure", "error": _gh_reason, "previous_failures": _gh_previous_failures}
+
+        if not _gh_succeeded:
+            # Fall back to CadQuery so the pipeline always produces geometry.
+            # GH script artifacts are still written to disk — they can be used in
+            # Rhino Compute later. CadQuery gives an immediate STEP/STL.
+            print(f"[GH→CQ FALLBACK] Rhino Compute unavailable — generating CadQuery artifact instead.")
+            session["gh_fallback"] = True
+            cad_tool = "cadquery"
         else:
-            artifacts = artifacts if artifacts else {"status": "failure", "error": "GH loop exhausted"}
-
-        script_path = artifacts.get("script_path", "")
-        session["script_path"] = script_path
-
-        if script_path:
-            script_ok, script_errors = validate_grasshopper_script(script_path)
-            if not script_ok:
-                for e in script_errors:
-                    event_bus.emit("validation", f"Script validation: {e}", {"part_id": part_id})
-                    print(f"[SCRIPT WARN] {e}")
-            else:
-                size = Path(script_path).stat().st_size
-                print(f"[GRASSHOPPER] Script ready: {script_path} ({size} bytes)")
-                event_bus.emit(
-                    "grasshopper",
-                    f"[GRASSHOPPER] Script ready: {script_path} ({size} bytes)",
-                    {"script_path": script_path, "size_bytes": size, "part_id": part_id},
-                )
+            script_path = artifacts.get("script_path", "")
+            session["script_path"] = script_path
+            if script_path:
+                script_ok, script_errors = validate_grasshopper_script(script_path)
+                if not script_ok:
+                    for e in script_errors:
+                        event_bus.emit("validation", f"Script validation: {e}", {"part_id": part_id})
+                        print(f"[SCRIPT WARN] {e}")
+                else:
+                    size = Path(script_path).stat().st_size
+                    print(f"[GRASSHOPPER] Script ready: {script_path} ({size} bytes)")
+                    event_bus.emit(
+                        "grasshopper",
+                        f"[GRASSHOPPER] Script ready: {script_path} ({size} bytes)",
+                        {"script_path": script_path, "size_bytes": size, "part_id": part_id},
+                    )
 
     elif cad_tool == "blender":
         artifacts = write_blender_artifacts(
@@ -300,10 +322,18 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
             artifacts["script_path"] = str(script_file)
             session["script_path"] = str(script_file)
             print(f"[FUSION360] Script ready: {script_file}")
+            print(f"[FUSION360] Run this script inside Fusion 360 to produce STEP/STL.")
             event_bus.emit("complete", "Fusion 360 script written", {"part_id": part_id})
         except Exception as exc:
             event_bus.emit("error", f"Fusion 360 generator failed: {exc}", {"part_id": part_id})
             print(f"[FUSION360 ERROR] {exc}")
+
+        # Always generate a CadQuery approximation so the pipeline produces immediate geometry.
+        # The Fusion script is the authoritative design (lattice/generative/simulation);
+        # the CQ artifact is a structural placeholder for assembly and preview.
+        print(f"[FUSION360→CQ] Generating CadQuery approximation for preview/assembly...")
+        session["fusion_cq_approx"] = True
+        cad_tool = "cadquery"
 
     # --- Run validation loop for grasshopper backend ---
     # CadQuery validation is handled above via its own run_validation_loop call.
@@ -367,8 +397,8 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
     if runner and Path(runner).exists():
         event_bus.emit("step", "Attempting Rhino Compute execution", {"runner": runner})
         try:
-            import subprocess, sys as _sys
-            result = subprocess.run(
+            import subprocess as _subprocess
+            result = _subprocess.run(
                 [_sys.executable, runner],
                 capture_output=True, text=True, timeout=120,
             )
@@ -434,6 +464,33 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                         _p.unlink(missing_ok=True)
                 event_bus.emit("complete", "Preview: user discarded run", {"part_id": part_id})
                 return session
+            elif _export_choice == "fusion":
+                # Generate Fusion 360 parametric script from the same plan
+                try:
+                    from .fusion_generator import write_fusion_artifacts
+                    _fusion_result = write_fusion_artifacts(
+                        plan, goal,
+                        str(step_path), str(stl_path),
+                        repo_root=repo_root,
+                    )
+                    _fscript = _fusion_result["script_path"]
+                    print()
+                    print("=" * 64)
+                    print("  FUSION 360 SCRIPT GENERATED")
+                    print("=" * 64)
+                    print(f"  Script:  {_fscript}")
+                    print()
+                    print("  To use it in Fusion 360:")
+                    print("    1. Open Fusion 360")
+                    print("    2. Tools → Add-Ins → Scripts and Add-Ins")
+                    print("    3. Click the '+' next to My Scripts, point to the folder above")
+                    print("    4. Select the script and click Run")
+                    print("    5. The part builds with a full parametric feature tree")
+                    print("=" * 64)
+                    session["fusion_script"] = _fscript
+                except Exception as _fe:
+                    print(f"[PREVIEW] Fusion script generation failed: {_fe}")
+                # Keep STEP + STL as well (useful for reference / assembly)
             elif _export_choice == "step":
                 if stl_path.exists():
                     stl_path.unlink(missing_ok=True)
@@ -445,6 +502,51 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
             # "both" → keep everything (default)
         else:
             print("[PREVIEW] No STL available for preview — skipping viewer.")
+
+    # --- GD&T drawing prompt ---
+    if step_path.exists() and session.get("export_choice") != "skip":
+        _ask_gdnt = auto_draw or _prompt_gdnt_drawing()
+        if _ask_gdnt:
+            try:
+                from .drawing_generator import generate_gdnt_drawing
+                _drawing_path = generate_gdnt_drawing(
+                    step_path,
+                    part_id or "aria_part",
+                    params=plan.get("params"),
+                    repo_root=repo_root,
+                )
+                print(f"[GD&T] Drawing saved: {_drawing_path}")
+                session["drawing_path"] = str(_drawing_path)
+            except Exception as _de:
+                print(f"[GD&T] Drawing generation failed: {_de}")
+
+    # --- FEA/CFD physics analysis prompt (after STEP export) ---
+    if (step_path.exists() or stl_path.exists()) and session.get("export_choice") != "skip":
+        try:
+            from .physics_analyzer import prompt_and_analyze as _phys_prompt
+            _phys_result = _phys_prompt(
+                part_id=plan.get("part_id", ""),
+                params=plan.get("params", {}),
+                goal=goal,
+                step_path=str(step_path),
+                repo_root=repo_root,
+            )
+            if _phys_result:
+                session["physics_analysis"] = _phys_result
+                if not _phys_result["passed"]:
+                    print(f"[PHYSICS] FAIL — SF={_phys_result.get('safety_factor', '?')}")
+                    for _f in _phys_result["failures"]:
+                        print(f"  \u2717 {_f}")
+                else:
+                    _phys_sf = _phys_result.get("safety_factor")
+                    if _phys_sf is not None:
+                        print(f"[PHYSICS] PASS — SF={_phys_sf:.2f}")
+                    else:
+                        print(f"[PHYSICS] PASS")
+                for _w in _phys_result.get("warnings", []):
+                    print(f"  \u26a0 {_w}")
+        except Exception as _phys_exc:
+            print(f"[PHYSICS] Analysis skipped: {_phys_exc}")
 
     # --- CEM physics check (runs for every single-part generation) ---
     _cem_result = None
@@ -558,6 +660,51 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
         tool_used=cad_tool,
         repo_root=repo_root,
     )
+
+    # --- Version tracking: write meta JSON for the generated part ---
+    if (step_path.exists() or stl_path.exists()) and part_id:
+        try:
+            import json as _json
+            from datetime import datetime as _dt
+            _meta_dir = repo_root / "outputs" / "cad" / "meta"
+            _meta_dir.mkdir(parents=True, exist_ok=True)
+            _meta_file = _meta_dir / f"{part_id}.json"
+
+            # Preserve existing meta and overlay new fields
+            _existing_meta: dict = {}
+            if _meta_file.exists():
+                try:
+                    _existing_meta = _json.loads(_meta_file.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+
+            # Try to get git SHA for traceability
+            _git_sha = ""
+            try:
+                import subprocess as _sp
+                _git_sha = _sp.check_output(
+                    ["git", "rev-parse", "--short", "HEAD"],
+                    cwd=str(repo_root), stderr=_sp.DEVNULL, text=True
+                ).strip()
+            except Exception:
+                pass
+
+            _meta_file.write_text(_json.dumps({
+                **_existing_meta,
+                "part_id":    part_id,
+                "goal":       goal,
+                "params":     plan.get("params") or {},
+                "cad_tool":   cad_tool,
+                "step_path":  str(step_path) if step_path.exists() else "",
+                "stl_path":   str(stl_path) if stl_path.exists() else "",
+                "bbox_mm":    session.get("bbox") or {},
+                "cem_sf":     (session.get("cem") or {}).get("static_min_sf"),
+                "cem_passed": (session.get("cem") or {}).get("passed"),
+                "generated_at": _dt.now().isoformat(),
+                "git_sha":    _git_sha,
+            }, indent=2), encoding="utf-8")
+        except Exception as _me:
+            print(f"[META] Could not write meta JSON: {_me}")
 
     event_bus.emit("complete", f"Pipeline complete for {part_id or goal}", {"session": session})
     logger_log(session)

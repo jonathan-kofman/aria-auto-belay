@@ -56,7 +56,8 @@ def _build_dim_hints(plan: dict[str, Any]) -> str:
     LLM never has to guess or hallucinate geometry constants.
     """
     params = plan.get("params") or {}
-    base   = plan.get("base_shape") or {}
+    _raw_base = plan.get("base_shape") or {}
+    base = _raw_base if isinstance(_raw_base, dict) else {}
     lines: list[str] = []
     shown: set[str] = set()
 

@@ -3,7 +3,7 @@ Assemble multiple STEP parts with position/rotation and export as a single STEP/
 """
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 @dataclass
@@ -73,3 +73,102 @@ class Assembler:
         assy.export(str(step_path), exportType="STEP")
         assy.export(str(stl_path), exportType="STL")
         return str(step_path)
+
+
+# ---------------------------------------------------------------------------
+# Dependency resolver
+# ---------------------------------------------------------------------------
+
+def resolve_depends_on(config_parts: List[Dict]) -> List[Dict]:
+    """
+    Resolve ``depends_on`` references in an assembly config parts list.
+
+    For each part that has a ``depends_on`` key, its final ``pos`` is computed
+    as::
+
+        pos = resolved_pos_of_parent + offset
+
+    where ``offset`` defaults to ``[0, 0, 0]`` if not supplied.
+
+    Chains are supported (A depends on B which depends on C).
+    Cycles raise ``ValueError``.
+
+    Parameters
+    ----------
+    config_parts : list[dict]
+        The raw ``"parts"`` list from an assembly JSON config.  Each dict is
+        mutated in-place with the resolved ``"pos"`` value and the
+        ``"depends_on"`` / ``"offset"`` keys are left intact for traceability.
+
+    Returns
+    -------
+    list[dict]
+        The same list, with all ``pos`` values resolved.
+
+    Raises
+    ------
+    ValueError
+        If a ``depends_on`` reference points to an unknown part id, or if a
+        dependency cycle is detected.
+    """
+    # Index by id for fast lookup
+    by_id: Dict[str, Dict] = {}
+    for part in config_parts:
+        part_id = part.get("id")
+        if part_id is None:
+            continue
+        by_id[part_id] = part
+
+    # Resolved cache: id → [x, y, z]
+    resolved: Dict[str, List[float]] = {}
+
+    def _resolve(part_id: str, visiting: set) -> List[float]:
+        """Recursively resolve the world-space pos for *part_id*."""
+        if part_id in resolved:
+            return resolved[part_id]
+
+        if part_id in visiting:
+            cycle = " → ".join(sorted(visiting)) + f" → {part_id}"
+            raise ValueError(
+                f"[assembler] Dependency cycle detected involving '{part_id}': {cycle}"
+            )
+
+        part = by_id.get(part_id)
+        if part is None:
+            raise ValueError(
+                f"[assembler] depends_on references unknown part id '{part_id}'"
+            )
+
+        depends_on = part.get("depends_on")
+        if depends_on is None:
+            # Base case: no dependency — take pos as-is
+            pos = [float(v) for v in part.get("pos", [0.0, 0.0, 0.0])]
+            resolved[part_id] = pos
+            return pos
+
+        # Validate parent exists before recursing
+        if depends_on not in by_id:
+            raise ValueError(
+                f"[assembler] Part '{part_id}' depends_on unknown id '{depends_on}'"
+            )
+
+        visiting.add(part_id)
+        parent_pos = _resolve(depends_on, visiting)
+        visiting.discard(part_id)
+
+        offset_raw = part.get("offset", [0.0, 0.0, 0.0])
+        offset = [float(v) for v in offset_raw]
+
+        pos = [parent_pos[i] + offset[i] for i in range(3)]
+        part["pos"] = pos          # mutate in-place so AssemblyPart builder sees it
+        resolved[part_id] = pos
+        return pos
+
+    for part in config_parts:
+        part_id = part.get("id")
+        if part_id is None:
+            continue
+        if part.get("depends_on") is not None:
+            _resolve(part_id, set())
+
+    return config_parts

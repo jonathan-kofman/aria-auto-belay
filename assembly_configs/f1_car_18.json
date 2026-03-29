@@ -1,0 +1,233 @@
+{
+  "name": "F1 Car 1-8 Scale Assembly",
+  "parts": [
+    {
+      "id": "monocoque_chassis",
+      "step": "outputs/cad/step/monocoque_chassis.step",
+      "pos": [0, 0, 30],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "nose_cone",
+      "step": "outputs/cad/step/nose_cone.step",
+      "pos": [280, 0, 35],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "front_wing_main_plane",
+      "step": "outputs/cad/step/front_wing_main_plane.step",
+      "pos": [300, 0, 10],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "front_wing_endplate_l",
+      "step": "outputs/cad/step/front_wing_endplate_l.step",
+      "pos": [300, 125, 10],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "front_wing_endplate_r",
+      "step": "outputs/cad/step/front_wing_endplate_r.step",
+      "pos": [300, -125, 10],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_wing_main_plane",
+      "step": "outputs/cad/step/rear_wing_main_plane.step",
+      "pos": [-280, 0, 100],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "rear_wing_endplate_l",
+      "step": "outputs/cad/step/rear_wing_endplate_l.step",
+      "pos": [-280, 69, 100],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_wing_endplate_r",
+      "step": "outputs/cad/step/rear_wing_endplate_r.step",
+      "pos": [-280, -69, 100],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "drs_flap",
+      "step": "outputs/cad/step/drs_flap.step",
+      "pos": [-280, 0, 115],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "floor_panel",
+      "step": "outputs/cad/step/floor_panel.step",
+      "pos": [0, 0, 5],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "diffuser",
+      "step": "outputs/cad/step/diffuser.step",
+      "pos": [-250, 0, 5],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "sidepod_l",
+      "step": "outputs/cad/step/sidepod_l.step",
+      "pos": [-50, 75, 35],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "sidepod_r",
+      "step": "outputs/cad/step/sidepod_r.step",
+      "pos": [-50, -75, 35],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "engine_cover",
+      "step": "outputs/cad/step/engine_cover.step",
+      "pos": [-50, 0, 55],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "halo",
+      "step": "outputs/cad/step/halo.step",
+      "pos": [50, 0, 60],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "front_wheel_fl",
+      "step": "outputs/cad/step/front_wheel_fl.step",
+      "pos": [225, 94, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_wheel_fr",
+      "step": "outputs/cad/step/front_wheel_fr.step",
+      "pos": [225, -94, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_wheel_rl",
+      "step": "outputs/cad/step/rear_wheel_rl.step",
+      "pos": [-225, 87, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_wheel_rr",
+      "step": "outputs/cad/step/rear_wheel_rr.step",
+      "pos": [-225, -87, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_axle_l",
+      "step": "outputs/cad/step/front_axle_l.step",
+      "pos": [225, 47, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_axle_r",
+      "step": "outputs/cad/step/front_axle_r.step",
+      "pos": [225, -47, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_axle_l",
+      "step": "outputs/cad/step/rear_axle_l.step",
+      "pos": [-225, 43, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_axle_r",
+      "step": "outputs/cad/step/rear_axle_r.step",
+      "pos": [-225, -43, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_upright_l",
+      "step": "outputs/cad/step/front_upright_l.step",
+      "pos": [225, 75, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_upright_r",
+      "step": "outputs/cad/step/front_upright_r.step",
+      "pos": [225, -75, 41],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_upright_l",
+      "step": "outputs/cad/step/rear_upright_l.step",
+      "pos": [-225, 68, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "rear_upright_r",
+      "step": "outputs/cad/step/rear_upright_r.step",
+      "pos": [-225, -68, 42],
+      "rot": [90, 0, 0]
+    },
+    {
+      "id": "front_upper_wishbone_l",
+      "step": "outputs/cad/step/front_upper_wishbone_l.step",
+      "pos": [225, 37, 55],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "front_upper_wishbone_r",
+      "step": "outputs/cad/step/front_upper_wishbone_r.step",
+      "pos": [225, -37, 55],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "front_lower_wishbone_l",
+      "step": "outputs/cad/step/front_lower_wishbone_l.step",
+      "pos": [225, 37, 28],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "front_lower_wishbone_r",
+      "step": "outputs/cad/step/front_lower_wishbone_r.step",
+      "pos": [225, -37, 28],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_upper_wishbone_l",
+      "step": "outputs/cad/step/rear_upper_wishbone_l.step",
+      "pos": [-225, 34, 56],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_upper_wishbone_r",
+      "step": "outputs/cad/step/rear_upper_wishbone_r.step",
+      "pos": [-225, -34, 56],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_lower_wishbone_l",
+      "step": "outputs/cad/step/rear_lower_wishbone_l.step",
+      "pos": [-225, 34, 28],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "rear_lower_wishbone_r",
+      "step": "outputs/cad/step/rear_lower_wishbone_r.step",
+      "pos": [-225, -34, 28],
+      "rot": [0, 0, 90]
+    },
+    {
+      "id": "mirror_l",
+      "step": "outputs/cad/step/mirror_l.step",
+      "pos": [20, 110, 65],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "mirror_r",
+      "step": "outputs/cad/step/mirror_r.step",
+      "pos": [20, -110, 65],
+      "rot": [0, 0, 0]
+    },
+    {
+      "id": "steering_wheel",
+      "step": "outputs/cad/step/steering_wheel.step",
+      "pos": [60, 0, 48],
+      "rot": [75, 0, 0]
+    }
+  ]
+}

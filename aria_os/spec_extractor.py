@@ -35,6 +35,13 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
+    ("base plate",    "base_plate"),   # flat mounting plate → flat_plate template
+    ("mount plate",   "base_plate"),
+    ("mounting plate","base_plate"),
+    ("face plate",    "base_plate"),
+    ("torch bracket", "base_plate"),   # welding torch mount is a flat plate with bore
+    ("torch mount",   "base_plate"),
+    ("arm link",      "hollow_rect"),  # structural arm link → hollow rectangular tube
     ("ratchet ring",  "ratchet_ring"),
     ("gear wheel",    "gear"),
     ("gear train",    "gear"),
@@ -65,6 +72,7 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("bracket",       "bracket"),
     ("housing",       "housing"),
     ("spool",         "spool"),
+    ("link",          "hollow_rect"),  # generic link → hollow rect tube
     ("shaft",         "shaft"),
     ("collar",        "cam_collar"),
     ("pawl",          "catch_pawl"),
@@ -172,7 +180,7 @@ def extract_spec(description: str) -> dict[str, Any]:
 
     # --- Bore / inner diameter ---
     bore = _find([
-        r"(\d+(?:\.\d+)?)\s*mm\s+bore\b",
+        r"(\d+(?:\.\d+)?)\s*mm\s+(?:\w+\s+)?bore\b",  # "120mm center bore", "120mm bore"
         r"\bbore\s*[=:\s]\s*(\d+(?:\.\d+)?)\s*mm",  # "bore 50mm", "bore: 50mm"
         r"\bbore\s*[=:]\s*(\d+(?:\.\d+)?)",          # "bore: 50" (no unit)
         r"(\d+(?:\.\d+)?)\s*mm\s+id\b",
@@ -190,6 +198,7 @@ def extract_spec(description: str) -> dict[str, Any]:
         r"thickness\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
         r"(\d+(?:\.\d+)?)\s*mm\s+tall",
         r"(\d+(?:\.\d+)?)\s*mm\s+high(?:t)?",
+        r"(\d+(?:\.\d+)?)\s*mm\s+height\b",         # "120mm height"
         r"height\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
     ])
     if thick:
@@ -266,6 +275,17 @@ def extract_spec(description: str) -> dict[str, Any]:
         if "depth_mm" not in spec:
             spec["depth_mm"] = float(_box_m.group(3))
 
+    # --- 2D WxH box notation (e.g. "200x200mm" square plate, "100x60mm" rectangle) ---
+    # Only runs when the 3D pattern didn't already fire
+    if "width_mm" not in spec or "depth_mm" not in spec:
+        _box2_m = re.search(
+            r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm(?!\s*[xX×])",
+            text, re.I,
+        )
+        if _box2_m:
+            spec.setdefault("width_mm",  float(_box2_m.group(1)))
+            spec.setdefault("depth_mm",  float(_box2_m.group(2)))
+
     # --- Radius → diameter (only when OD not yet found) ---
     if "od_mm" not in spec and "diameter_mm" not in spec:
         _rad = _find([
@@ -294,14 +314,34 @@ def extract_spec(description: str) -> dict[str, Any]:
     if n_bolts and "n_bolts" not in spec:
         spec["n_bolts"] = n_bolts
 
-    bolt_pcd = _find([
-        r"pcd\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
-        r"bolt\s+circle\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
-        r"(\d+(?:\.\d+)?)\s*mm\s+pcd",
-        r"(\d+(?:\.\d+)?)\s*mm\s+bolt\s+circle",
-    ])
-    if bolt_pcd:
-        spec["bolt_circle_r_mm"] = bolt_pcd / 2.0
+    # "bolt circle 100mm radius" — value IS already a radius
+    _bc_rad = re.search(r"bolt\s+circle\s+(\d+(?:\.\d+)?)\s*mm\s+radius\b", text, re.I)
+    if _bc_rad:
+        spec.setdefault("bolt_circle_r_mm", float(_bc_rad.group(1)))
+
+    if "bolt_circle_r_mm" not in spec:
+        bolt_pcd = _find([
+            r"pcd\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
+            r"bolt\s+circle\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
+            r"bolt\s+circle\s+(\d+(?:\.\d+)?)\s*mm",  # "bolt circle 100mm" (diameter)
+            r"(\d+(?:\.\d+)?)\s*mm\s+pcd",
+            r"(\d+(?:\.\d+)?)\s*mm\s+bolt\s+circle",
+        ])
+        if bolt_pcd:
+            spec["bolt_circle_r_mm"] = bolt_pcd / 2.0
+
+    # --- Square bolt pattern (e.g. "160mm square" → bolts at corners of 160mm square)
+    # Corner-to-centre radius = side/2 * sqrt(2)
+    # Reject "Nmm square" when followed by a number (e.g. "86mm square 10mm deep" = NEMA pocket)
+    _sq_bolt = re.search(
+        r"(\d+(?:\.\d+)?)\s*mm\s+(?:bolt\s+)?square\b(?!\s+\d)",
+        text, re.I,
+    )
+    if _sq_bolt and "bolt_circle_r_mm" not in spec:
+        side = float(_sq_bolt.group(1))
+        import math as _math
+        spec["bolt_circle_r_mm"] = round(side / 2.0 * _math.sqrt(2), 2)
+        spec["bolt_square_mm"]   = side   # keep raw side length for LLM context
 
     bolt_dia = _find([
         r"[mM](\d+)\s+bolt",        # M8 bolt → 8.0

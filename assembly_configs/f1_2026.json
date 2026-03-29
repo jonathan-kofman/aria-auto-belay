@@ -1,0 +1,62 @@
+{
+  "name": "F1 2026 Regulation Car 1-10 Scale",
+  "_scale": "1:10  (real car ~4600mm L x 1900mm W)",
+  "_axes": "X=longitudinal (front+), Y=lateral (left+), Z=vertical (up)",
+  "parts": [
+    {"id": "f1_floor",       "step": "outputs/cad/step/floor_panel.step",         "pos": [  0,    0,   5], "rot": [0,   0, 0]},
+    {"id": "f1_monocoque",   "step": "outputs/cad/step/monocoque_tub.step",        "pos": [ 30,    0,  50], "rot": [0,   0, 0]},
+    {"id": "f1_nose",        "step": "outputs/cad/step/nose_cone.step",            "pos": [195,    0,  36], "rot": [0,   0, 0]},
+    {"id": "f1_engine_cover","step": "outputs/cad/step/engine_cover.step",         "pos": [-55,    0,  50], "rot": [0,   0, 0]},
+    {"id": "f1_gearbox",     "step": "outputs/cad/step/gearbox_case.step",         "pos": [-155,   0,  38], "rot": [0,   0, 0]},
+    {"id": "f1_diffuser",    "step": "outputs/cad/step/diffuser.step",             "pos": [-205,   0,   5], "rot": [0,   0, 0]},
+    {"id": "f1_sidepod_l",   "step": "outputs/cad/step/sidepod_l.step",           "pos": [-30,   86,  34], "rot": [0,   0, 0]},
+    {"id": "f1_sidepod_r",   "step": "outputs/cad/step/sidepod_r.step",           "pos": [-30,  -86,  34], "rot": [0,   0, 0]},
+
+    {"id": "f1_fw_main",     "step": "outputs/cad/step/front_wing_main.step",     "pos": [265,    0,  18], "rot": [0,   0, 0]},
+    {"id": "f1_fw_flap",     "step": "outputs/cad/step/front_wing_flap.step",     "pos": [284,    0,  22], "rot": [0,   0, 0]},
+    {"id": "f1_fw_ep_l",     "step": "outputs/cad/step/front_wing_endplate_l.step","pos":[268,   82,  15], "rot": [90,  0, 0]},
+    {"id": "f1_fw_ep_r",     "step": "outputs/cad/step/front_wing_endplate_r.step","pos":[268,  -82,  15], "rot": [90,  0, 0]},
+
+    {"id": "f1_rw_main",     "step": "outputs/cad/step/rear_wing_main.step",      "pos": [-230,   0, 100], "rot": [0,   0, 0]},
+    {"id": "f1_rw_drs",      "step": "outputs/cad/step/rear_wing_drs_flap.step",  "pos": [-248,   0, 104], "rot": [0,   0, 0]},
+    {"id": "f1_rw_ep_l",     "step": "outputs/cad/step/rear_wing_endplate_l.step","pos": [-230,  30,  88], "rot": [90,  0, 0]},
+    {"id": "f1_rw_ep_r",     "step": "outputs/cad/step/rear_wing_endplate_r.step","pos": [-230, -30,  88], "rot": [90,  0, 0]},
+    {"id": "f1_rw_pillar",   "step": "outputs/cad/step/rear_wing_pillar.step",    "pos": [-220,   0,  62], "rot": [0,   0, 0]},
+    {"id": "f1_beam_wing",   "step": "outputs/cad/step/beam_wing.step",           "pos": [-225,   0,  78], "rot": [0,   0, 0]},
+
+    {"id": "f1_halo",        "step": "outputs/cad/step/halo.step",                "pos": [ 50,    0,  70], "rot": [0,   0, 0]},
+    {"id": "f1_mirror_l",    "step": "outputs/cad/step/mirror_l.step",            "pos": [ 22,   98,  65], "rot": [0,   0, 0]},
+    {"id": "f1_mirror_r",    "step": "outputs/cad/step/mirror_r.step",            "pos": [ 22,  -98,  65], "rot": [0,   0, 0]},
+    {"id": "f1_steering",    "step": "outputs/cad/step/steering_wheel.step",      "pos": [ 65,    0,  55], "rot": [80,  0, 0]},
+
+    {"id": "f1_whl_fl",      "step": "outputs/cad/step/front_wheel_fl.step",      "pos": [170,   97,  30], "rot": [90,  0, 0]},
+    {"id": "f1_whl_fr",      "step": "outputs/cad/step/front_wheel_fr.step",      "pos": [170,  -97,  30], "rot": [90,  0, 0]},
+    {"id": "f1_whl_rl",      "step": "outputs/cad/step/rear_wheel_rl.step",       "pos": [-170,  97,  31], "rot": [90,  0, 0]},
+    {"id": "f1_whl_rr",      "step": "outputs/cad/step/rear_wheel_rr.step",       "pos": [-170, -97,  31], "rot": [90,  0, 0]},
+
+    {"id": "f1_axle_fl",     "step": "outputs/cad/step/front_axle_l.step",        "pos": [170,   48,  30], "rot": [90,  0, 0]},
+    {"id": "f1_axle_fr",     "step": "outputs/cad/step/front_axle_r.step",        "pos": [170,  -48,  30], "rot": [90,  0, 0]},
+    {"id": "f1_axle_rl",     "step": "outputs/cad/step/rear_axle_l.step",         "pos": [-170,  48,  31], "rot": [90,  0, 0]},
+    {"id": "f1_axle_rr",     "step": "outputs/cad/step/rear_axle_r.step",         "pos": [-170, -48,  31], "rot": [90,  0, 0]},
+
+    {"id": "f1_upright_fl",  "step": "outputs/cad/step/front_upright_l.step",     "pos": [170,   78,  30], "rot": [90,  0, 0]},
+    {"id": "f1_upright_fr",  "step": "outputs/cad/step/front_upright_r.step",     "pos": [170,  -78,  30], "rot": [90,  0, 0]},
+    {"id": "f1_upright_rl",  "step": "outputs/cad/step/rear_upright_l.step",      "pos": [-170,  78,  31], "rot": [90,  0, 0]},
+    {"id": "f1_upright_rr",  "step": "outputs/cad/step/rear_upright_r.step",      "pos": [-170, -78,  31], "rot": [90,  0, 0]},
+
+    {"id": "f1_fuwb_l",      "step": "outputs/cad/step/front_upper_wishbone_l.step","pos":[170,  47,  46], "rot": [90,  0, 0]},
+    {"id": "f1_fuwb_r",      "step": "outputs/cad/step/front_upper_wishbone_r.step","pos":[170, -47,  46], "rot": [90,  0, 0]},
+    {"id": "f1_flwb_l",      "step": "outputs/cad/step/front_lower_wishbone_l.step","pos":[170,  47,  20], "rot": [90,  0, 0]},
+    {"id": "f1_flwb_r",      "step": "outputs/cad/step/front_lower_wishbone_r.step","pos":[170, -47,  20], "rot": [90,  0, 0]},
+    {"id": "f1_ruwb_l",      "step": "outputs/cad/step/rear_upper_wishbone_l.step", "pos":[-170, 47,  48], "rot": [90,  0, 0]},
+    {"id": "f1_ruwb_r",      "step": "outputs/cad/step/rear_upper_wishbone_r.step", "pos":[-170,-47,  48], "rot": [90,  0, 0]},
+    {"id": "f1_rlwb_l",      "step": "outputs/cad/step/rear_lower_wishbone_l.step", "pos":[-170, 47,  20], "rot": [90,  0, 0]},
+    {"id": "f1_rlwb_r",      "step": "outputs/cad/step/rear_lower_wishbone_r.step", "pos":[-170,-47,  20], "rot": [90,  0, 0]},
+
+    {"id": "f1_brake_fl",    "step": "outputs/cad/step/brake_duct_fl.step",        "pos": [170,   82,  30], "rot": [90,  0, 0]},
+    {"id": "f1_brake_fr",    "step": "outputs/cad/step/brake_duct_fr.step",        "pos": [170,  -82,  30], "rot": [90,  0, 0]},
+
+    {"id": "f1_pylon_l",     "step": "outputs/cad/step/front_wing_pylon_l.step",   "pos": [244,   34,  27], "rot": [0,   0, 0]},
+    {"id": "f1_pylon_r",     "step": "outputs/cad/step/front_wing_pylon_r.step",   "pos": [244,  -34,  27], "rot": [0,   0, 0]}
+  ]
+}

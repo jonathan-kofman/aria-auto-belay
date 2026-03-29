@@ -1,0 +1,22 @@
+{
+  "name": "ARIA Welding Robot 7-DOF",
+  "parts": [
+    {"id": "linear_rail",          "step": "component:mgn25_1000",                                        "pos": [0,    0,    0],    "rot": [0, 0, 0]},
+    {"id": "base_plate",           "step": "outputs/cad/step/robot_base_plate.step",                      "pos": [0,    0,    24],   "rot": [0, 0, 0]},
+    {"id": "nema34_waist",         "step": "component:nema34",                                            "pos": [0,    0,    90],   "rot": [180, 0, 0]},
+    {"id": "waist_housing",        "step": "outputs/cad/step/robot_waist_housing.step",                   "pos": [0,    0,    99],   "rot": [0, 0, 0]},
+    {"id": "nema34_shoulder",      "step": "component:nema34",                                            "pos": [0,    65,   219],  "rot": [0, 90, 0]},
+    {"id": "shoulder_housing",     "step": "outputs/cad/step/robot_shoulder_housing.step",                "pos": [0,    0,    219],  "rot": [0, 0, 0]},
+    {"id": "upper_arm",            "step": "outputs/cad/step/robot_upper_arm_link.step",                  "pos": [0,    0,    419],  "rot": [0, 0, 0]},
+    {"id": "nema23_elbow",         "step": "component:nema23",                                            "pos": [0,    50,   659],  "rot": [0, 90, 0]},
+    {"id": "elbow_housing",        "step": "outputs/cad/step/robot_elbow_housing.step",                   "pos": [0,    0,    659],  "rot": [0, 0, 0]},
+    {"id": "forearm",              "step": "outputs/cad/step/robot_forearm_link.step",                    "pos": [0,    0,    849],  "rot": [0, 0, 0]},
+    {"id": "nema17_wrist_roll",    "step": "component:nema17",                                            "pos": [0,    35,   1029], "rot": [0, 90, 0]},
+    {"id": "wrist_roll",           "step": "outputs/cad/step/robot_wrist_roll_housing.step",              "pos": [0,    0,    1029], "rot": [0, 0, 0]},
+    {"id": "nema17_wrist_pitch",   "step": "component:nema17",                                            "pos": [0,    33,   1117], "rot": [0, 90, 0]},
+    {"id": "wrist_pitch",          "step": "outputs/cad/step/robot_wrist_pitch_housing.step",             "pos": [0,    0,    1117], "rot": [0, 0, 0]},
+    {"id": "nema17_tool_roll",     "step": "component:nema17",                                            "pos": [0,    0,    1172], "rot": [180, 0, 0]},
+    {"id": "tool_flange",          "step": "outputs/cad/step/robot_tool_flange.step",                     "pos": [0,    0,    1210], "rot": [0, 0, 0]},
+    {"id": "torch_bracket",        "step": "outputs/cad/step/welding_torch_bracket.step",                 "pos": [0,    0,    1232], "rot": [0, 0, 0]}
+  ]
+}

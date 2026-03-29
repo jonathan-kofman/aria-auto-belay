@@ -1,0 +1,272 @@
+[
+  {
+    "label": "Monocoque tub",
+    "part_id": "f1_monocoque",
+    "template": "hollow_rect",
+    "params": { "width_mm": 250, "depth_mm": 90, "length_mm": 60, "wall_mm": 4 }
+  },
+  {
+    "label": "Nose cone",
+    "part_id": "f1_nose",
+    "template": "hollow_rect",
+    "params": { "width_mm": 90, "depth_mm": 38, "length_mm": 48, "wall_mm": 3 }
+  },
+  {
+    "label": "Engine cover",
+    "part_id": "f1_engine_cover",
+    "template": "hollow_rect",
+    "params": { "width_mm": 150, "depth_mm": 82, "length_mm": 65, "wall_mm": 4 }
+  },
+  {
+    "label": "Floor panel",
+    "part_id": "f1_floor",
+    "template": "flat_bar",
+    "params": { "length_mm": 360, "width_mm": 175, "thickness_mm": 3, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Diffuser",
+    "part_id": "f1_diffuser",
+    "template": "hollow_rect",
+    "params": { "width_mm": 85, "depth_mm": 130, "length_mm": 28, "wall_mm": 2 }
+  },
+  {
+    "label": "Sidepod L",
+    "part_id": "f1_sidepod_l",
+    "template": "hollow_rect",
+    "params": { "width_mm": 105, "depth_mm": 42, "length_mm": 48, "wall_mm": 3 }
+  },
+  {
+    "label": "Sidepod R",
+    "part_id": "f1_sidepod_r",
+    "template": "hollow_rect",
+    "params": { "width_mm": 105, "depth_mm": 42, "length_mm": 48, "wall_mm": 3 }
+  },
+  {
+    "label": "Front wing main",
+    "part_id": "f1_fw_main",
+    "template": "flat_bar",
+    "params": { "length_mm": 35, "width_mm": 165, "thickness_mm": 6, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Front wing flap",
+    "part_id": "f1_fw_flap",
+    "template": "flat_bar",
+    "params": { "length_mm": 22, "width_mm": 155, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Front wing endplate L",
+    "part_id": "f1_fw_ep_l",
+    "template": "flat_bar",
+    "params": { "length_mm": 55, "width_mm": 38, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Front wing endplate R",
+    "part_id": "f1_fw_ep_r",
+    "template": "flat_bar",
+    "params": { "length_mm": 55, "width_mm": 38, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Rear wing main",
+    "part_id": "f1_rw_main",
+    "template": "flat_bar",
+    "params": { "length_mm": 32, "width_mm": 60, "thickness_mm": 7, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Rear wing DRS flap",
+    "part_id": "f1_rw_drs",
+    "template": "flat_bar",
+    "params": { "length_mm": 20, "width_mm": 55, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Rear wing endplate L",
+    "part_id": "f1_rw_ep_l",
+    "template": "flat_bar",
+    "params": { "length_mm": 45, "width_mm": 40, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Rear wing endplate R",
+    "part_id": "f1_rw_ep_r",
+    "template": "flat_bar",
+    "params": { "length_mm": 45, "width_mm": 40, "thickness_mm": 4, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Rear wing pillar",
+    "part_id": "f1_rw_pillar",
+    "template": "rod",
+    "params": { "od_mm": 12, "length_mm": 55 }
+  },
+  {
+    "label": "Beam wing",
+    "part_id": "f1_beam_wing",
+    "template": "flat_bar",
+    "params": { "length_mm": 22, "width_mm": 48, "thickness_mm": 5, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Front wheel FL",
+    "part_id": "f1_whl_fl",
+    "template": "disc",
+    "params": { "od_mm": 60, "bore_mm": 20, "thickness_mm": 38 }
+  },
+  {
+    "label": "Front wheel FR",
+    "part_id": "f1_whl_fr",
+    "template": "disc",
+    "params": { "od_mm": 60, "bore_mm": 20, "thickness_mm": 38 }
+  },
+  {
+    "label": "Rear wheel RL",
+    "part_id": "f1_whl_rl",
+    "template": "disc",
+    "params": { "od_mm": 62, "bore_mm": 22, "thickness_mm": 42 }
+  },
+  {
+    "label": "Rear wheel RR",
+    "part_id": "f1_whl_rr",
+    "template": "disc",
+    "params": { "od_mm": 62, "bore_mm": 22, "thickness_mm": 42 }
+  },
+  {
+    "label": "Front axle L",
+    "part_id": "f1_axle_fl",
+    "template": "rod",
+    "params": { "od_mm": 20, "length_mm": 94 }
+  },
+  {
+    "label": "Front axle R",
+    "part_id": "f1_axle_fr",
+    "template": "rod",
+    "params": { "od_mm": 20, "length_mm": 94 }
+  },
+  {
+    "label": "Rear axle L",
+    "part_id": "f1_axle_rl",
+    "template": "rod",
+    "params": { "od_mm": 22, "length_mm": 95 }
+  },
+  {
+    "label": "Rear axle R",
+    "part_id": "f1_axle_rr",
+    "template": "rod",
+    "params": { "od_mm": 22, "length_mm": 95 }
+  },
+  {
+    "label": "Front upright L",
+    "part_id": "f1_upright_fl",
+    "template": "hub",
+    "params": { "od_mm": 38, "height_mm": 60, "bore_mm": 20, "n_bolts": 4, "bolt_dia_mm": 3, "bolt_circle_r_mm": 28 }
+  },
+  {
+    "label": "Front upright R",
+    "part_id": "f1_upright_fr",
+    "template": "hub",
+    "params": { "od_mm": 38, "height_mm": 60, "bore_mm": 20, "n_bolts": 4, "bolt_dia_mm": 3, "bolt_circle_r_mm": 28 }
+  },
+  {
+    "label": "Rear upright L",
+    "part_id": "f1_upright_rl",
+    "template": "hub",
+    "params": { "od_mm": 42, "height_mm": 65, "bore_mm": 22, "n_bolts": 4, "bolt_dia_mm": 3, "bolt_circle_r_mm": 32 }
+  },
+  {
+    "label": "Rear upright R",
+    "part_id": "f1_upright_rr",
+    "template": "hub",
+    "params": { "od_mm": 42, "height_mm": 65, "bore_mm": 22, "n_bolts": 4, "bolt_dia_mm": 3, "bolt_circle_r_mm": 32 }
+  },
+  {
+    "label": "Front upper wishbone L",
+    "part_id": "f1_fuwb_l",
+    "template": "rod",
+    "params": { "od_mm": 6, "length_mm": 92 }
+  },
+  {
+    "label": "Front upper wishbone R",
+    "part_id": "f1_fuwb_r",
+    "template": "rod",
+    "params": { "od_mm": 6, "length_mm": 92 }
+  },
+  {
+    "label": "Front lower wishbone L",
+    "part_id": "f1_flwb_l",
+    "template": "rod",
+    "params": { "od_mm": 8, "length_mm": 92 }
+  },
+  {
+    "label": "Front lower wishbone R",
+    "part_id": "f1_flwb_r",
+    "template": "rod",
+    "params": { "od_mm": 8, "length_mm": 92 }
+  },
+  {
+    "label": "Rear upper wishbone L",
+    "part_id": "f1_ruwb_l",
+    "template": "rod",
+    "params": { "od_mm": 6, "length_mm": 95 }
+  },
+  {
+    "label": "Rear upper wishbone R",
+    "part_id": "f1_ruwb_r",
+    "template": "rod",
+    "params": { "od_mm": 6, "length_mm": 95 }
+  },
+  {
+    "label": "Rear lower wishbone L",
+    "part_id": "f1_rlwb_l",
+    "template": "rod",
+    "params": { "od_mm": 8, "length_mm": 95 }
+  },
+  {
+    "label": "Rear lower wishbone R",
+    "part_id": "f1_rlwb_r",
+    "template": "rod",
+    "params": { "od_mm": 8, "length_mm": 95 }
+  },
+  {
+    "label": "Halo",
+    "part_id": "f1_halo",
+    "template": "flat_bar",
+    "params": { "length_mm": 90, "width_mm": 70, "thickness_mm": 9, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Brake duct FL",
+    "part_id": "f1_brake_fl",
+    "template": "disc",
+    "params": { "od_mm": 32, "bore_mm": 18, "thickness_mm": 22 }
+  },
+  {
+    "label": "Brake duct FR",
+    "part_id": "f1_brake_fr",
+    "template": "disc",
+    "params": { "od_mm": 32, "bore_mm": 18, "thickness_mm": 22 }
+  },
+  {
+    "label": "Mirror L",
+    "part_id": "f1_mirror_l",
+    "template": "flat_bar",
+    "params": { "length_mm": 22, "width_mm": 9, "thickness_mm": 1.5, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Mirror R",
+    "part_id": "f1_mirror_r",
+    "template": "flat_bar",
+    "params": { "length_mm": 22, "width_mm": 9, "thickness_mm": 1.5, "bore_mm": 0.1 }
+  },
+  {
+    "label": "Steering wheel",
+    "part_id": "f1_steering",
+    "template": "disc",
+    "params": { "od_mm": 24, "bore_mm": 7, "thickness_mm": 3 }
+  },
+  {
+    "label": "Front wing pylon L",
+    "part_id": "f1_pylon_l",
+    "template": "rod",
+    "params": { "od_mm": 7, "length_mm": 24 }
+  },
+  {
+    "label": "Front wing pylon R",
+    "part_id": "f1_pylon_r",
+    "template": "rod",
+    "params": { "od_mm": 7, "length_mm": 24 }
+  }
+]

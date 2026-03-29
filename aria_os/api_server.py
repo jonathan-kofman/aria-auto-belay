@@ -188,7 +188,7 @@ def generate(req: GenerateRequest) -> GenerateResponse:
         session = orchestrator.run(req.description, repo_root=repo_root)
 
         elapsed = time.monotonic() - t0
-        backend = session.get("tool", "cadquery") if isinstance(session, dict) else "cadquery"
+        backend = session.get("cad_tool", "cadquery") if isinstance(session, dict) else "cadquery"
         part_id = session.get("part_id", "") if isinstance(session, dict) else ""
         step_path = str(session.get("step_path", "")) if isinstance(session, dict) else ""
         stl_path  = str(session.get("stl_path", "")) if isinstance(session, dict) else ""

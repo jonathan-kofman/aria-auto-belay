@@ -22,12 +22,11 @@ from .spec_extractor import extract_spec, merge_spec_into_plan
 from .planner import plan as planner_plan
 from .tool_router import select_cad_tool, GRASSHOPPER_PART_IDS, FUSION_PART_IDS
 
-# Part types that must always go through CadQuery headless (per CLAUDE.md)
-CADQUERY_KEYWORDS: list[str] = [
-    "nozzle", "rocket", "lre", "liquid rocket", "turbopump", "injector",
-    "bracket", "flange", "shaft", "pulley", "cam", "pin", "spacer",
-    "ratchet", "brake drum", "spool", "housing", "rope guide", "catch pawl",
-]
+# Non-prefixed aliases for GRASSHOPPER_PART_IDS — planner sometimes omits the "aria_" prefix
+_GH_PART_ID_ALIASES: frozenset[str] = frozenset({
+    "cam_collar", "spool", "housing", "ratchet_ring", "brake_drum", "rope_guide",
+    *GRASSHOPPER_PART_IDS,
+})
 
 
 class CADRouter:
@@ -94,8 +93,8 @@ class CADRouter:
         # LRE / nozzle parts always go CadQuery headless
         if any(kw in goal_lower for kw in ["lre", "nozzle", "rocket", "turbopump", "injector", "liquid rocket"]):
             backend = "cadquery"
-        # Explicit Grasshopper part IDs
-        if part_id in GRASSHOPPER_PART_IDS:
+        # Grasshopper part IDs — check both aria_-prefixed and bare variants
+        elif part_id in _GH_PART_ID_ALIASES:
             backend = "grasshopper"
 
         rationale = _build_rationale(goal, part_id, backend, spec)
@@ -156,16 +155,22 @@ def _build_rationale(goal: str, part_id: str, backend: str, spec: dict) -> str:
     reasons: list[str] = []
 
     if backend == "grasshopper":
-        reasons.append(f"Part '{part_id}' is in GRASSHOPPER_PART_IDS (helical/complex surface geometry).")
+        reasons.append(
+            f"Part '{part_id}' is a Grasshopper part (complex surface geometry). "
+            "Will fall back to CadQuery automatically if Rhino Compute is unavailable."
+        )
     elif backend == "fusion":
-        reasons.append(f"Part '{part_id}' is in FUSION_PART_IDS (lattice/assembly).")
+        reasons.append(
+            f"Goal requires Fusion 360 (lattice/generative/sheet-metal/CAM/sim). "
+            "A Fusion script will be written; a CadQuery approximation is also generated immediately."
+        )
     elif backend == "blender":
-        reasons.append("Goal contains mesh-repair or organic geometry keywords.")
+        reasons.append("Goal contains mesh-repair or organic geometry keywords → Blender.")
     else:
         if any(kw in goal.lower() for kw in ["nozzle", "rocket", "lre"]):
             reasons.append("LRE/nozzle parts route to CadQuery headless per CLAUDE.md.")
         else:
-            reasons.append("Default: CadQuery headless (solid parametric geometry).")
+            reasons.append("CadQuery headless — solid parametric geometry (template or LLM fallback).")
 
     if spec:
         dim_summary = ", ".join(

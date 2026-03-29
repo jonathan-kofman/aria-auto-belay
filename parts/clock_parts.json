@@ -4,12 +4,12 @@
     "part_id": "clock_barrel_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 96,
-      "face_width_mm": 9,
-      "bore_mm": 18,
-      "hub_od_mm": 36,
-      "spoke_style": "petal",
+      "face_width_mm": 5,
+      "bore_mm": 10,
+      "hub_od_mm": 20,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -18,12 +18,12 @@
     "part_id": "clock_center_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 80,
-      "face_width_mm": 6,
-      "bore_mm": 10,
-      "hub_od_mm": 22,
-      "spoke_style": "petal",
+      "face_width_mm": 4,
+      "bore_mm": 6,
+      "hub_od_mm": 12,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -32,12 +32,12 @@
     "part_id": "clock_third_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 48,
-      "face_width_mm": 6,
-      "bore_mm": 6,
-      "hub_od_mm": 16,
-      "spoke_style": "petal",
+      "face_width_mm": 4,
+      "bore_mm": 4,
+      "hub_od_mm": 9,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -46,12 +46,12 @@
     "part_id": "clock_fourth_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 64,
-      "face_width_mm": 6,
-      "bore_mm": 8,
-      "hub_od_mm": 20,
-      "spoke_style": "petal",
+      "face_width_mm": 4,
+      "bore_mm": 5,
+      "hub_od_mm": 11,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -60,11 +60,11 @@
     "part_id": "clock_escape_wheel",
     "template": "aria_escape_wheel",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 15,
-      "face_width_mm": 4,
-      "bore_mm": 3,
-      "hub_od_mm": 6,
+      "face_width_mm": 3,
+      "bore_mm": 2,
+      "hub_od_mm": 4,
       "n_spokes": 3
     }
   },
@@ -73,11 +73,11 @@
     "part_id": "clock_center_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 8,
-      "face_width_mm": 9,
-      "bore_mm": 10,
-      "hub_od_mm": 16,
+      "face_width_mm": 5,
+      "bore_mm": 6,
+      "hub_od_mm": 9,
       "spoke_style": "straight"
     }
   },
@@ -86,11 +86,11 @@
     "part_id": "clock_third_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 8,
-      "face_width_mm": 6,
-      "bore_mm": 5,
-      "hub_od_mm": 10,
+      "face_width_mm": 4,
+      "bore_mm": 3,
+      "hub_od_mm": 6,
       "spoke_style": "straight"
     }
   },
@@ -99,11 +99,11 @@
     "part_id": "clock_fourth_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 8,
-      "face_width_mm": 6,
-      "bore_mm": 5,
-      "hub_od_mm": 10,
+      "face_width_mm": 4,
+      "bore_mm": 3,
+      "hub_od_mm": 6,
       "spoke_style": "straight"
     }
   },
@@ -112,11 +112,11 @@
     "part_id": "clock_escape_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.0,
+      "module_mm": 0.5,
       "n_teeth": 8,
-      "face_width_mm": 4,
-      "bore_mm": 3,
-      "hub_od_mm": 8,
+      "face_width_mm": 3,
+      "bore_mm": 2,
+      "hub_od_mm": 5,
       "spoke_style": "straight"
     }
   },
@@ -125,11 +125,11 @@
     "part_id": "clock_cannon_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 10,
-      "face_width_mm": 4,
-      "bore_mm": 8,
-      "hub_od_mm": 14,
+      "face_width_mm": 3,
+      "bore_mm": 5,
+      "hub_od_mm": 8,
       "spoke_style": "straight"
     }
   },
@@ -138,12 +138,12 @@
     "part_id": "clock_minute_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 40,
-      "face_width_mm": 4,
-      "bore_mm": 4,
-      "hub_od_mm": 12,
-      "spoke_style": "petal",
+      "face_width_mm": 3,
+      "bore_mm": 2,
+      "hub_od_mm": 7,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -152,11 +152,11 @@
     "part_id": "clock_minute_pinion",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 10,
-      "face_width_mm": 4,
-      "bore_mm": 4,
-      "hub_od_mm": 10,
+      "face_width_mm": 3,
+      "bore_mm": 2,
+      "hub_od_mm": 6,
       "spoke_style": "straight"
     }
   },
@@ -165,12 +165,12 @@
     "part_id": "clock_hour_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 30,
-      "face_width_mm": 4,
-      "bore_mm": 8,
-      "hub_od_mm": 16,
-      "spoke_style": "petal",
+      "face_width_mm": 3,
+      "bore_mm": 5,
+      "hub_od_mm": 9,
+      "spoke_style": "straight",
       "n_spokes": 5
     }
   },
@@ -178,54 +178,54 @@
     "label": "Barrel arbor",
     "part_id": "clock_barrel_arbor",
     "template": "aria_shaft",
-    "params": { "od_mm": 18, "length_mm": 60 }
+    "params": { "od_mm": 10, "length_mm": 33 }
   },
   {
     "label": "Center arbor",
     "part_id": "clock_center_arbor",
     "template": "aria_shaft",
-    "params": { "od_mm": 10, "length_mm": 80 }
+    "params": { "od_mm": 6, "length_mm": 44 }
   },
   {
     "label": "Third arbor",
     "part_id": "clock_third_arbor",
     "template": "aria_shaft",
-    "params": { "od_mm": 6, "length_mm": 70 }
+    "params": { "od_mm": 4, "length_mm": 39 }
   },
   {
     "label": "Fourth arbor",
     "part_id": "clock_fourth_arbor",
     "template": "aria_shaft",
-    "params": { "od_mm": 8, "length_mm": 70 }
+    "params": { "od_mm": 5, "length_mm": 39 }
   },
   {
     "label": "Escape arbor",
     "part_id": "clock_escape_arbor",
     "template": "aria_shaft",
-    "params": { "od_mm": 3, "length_mm": 50 }
+    "params": { "od_mm": 2, "length_mm": 28 }
   },
   {
     "label": "Barrel drum",
     "part_id": "clock_barrel_drum",
     "template": "aria_brake_drum",
-    "params": { "od_mm": 88, "bore_mm": 60, "thickness_mm": 11, "wall_mm": 4 }
+    "params": { "od_mm": 48, "bore_mm": 33, "thickness_mm": 6, "wall_mm": 3 }
   },
   {
     "label": "Barrel cap",
     "part_id": "clock_barrel_cap",
     "template": "aria_spacer",
-    "params": { "od_mm": 88, "thickness_mm": 2, "bore_mm": 18 }
+    "params": { "od_mm": 48, "thickness_mm": 2, "bore_mm": 10 }
   },
   {
     "label": "Click wheel 16t",
     "part_id": "clock_click_wheel",
     "template": "aria_gear",
     "params": {
-      "module_mm": 1.5,
+      "module_mm": 0.8,
       "n_teeth": 16,
-      "face_width_mm": 4,
-      "bore_mm": 18,
-      "hub_od_mm": 28,
+      "face_width_mm": 3,
+      "bore_mm": 10,
+      "hub_od_mm": 16,
       "spoke_style": "straight"
     }
   },
@@ -233,48 +233,48 @@
     "label": "Pendulum rod",
     "part_id": "clock_pendulum_rod",
     "template": "aria_shaft",
-    "params": { "od_mm": 3, "length_mm": 248 }
+    "params": { "od_mm": 2, "length_mm": 138 }
   },
   {
     "label": "Pendulum bob",
     "part_id": "clock_pendulum_bob",
     "template": "aria_spacer",
-    "params": { "od_mm": 60, "thickness_mm": 8, "bore_mm": 3 }
+    "params": { "od_mm": 33, "thickness_mm": 5, "bore_mm": 2 }
   },
   {
     "label": "Rating nut",
     "part_id": "clock_rating_nut",
     "template": "aria_spacer",
-    "params": { "od_mm": 8, "thickness_mm": 4, "bore_mm": 3 }
+    "params": { "od_mm": 5, "thickness_mm": 3, "bore_mm": 2 }
   },
   {
     "label": "Dial ring",
     "part_id": "clock_dial_ring",
     "template": "aria_spacer",
-    "params": { "od_mm": 160, "bore_mm": 140, "thickness_mm": 3 }
+    "params": { "od_mm": 88, "bore_mm": 77, "thickness_mm": 2 }
   },
   {
     "label": "Hour hand",
     "part_id": "clock_hour_hand",
     "template": "aria_catch_pawl",
-    "params": { "length_mm": 55, "width_mm": 4, "thickness_mm": 1.5, "bore_mm": 5 }
+    "params": { "length_mm": 30, "width_mm": 3, "thickness_mm": 1.0, "bore_mm": 3 }
   },
   {
     "label": "Minute hand",
     "part_id": "clock_minute_hand",
     "template": "aria_catch_pawl",
-    "params": { "length_mm": 70, "width_mm": 3, "thickness_mm": 1.2, "bore_mm": 5 }
+    "params": { "length_mm": 39, "width_mm": 2, "thickness_mm": 1.0, "bore_mm": 3 }
   },
   {
     "label": "Seconds hand",
     "part_id": "clock_seconds_hand",
     "template": "aria_catch_pawl",
-    "params": { "length_mm": 65, "width_mm": 2, "thickness_mm": 1.0, "bore_mm": 3 }
+    "params": { "length_mm": 36, "width_mm": 1.5, "thickness_mm": 1.0, "bore_mm": 2 }
   },
   {
     "label": "Pillar x4",
     "part_id": "clock_pillar",
     "template": "aria_spacer",
-    "params": { "od_mm": 12, "bore_mm": 4, "height_mm": 50 }
+    "params": { "od_mm": 7, "bore_mm": 3, "height_mm": 30 }
   }
 ]

@@ -12,10 +12,16 @@ Assembly JSON format:
       ]
     }
 
+Parts may include a ``depends_on`` key and an ``offset`` key so that their
+position is resolved relative to another part at build time:
+
+    {"id": "center_pinion", "step": "...", "depends_on": "center_arbor", "offset": [0, 0, 12], "rot": [0,0,0]}
+
 Usage:
     python assemble.py assembly.json
     python assemble.py assembly.json --output outputs/cad/step/my_assembly.step
-    python assemble.py assembly.json --preview    (open STL in preview after building)
+    python assemble.py assembly.json --preview       (open STL in preview after building)
+    python assemble.py assembly.json --no-clearance  (skip post-assembly clearance check)
 
 Rotation values are in degrees, applied as Rx then Ry then Rz (intrinsic XYZ Euler).
 """
@@ -31,7 +37,18 @@ OUT_STEP = ROOT / "outputs" / "cad" / "step"
 
 
 def _resolve_path(raw: str, config_dir: Path) -> Path:
-    """Resolve a path relative to the config file or repo root."""
+    """
+    Resolve a STEP path.  Three forms supported:
+      component:<key>        — fetch/generate from registry (e.g. "component:nema17")
+      absolute path          — used as-is
+      relative path          — resolved vs repo root then config dir
+    """
+    # component: prefix → auto-fetch from registry
+    if raw.startswith("component:"):
+        key = raw[len("component:"):]
+        from fetch_component import fetch
+        return fetch(key)
+
     p = Path(raw)
     if p.is_absolute():
         return p
@@ -59,6 +76,8 @@ def build_assembly(
     config_path: Path,
     output_path: Path | None = None,
     open_preview: bool = False,
+    run_clearance: bool = True,
+    min_clearance_mm: float = 0.5,
 ) -> Path:
     """
     Load all parts from the assembly config, position them, and export combined STEP.
@@ -79,11 +98,16 @@ def build_assembly(
     parts_cfg = config.get("parts", [])
     config_dir = config_path.parent
 
+    # Resolve depends_on references before anything else
+    from aria_os.assembler import resolve_depends_on
+    parts_cfg = resolve_depends_on(parts_cfg)
+
     if not parts_cfg:
         print(f"[assemble] Warning: no parts defined in '{config_path}'")
 
     if output_path is None:
-        safe_name = assembly_name.replace(" ", "_").lower()
+        import re as _re
+        safe_name = _re.sub(r"[^\w\-]+", "_", assembly_name).strip("_").lower()
         output_path = OUT_STEP / f"{safe_name}.step"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +190,21 @@ def build_assembly(
     if failed_count:
         print(f"[assemble] Warning: {failed_count} part(s) failed to load")
 
+    # Post-assembly clearance check
+    if run_clearance:
+        try:
+            from aria_os.clearance_checker import check_clearance, print_clearance_table
+            result = check_clearance(
+                parts_cfg,
+                min_clearance_mm=min_clearance_mm,
+                proximity_threshold_mm=100.0,
+            )
+            print_clearance_table(result, min_clearance_mm=min_clearance_mm)
+        except ImportError:
+            print("[assemble] Clearance check skipped (trimesh not installed).")
+        except Exception as exc:
+            print(f"[assemble] Clearance check failed: {exc}")
+
     # Optionally open preview
     if open_preview:
         # Export a temporary STL for preview
@@ -198,6 +237,18 @@ def main() -> None:
         action="store_true",
         help="Open the assembled model in the 3D STL preview after building",
     )
+    parser.add_argument(
+        "--no-clearance",
+        action="store_true",
+        help="Skip the post-assembly clearance check",
+    )
+    parser.add_argument(
+        "--min-clearance",
+        type=float,
+        default=0.5,
+        metavar="MM",
+        help="Minimum acceptable clearance in mm (default: 0.5)",
+    )
     args = parser.parse_args()
 
     config_path = args.config
@@ -215,6 +266,8 @@ def main() -> None:
         config_path=config_path,
         output_path=output_path,
         open_preview=args.preview,
+        run_clearance=not args.no_clearance,
+        min_clearance_mm=args.min_clearance,
     )
 
 

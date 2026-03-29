@@ -1,0 +1,50 @@
+{
+  "name": "Mechanical Clock Gear Train (Mini — module scaled ~0.53x)",
+  "_notes": "All modules scaled: m1.5→m0.8, m1.0→m0.5. Same tooth counts, same gear ratios. Arbor layout: barrel(0,0) → center(42,0) → third(64,0) → fourth(78,0) → escape(96,0). Center distances from pitch radii: (96+8)/2*0.8=42, +22=64, +14=78, +18=96.",
+  "parts": [
+
+    {"id": "barrel_arbor",    "step": "outputs/cad/step/barrel_arbor.step",              "pos": [0,   0,   0],   "rot": [0, 0, 0]},
+    {"id": "barrel_drum",     "step": "outputs/cad/step/barrel_drum.step",               "pos": [0,   0,   3],   "rot": [0, 0, 0]},
+    {"id": "barrel_cap",      "step": "outputs/cad/step/barrel_cap.step",                "pos": [0,   0,   9],   "rot": [0, 0, 0]},
+    {"id": "barrel_wheel",    "step": "outputs/cad/step/barrel_wheel_96t.step",          "pos": [0,   0,   14],  "rot": [0, 0, 0]},
+    {"id": "click_wheel",     "step": "outputs/cad/step/click_wheel_16t.step",           "pos": [0,   0,   20],  "rot": [0, 0, 0]},
+
+    {"id": "center_arbor",    "step": "outputs/cad/step/center_arbor.step",              "pos": [42,  0,   0],   "rot": [0, 0, 0]},
+    {"id": "center_pinion",   "step": "outputs/cad/step/center_pinion_p8.step",          "pos": [42,  0,   12],  "rot": [0, 0, 0]},
+    {"id": "center_wheel",    "step": "outputs/cad/step/center_wheel_80t.step",          "pos": [42,  0,   18],  "rot": [0, 0, 0]},
+    {"id": "cannon_pinion",   "step": "outputs/cad/step/cannon_pinion_10t.step",         "pos": [42,  0,   3],   "rot": [0, 0, 0]},
+
+    {"id": "third_arbor",     "step": "outputs/cad/step/third_arbor.step",               "pos": [64,  0,   0],   "rot": [0, 0, 0]},
+    {"id": "third_pinion",    "step": "outputs/cad/step/third_pinion_p8.step",           "pos": [64,  0,   12],  "rot": [0, 0, 0]},
+    {"id": "third_wheel",     "step": "outputs/cad/step/third_wheel_48t.step",           "pos": [64,  0,   18],  "rot": [0, 0, 0]},
+
+    {"id": "fourth_arbor",    "step": "outputs/cad/step/fourth_arbor.step",              "pos": [78,  0,   0],   "rot": [0, 0, 0]},
+    {"id": "fourth_pinion",   "step": "outputs/cad/step/fourth_pinion_p8.step",          "pos": [78,  0,   12],  "rot": [0, 0, 0]},
+    {"id": "fourth_wheel",    "step": "outputs/cad/step/fourth_wheel_64t.step",          "pos": [78,  0,   18],  "rot": [0, 0, 0]},
+    {"id": "seconds_hand",    "step": "outputs/cad/step/seconds_hand.step",              "pos": [78,  0,   -2],  "rot": [0, 0, 0]},
+
+    {"id": "escape_arbor",    "step": "outputs/cad/step/escape_arbor.step",              "pos": [96,  0,   0],   "rot": [0, 0, 0]},
+    {"id": "escape_pinion",   "step": "outputs/cad/step/escape_pinion_p8.step",          "pos": [96,  0,   12],  "rot": [0, 0, 0]},
+    {"id": "escape_wheel",    "step": "outputs/cad/step/escape_wheel_15t.step",          "pos": [96,  0,   18],  "rot": [0, 0, 0]},
+
+    {"id": "minute_wheel",    "step": "outputs/cad/step/minute_wheel_40t.step",          "pos": [42,  -20, 3],   "rot": [0, 0, 0]},
+    {"id": "minute_pinion",   "step": "outputs/cad/step/minute_wheel_pinion_10t.step",   "pos": [42,  -20, 6],   "rot": [0, 0, 0]},
+    {"id": "hour_wheel",      "step": "outputs/cad/step/hour_wheel_30t.step",            "pos": [42,  0,   -1],  "rot": [0, 0, 0]},
+    {"id": "hour_hand",       "step": "outputs/cad/step/hour_hand.step",                 "pos": [42,  0,   -3],  "rot": [0, 0, 0]},
+    {"id": "minute_hand",     "step": "outputs/cad/step/minute_hand.step",               "pos": [42,  0,   -2],  "rot": [0, 0, 0]},
+
+    {"id": "pillar_fl",       "step": "outputs/cad/step/pillar_x4.step",                 "pos": [0,   44,  18],  "rot": [0, 0, 0]},
+    {"id": "pillar_fr",       "step": "outputs/cad/step/pillar_x4.step",                 "pos": [96,  44,  18],  "rot": [0, 0, 0]},
+    {"id": "pillar_rl",       "step": "outputs/cad/step/pillar_x4.step",                 "pos": [0,  -44, 18],   "rot": [0, 0, 0]},
+    {"id": "pillar_rr",       "step": "outputs/cad/step/pillar_x4.step",                 "pos": [96, -44, 18],   "rot": [0, 0, 0]},
+
+    {"id": "pendulum_rod",    "step": "outputs/cad/step/pendulum_rod.step",              "pos": [96,  28,  14],  "rot": [90, 0, 0]},
+    {"id": "pendulum_bob",    "step": "outputs/cad/step/pendulum_bob.step",              "pos": [96, -109, 14],  "rot": [0, 0, 0]},
+    {"id": "rating_nut",      "step": "outputs/cad/step/rating_nut.step",                "pos": [96, -91,  14],  "rot": [0, 0, 0]},
+
+    {"id": "dial_ring",       "step": "outputs/cad/step/dial_ring.step",                 "pos": [42,  0,   -4],  "rot": [0, 0, 0]},
+
+    {"id": "back_plate",      "step": "outputs/cad/step/clock_back_plate.step",           "pos": [48,  0,   -2],  "rot": [0, 0, 0]},
+    {"id": "front_plate",     "step": "outputs/cad/step/clock_front_plate.step",          "pos": [48,  0,   23],  "rot": [0, 0, 0]}
+  ]
+}

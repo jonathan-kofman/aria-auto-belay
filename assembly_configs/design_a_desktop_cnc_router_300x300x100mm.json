@@ -1,0 +1,1393 @@
+{
+  "name": "design a desktop CNC router, 300x300x100mm work envelope, NEMA 23 motors, ball s...",
+  "_generated_by": "scenario_interpreter.interpret_system",
+  "_note": "Positions are LLM estimates \u2014 adjust before final assembly.",
+  "parts": [
+    {
+      "id": "base_frame_extrusion_front",
+      "step": "outputs/cad/step/base_frame_extrusion_front.step",
+      "pos": [
+        250.0,
+        0.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_extrusion_rear",
+      "step": "outputs/cad/step/base_frame_extrusion_rear.step",
+      "pos": [
+        250.0,
+        500.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_extrusion_left",
+      "step": "outputs/cad/step/base_frame_extrusion_left.step",
+      "pos": [
+        0.0,
+        250.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_extrusion_right",
+      "step": "outputs/cad/step/base_frame_extrusion_right.step",
+      "pos": [
+        500.0,
+        250.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_corner_bracket",
+      "step": "outputs/cad/step/base_frame_corner_bracket.step",
+      "pos": [
+        0.0,
+        0.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_cross_brace",
+      "step": "outputs/cad/step/base_frame_cross_brace.step",
+      "pos": [
+        250.0,
+        250.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_leveling_foot",
+      "step": "outputs/cad/step/base_frame_leveling_foot.step",
+      "pos": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_bed_plate",
+      "step": "outputs/cad/step/base_frame_bed_plate.step",
+      "pos": [
+        250.0,
+        250.0,
+        45.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_spoilboard",
+      "step": "outputs/cad/step/base_frame_spoilboard.step",
+      "pos": [
+        250.0,
+        250.0,
+        69.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_x_rail_pad",
+      "step": "outputs/cad/step/base_frame_x_rail_pad.step",
+      "pos": [
+        250.0,
+        250.0,
+        57.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_y_drive_mount",
+      "step": "outputs/cad/step/base_frame_y_drive_mount.step",
+      "pos": [
+        250.0,
+        0.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "base_frame_y_motor_mount",
+      "step": "outputs/cad/step/base_frame_y_motor_mount.step",
+      "pos": [
+        250.0,
+        520.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_crossbeam",
+      "step": "outputs/cad/step/gantry_crossbeam.step",
+      "pos": [
+        200.0,
+        200.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_side_plate_left",
+      "step": "outputs/cad/step/gantry_side_plate_left.step",
+      "pos": [
+        30.0,
+        200.0,
+        90.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_side_plate_right",
+      "step": "outputs/cad/step/gantry_side_plate_right.step",
+      "pos": [
+        370.0,
+        200.0,
+        90.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_ballscrew_nut_bracket_left",
+      "step": "outputs/cad/step/gantry_ballscrew_nut_bracket_left.step",
+      "pos": [
+        30.0,
+        200.0,
+        40.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_ballscrew_nut_bracket_right",
+      "step": "outputs/cad/step/gantry_ballscrew_nut_bracket_right.step",
+      "pos": [
+        370.0,
+        200.0,
+        40.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_x_rail_plate",
+      "step": "outputs/cad/step/gantry_x_rail_plate.step",
+      "pos": [
+        200.0,
+        200.0,
+        195.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_corner_gusset",
+      "step": "outputs/cad/step/gantry_corner_gusset.step",
+      "pos": [
+        200.0,
+        200.0,
+        155.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "gantry_drag_chain_bracket",
+      "step": "outputs/cad/step/gantry_drag_chain_bracket.step",
+      "pos": [
+        200.0,
+        240.0,
+        160.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_motor_mount_plate",
+      "step": "outputs/cad/step/x_axis_drive_motor_mount_plate.step",
+      "pos": [
+        15.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_motor",
+      "step": "outputs/cad/step/x_axis_drive_motor.step",
+      "pos": [
+        15.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_jaw_coupler",
+      "step": "outputs/cad/step/x_axis_drive_jaw_coupler.step",
+      "pos": [
+        55.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_ballscrew",
+      "step": "outputs/cad/step/x_axis_drive_ballscrew.step",
+      "pos": [
+        220.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_nut_housing",
+      "step": "outputs/cad/step/x_axis_drive_nut_housing.step",
+      "pos": [
+        220.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_fixed_bearing_block",
+      "step": "outputs/cad/step/x_axis_drive_fixed_bearing_block.step",
+      "pos": [
+        70.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_free_bearing_block",
+      "step": "outputs/cad/step/x_axis_drive_free_bearing_block.step",
+      "pos": [
+        370.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_screw_lock_collar",
+      "step": "outputs/cad/step/x_axis_drive_screw_lock_collar.step",
+      "pos": [
+        80.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_motor_end_bracket",
+      "step": "outputs/cad/step/x_axis_drive_motor_end_bracket.step",
+      "pos": [
+        10.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_drive_idler_end_bracket",
+      "step": "outputs/cad/step/x_axis_drive_idler_end_bracket.step",
+      "pos": [
+        390.0,
+        150.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_left_rail",
+      "step": "outputs/cad/step/x_axis_rails_left_rail.step",
+      "pos": [
+        200.0,
+        40.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_right_rail",
+      "step": "outputs/cad/step/x_axis_rails_right_rail.step",
+      "pos": [
+        200.0,
+        360.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_carriage_left_front",
+      "step": "outputs/cad/step/x_axis_rails_carriage_left_front.step",
+      "pos": [
+        100.0,
+        40.0,
+        45.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_carriage_left_rear",
+      "step": "outputs/cad/step/x_axis_rails_carriage_left_rear.step",
+      "pos": [
+        300.0,
+        40.0,
+        45.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_carriage_right_front",
+      "step": "outputs/cad/step/x_axis_rails_carriage_right_front.step",
+      "pos": [
+        100.0,
+        360.0,
+        45.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "x_axis_rails_carriage_right_rear",
+      "step": "outputs/cad/step/x_axis_rails_carriage_right_rear.step",
+      "pos": [
+        300.0,
+        360.0,
+        45.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_motor_mount",
+      "step": "outputs/cad/step/y_axis_drive_motor_mount.step",
+      "pos": [
+        150.0,
+        20.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_motor",
+      "step": "outputs/cad/step/y_axis_drive_motor.step",
+      "pos": [
+        150.0,
+        15.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_coupler",
+      "step": "outputs/cad/step/y_axis_drive_coupler.step",
+      "pos": [
+        150.0,
+        45.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_ballscrew",
+      "step": "outputs/cad/step/y_axis_drive_ballscrew.step",
+      "pos": [
+        150.0,
+        190.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_nut_housing",
+      "step": "outputs/cad/step/y_axis_drive_nut_housing.step",
+      "pos": [
+        150.0,
+        190.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_bearing_block_fixed",
+      "step": "outputs/cad/step/y_axis_drive_bearing_block_fixed.step",
+      "pos": [
+        150.0,
+        40.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_bearing_block_floating",
+      "step": "outputs/cad/step/y_axis_drive_bearing_block_floating.step",
+      "pos": [
+        150.0,
+        350.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_angular_bearing",
+      "step": "outputs/cad/step/y_axis_drive_angular_bearing.step",
+      "pos": [
+        150.0,
+        40.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_radial_bearing",
+      "step": "outputs/cad/step/y_axis_drive_radial_bearing.step",
+      "pos": [
+        150.0,
+        350.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_drive_locknut_spacer",
+      "step": "outputs/cad/step/y_axis_drive_locknut_spacer.step",
+      "pos": [
+        150.0,
+        38.0,
+        180.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_left_rail",
+      "step": "outputs/cad/step/y_axis_rails_left_rail.step",
+      "pos": [
+        60.0,
+        200.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_right_rail",
+      "step": "outputs/cad/step/y_axis_rails_right_rail.step",
+      "pos": [
+        240.0,
+        200.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_left_carriage_front",
+      "step": "outputs/cad/step/y_axis_rails_left_carriage_front.step",
+      "pos": [
+        60.0,
+        130.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_left_carriage_rear",
+      "step": "outputs/cad/step/y_axis_rails_left_carriage_rear.step",
+      "pos": [
+        60.0,
+        270.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_right_carriage_front",
+      "step": "outputs/cad/step/y_axis_rails_right_carriage_front.step",
+      "pos": [
+        240.0,
+        130.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "y_axis_rails_right_carriage_rear",
+      "step": "outputs/cad/step/y_axis_rails_right_carriage_rear.step",
+      "pos": [
+        240.0,
+        270.0,
+        350.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_back_plate",
+      "step": "outputs/cad/step/z_axis_back_plate.step",
+      "pos": [
+        230.0,
+        230.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_linear_rail",
+      "step": "outputs/cad/step/z_axis_linear_rail.step",
+      "pos": [
+        210.0,
+        230.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_rail_carriage_block",
+      "step": "outputs/cad/step/z_axis_rail_carriage_block.step",
+      "pos": [
+        210.0,
+        230.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_carriage_plate",
+      "step": "outputs/cad/step/z_axis_carriage_plate.step",
+      "pos": [
+        230.0,
+        230.0,
+        100.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_ball_screw",
+      "step": "outputs/cad/step/z_axis_ball_screw.step",
+      "pos": [
+        230.0,
+        230.0,
+        140.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_ball_screw_nut_housing",
+      "step": "outputs/cad/step/z_axis_ball_screw_nut_housing.step",
+      "pos": [
+        230.0,
+        230.0,
+        100.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_top_bearing_block",
+      "step": "outputs/cad/step/z_axis_top_bearing_block.step",
+      "pos": [
+        230.0,
+        230.0,
+        230.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_bottom_bearing_block",
+      "step": "outputs/cad/step/z_axis_bottom_bearing_block.step",
+      "pos": [
+        230.0,
+        230.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_motor_mount",
+      "step": "outputs/cad/step/z_axis_motor_mount.step",
+      "pos": [
+        230.0,
+        230.0,
+        265.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_stepper_motor",
+      "step": "outputs/cad/step/z_axis_stepper_motor.step",
+      "pos": [
+        230.0,
+        230.0,
+        295.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_shaft_coupling",
+      "step": "outputs/cad/step/z_axis_shaft_coupling.step",
+      "pos": [
+        230.0,
+        230.0,
+        248.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_spindle_mount_clamp",
+      "step": "outputs/cad/step/z_axis_spindle_mount_clamp.step",
+      "pos": [
+        230.0,
+        230.0,
+        80.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_limit_switch_bracket",
+      "step": "outputs/cad/step/z_axis_limit_switch_bracket.step",
+      "pos": [
+        255.0,
+        230.0,
+        200.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "z_axis_drag_chain_bracket",
+      "step": "outputs/cad/step/z_axis_drag_chain_bracket.step",
+      "pos": [
+        255.0,
+        215.0,
+        120.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spindle_motor_body",
+      "step": "outputs/cad/step/spindle_motor_body.step",
+      "pos": [
+        150.0,
+        150.0,
+        250.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spindle_mount_clamp",
+      "step": "outputs/cad/step/spindle_mount_clamp.step",
+      "pos": [
+        150.0,
+        130.0,
+        270.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spindle_carriage_plate",
+      "step": "outputs/cad/step/spindle_carriage_plate.step",
+      "pos": [
+        150.0,
+        110.0,
+        270.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spindle_er11_collet",
+      "step": "outputs/cad/step/spindle_er11_collet.step",
+      "pos": [
+        150.0,
+        150.0,
+        215.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "spindle_vibration_isolator",
+      "step": "outputs/cad/step/spindle_vibration_isolator.step",
+      "pos": [
+        150.0,
+        120.0,
+        270.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_main_box",
+      "step": "outputs/cad/step/electronics_enclosure_main_box.step",
+      "pos": [
+        350.0,
+        0.0,
+        50.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_lid",
+      "step": "outputs/cad/step/electronics_enclosure_lid.step",
+      "pos": [
+        350.0,
+        0.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_din_rail_plate",
+      "step": "outputs/cad/step/electronics_enclosure_din_rail_plate.step",
+      "pos": [
+        352.0,
+        10.0,
+        75.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_psu_bracket",
+      "step": "outputs/cad/step/electronics_enclosure_psu_bracket.step",
+      "pos": [
+        360.0,
+        20.0,
+        40.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_aux_psu_bracket",
+      "step": "outputs/cad/step/electronics_enclosure_aux_psu_bracket.step",
+      "pos": [
+        360.0,
+        140.0,
+        40.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_driver_bracket",
+      "step": "outputs/cad/step/electronics_enclosure_driver_bracket.step",
+      "pos": [
+        380.0,
+        60.0,
+        100.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_controller_plate",
+      "step": "outputs/cad/step/electronics_enclosure_controller_plate.step",
+      "pos": [
+        370.0,
+        100.0,
+        120.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_terminal_strip",
+      "step": "outputs/cad/step/electronics_enclosure_terminal_strip.step",
+      "pos": [
+        355.0,
+        80.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_front_panel",
+      "step": "outputs/cad/step/electronics_enclosure_front_panel.step",
+      "pos": [
+        350.0,
+        0.0,
+        75.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_estop_button",
+      "step": "outputs/cad/step/electronics_enclosure_estop_button.step",
+      "pos": [
+        355.0,
+        5.0,
+        130.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_iec_inlet",
+      "step": "outputs/cad/step/electronics_enclosure_iec_inlet.step",
+      "pos": [
+        350.0,
+        5.0,
+        30.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_fan_bracket",
+      "step": "outputs/cad/step/electronics_enclosure_fan_bracket.step",
+      "pos": [
+        390.0,
+        60.0,
+        145.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_drag_chain_x",
+      "step": "outputs/cad/step/electronics_enclosure_drag_chain_x.step",
+      "pos": [
+        150.0,
+        320.0,
+        80.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_drag_chain_y",
+      "step": "outputs/cad/step/electronics_enclosure_drag_chain_y.step",
+      "pos": [
+        320.0,
+        150.0,
+        80.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_drag_chain_z",
+      "step": "outputs/cad/step/electronics_enclosure_drag_chain_z.step",
+      "pos": [
+        150.0,
+        150.0,
+        150.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_cable_gland_plate",
+      "step": "outputs/cad/step/electronics_enclosure_cable_gland_plate.step",
+      "pos": [
+        350.0,
+        100.0,
+        10.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_cable_tray",
+      "step": "outputs/cad/step/electronics_enclosure_cable_tray.step",
+      "pos": [
+        360.0,
+        90.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "electronics_enclosure_ground_bus",
+      "step": "outputs/cad/step/electronics_enclosure_ground_bus.step",
+      "pos": [
+        355.0,
+        170.0,
+        20.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_x_axis_switch_bracket",
+      "step": "outputs/cad/step/homing_safety_x_axis_switch_bracket.step",
+      "pos": [
+        10.0,
+        150.0,
+        50.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_y_axis_switch_bracket",
+      "step": "outputs/cad/step/homing_safety_y_axis_switch_bracket.step",
+      "pos": [
+        150.0,
+        10.0,
+        50.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_z_axis_switch_bracket",
+      "step": "outputs/cad/step/homing_safety_z_axis_switch_bracket.step",
+      "pos": [
+        150.0,
+        150.0,
+        95.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_limit_switch_body",
+      "step": "outputs/cad/step/homing_safety_limit_switch_body.step",
+      "pos": [
+        10.0,
+        10.0,
+        50.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_estop_button",
+      "step": "outputs/cad/step/homing_safety_estop_button.step",
+      "pos": [
+        330.0,
+        0.0,
+        80.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_estop_panel",
+      "step": "outputs/cad/step/homing_safety_estop_panel.step",
+      "pos": [
+        330.0,
+        0.0,
+        80.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_drag_chain_bracket_x",
+      "step": "outputs/cad/step/homing_safety_drag_chain_bracket_x.step",
+      "pos": [
+        150.0,
+        20.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_drag_chain_bracket_z",
+      "step": "outputs/cad/step/homing_safety_drag_chain_bracket_z.step",
+      "pos": [
+        150.0,
+        150.0,
+        70.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_nema_connector_socket",
+      "step": "outputs/cad/step/homing_safety_nema_connector_socket.step",
+      "pos": [
+        320.0,
+        0.0,
+        60.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "homing_safety_cable_clamp_bracket",
+      "step": "outputs/cad/step/homing_safety_cable_clamp_bracket.step",
+      "pos": [
+        150.0,
+        20.0,
+        55.0
+      ],
+      "rot": [
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -20,7 +20,10 @@ ARIA (Autonomous Rope Intelligence Architecture) — a wall-mounted lead climbin
 # Generate a part (natural language goal)
 python run_aria_os.py "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
 
-# List all generated parts with validation status
+# Full pipeline: generate + FEA + GD&T drawing + PNG render + CAM script in one shot
+python run_aria_os.py --full "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
+
+# List all generated parts with validation status, CEM SF, git SHA, generated-at
 python run_aria_os.py --list
 
 # Re-validate all STEP files
@@ -49,8 +52,10 @@ python run_aria_os.py --generate-and-assemble "pump housing" --into assembly_con
 python run_aria_os.py --lattice --pattern honeycomb --form volumetric --width 100 --height 100 --depth 10
 python run_aria_os.py --lattice-test
 
-# Assembly from JSON config
+# Assembly from JSON config (runs post-assembly clearance check automatically)
 python run_aria_os.py --assemble assembly_configs/aria_clutch_assembly.json
+# Generate Fusion 360 constrained assembly script (auto-joints from proximity + part names)
+python run_aria_os.py --constrain assembly_configs/clock_gear_train.json [--proximity 50]
 
 # Print-fit scaling check
 python run_aria_os.py --print-scale aria_ratchet_ring --scale 0.75
@@ -63,6 +68,53 @@ python run_aria_os.py --image photo.jpg "it's a bracket"   # optional hint
 python run_aria_os.py --preview "ARIA ratchet ring, 213mm OD"
 # Opens Three.js STL viewer in browser; choose export format in terminal:
 #   [1] step  [2] stl  [3] both (default)  [4] skip
+
+# Generate a GD&T engineering drawing SVG from any STEP file
+python run_aria_os.py --draw outputs/cad/step/aria_spool.step
+# → outputs/drawings/aria_spool.svg
+
+# Generate Fusion 360 CAM script from a STEP file
+python run_aria_os.py --cam outputs/cad/step/aria_housing.step --material aluminium_6061
+
+# Generate KiCad PCB script from a board description
+python run_aria_os.py --ecad "ARIA ESP32 board, 80x60mm, 12V, UART, BLE, HX711"
+# → outputs/ecad/<board_name>/<board_name>_pcbnew.py  (run in KiCad scripting console)
+# → outputs/ecad/<board_name>/<board_name>_bom.json
+
+# Run FEA or CFD on a specific STEP file
+python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step [--fea|--cfd|--auto]
+
+# Render PNG preview of any STL
+python run_aria_os.py "part goal" --render
+# → outputs/screenshots/<part_slug>.png
+
+# Scenario: interpret real-world situation → decompose → generate all parts (with CEM checks)
+python run_aria_os.py --scenario "a climber takes a lead fall on a 15m route"
+python run_aria_os.py --scenario-dry-run "..."
+python run_aria_os.py --scenario "..." --auto-confirm
+
+# System: two-pass whole-machine design (subsystems → parts → generate all + CEM checks)
+python run_aria_os.py --system "design a desktop CNC router 300x300x100mm"
+python run_aria_os.py --system-dry-run "design a 6-DOF robot arm, 1kg payload"
+```
+
+### Batch generation
+```bash
+python batch.py parts/clock_parts.json
+python batch.py parts/f1_2026_parts.json --skip-existing
+python batch.py parts/clock_parts.json --only "escape" --workers 4
+python batch.py parts/clock_parts.json --render           # PNG preview per part → outputs/screenshots/
+python batch.py parts/clock_parts.json --verify-mesh      # gear module compatibility
+```
+
+### Assembly
+```bash
+python assemble.py assembly_configs/clock_gear_train.json
+python assemble.py assembly_configs/clock_gear_train.json --no-clearance   # skip clearance check
+# Parametric assembly: add "depends_on": "parent_id", "offset": [x,y,z] to any part in the JSON
+
+python assemble_constrain.py assembly_configs/clock_gear_train.json        # generates Fusion constrained script
+python assemble_constrain.py assembly_configs/f1_2026.json --proximity 80
 ```
 
 ### Dashboard
@@ -204,10 +256,40 @@ outputs/cad/grasshopper/<part>/
 | aria_housing | wall_bending | 2.0 |
 | aria_brake_drum | hoop_stress | 2.0 |
 
+### Physics analysis (`aria_os/physics_analyzer.py`)
+FEA + CFD on generated STEP files. Called automatically after generation (prompt) or via `--analyze-part` / `--fea` / `--cfd` flags.
+- **FEA**: beam bending, thick-cylinder hoop stress, gear tooth bending, plate bending, bolt circle shear
+- **CFD**: pipe flow (Darcy-Weisbach), nozzle flow (isentropic, mach, thrust), heat transfer, drag estimate
+- Returns SF, pass/fail, warnings. SF < 1.5 = hard fail.
+
+### CAM generation (`aria_os/cam_generator.py`)
+Reads STEP geometry → selects tools from `tools/fusion_tool_library.json` → computes SFM-based feeds/speeds → writes complete Fusion 360 Python CAM script.
+- Tool selection: largest endmill ≤ min_feature_mm AND ≤ max_dim×0.4; fallback = smallest available
+- Materials: `aluminium_6061` (SFM=300), `aluminium_7075` (SFM=260), `x1_420i` (SFM=85), `inconel_718` (SFM=40), `steel_4140` (SFM=90), `pla`, `abs`
+- Operations: 3D Adaptive Clearing → Parallel Finish → Contour → Drill cycles
+- Run in Fusion: Tools → Scripts → add generated `.py` → Run
+
+### ECAD generation (`aria_os/ecad_generator.py`)
+Generates KiCad pcbnew Python script from board description (no LLM, keyword matching).
+- Extracts board dims (`80x60mm` pattern), selects components (ESP32, STM32, barrel jack, JST connectors, HX711, VESC, etc.)
+- `extract_firmware_pins(repo_root)` scrapes `#define PIN_*` and `const int *PIN*` from STM32/ESP32 firmware — injects into pcbnew script + BOM
+- Outputs: `<board_name>_pcbnew.py` (run in KiCad scripting console) + `<board_name>_bom.json`
+
+### GD&T drawing generator (`aria_os/drawing_generator.py`)
+Generates A3 landscape SVG engineering drawings with 3 orthographic views, dimension annotations, GD&T symbols, title block.
+- Called interactively after each generation (y/N prompt), or silently via `auto_draw=True` in `orchestrator.run()`, or via `--draw` / `--full` flags.
+
+### Clearance checker (`aria_os/clearance_checker.py`)
+Post-assembly interpenetration and tight-clearance check using trimesh.
+- `check_clearance(parts, min_clearance_mm=0.5)` — loads each part's STL, applies position transforms, checks proximity between pairs within 100mm
+- Returns `{pairs, violations, passed}` with `"ok"` / `"tight"` / `"interpenetrating"` per pair
+- Runs automatically after `assemble.py`; skip with `--no-clearance`
+
 ### Validation & export
 - `aria_os/validator.py` — bbox check, STEP re-import (solid count ≥ 1), mesh integrity, housing spec
 - `aria_os/exporter.py` — STEP + STL export; output paths under `outputs/cad/`
 - `aria_os/cad_learner.py` — records every attempt outcome to `outputs/cad/learning_log.json`
+- **Version tracking**: orchestrator writes `outputs/cad/meta/<part_id>.json` after every generation with: goal, params, CEM SF, bbox, cad_tool, generated_at, git_sha. `--list` shows SHA + generated-at + `[STALE]` flag if STEP is newer than meta.
 - `aria_os/post_gen_validator.py` — **deepened validation loop** (up to 3 retries, failure-context injection):
   - `parse_spec(goal, plan)` → extracts `{od_mm, bore_mm, height_mm, n_teeth, has_bore, volume_min/max, tol_mm}`
   - `check_geometry(stl_path, spec)` → trimesh bbox/volume/bore/watertight checks
@@ -326,12 +408,16 @@ Fail-safe principle: ESP32 crash → STM32 holds tension. STM32/VESC fault → b
 
 | Path | Contents | Git tracked? |
 |---|---|---|
-| `outputs/cad/meta/` | Dimension JSON per part | Yes — source of truth |
+| `outputs/cad/meta/` | Version-tracked JSON per part: goal, params, CEM SF, bbox, git SHA, generated_at | Yes — source of truth |
 | `outputs/cad/step/` | STEP files | No — regenerable |
 | `outputs/cad/stl/` | STL files | No — regenerable |
 | `outputs/cad/generated_code/` | Raw LLM CadQuery scripts | No |
 | `outputs/cad/grasshopper/<part>/` | Grasshopper params.json + script | Yes |
 | `outputs/cad/learning_log.json` | Attempt outcomes (success/fail + error) | Yes |
+| `outputs/cam/<part>/` | Fusion 360 CAM script + BOM summary JSON | No |
+| `outputs/drawings/` | GD&T engineering drawing SVGs | No |
+| `outputs/ecad/<board>/` | KiCad pcbnew script + BOM JSON | No |
+| `outputs/screenshots/` | PNG renders of STL files (via `--render` or `batch.py --render`) | No |
 | `outputs/aria_generation_log.json` | GH pipeline runs with CEM SF values + STEP/STL paths | No |
 | `outputs/api_run_log.json` | API server run log (persisted from `_RUN_LOG`, last 500 entries) | No |
 | `cem_design_history.json` | Latest CEM parameter snapshots (used by LLM prompt injection) | No |

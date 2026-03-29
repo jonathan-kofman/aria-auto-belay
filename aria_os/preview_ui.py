@@ -22,7 +22,7 @@ import webbrowser
 from pathlib import Path
 from typing import Literal
 
-ExportChoice = Literal["step", "stl", "both", "skip"]
+ExportChoice = Literal["step", "stl", "both", "fusion", "skip"]
 
 # ---------------------------------------------------------------------------
 # HTML template  (Three.js r163 from CDN, STL embedded as base64)
@@ -131,8 +131,11 @@ const grid = new THREE.GridHelper(maxDim * 3, 18, 0x222244, 0x191e2a);
 grid.position.y = -(size.z / 2) - 0.5;
 scene.add(grid);
 
-// Fit camera
-camera.position.set(maxDim * 1.7, maxDim * 1.1, maxDim * 1.7);
+// Fit camera — elevate more for flat parts (thickness < 20% of max planar dim)
+const planarDim = Math.max(size.x, size.y);
+const flatPart  = size.z < planarDim * 0.2;
+const camY      = flatPart ? maxDim * 2.2 : maxDim * 1.1;
+camera.position.set(maxDim * 1.4, camY, maxDim * 1.4);
 controls.target.set(0, 0, 0);
 controls.update();
 
@@ -220,20 +223,22 @@ def show_preview(
 def _prompt_export_choice() -> ExportChoice:
     """Block on stdin until the user picks a valid export format."""
     print()
-    print("=" * 56)
+    print("=" * 64)
     print("  ARIA CAD Preview — choose export format")
-    print("=" * 56)
-    print("  [1] step  — export STEP only  (for CAD tools / assembly)")
-    print("  [2] stl   — export STL only   (for slicers / mesh tools)")
-    print("  [3] both  — export STEP + STL (default)")
-    print("  [4] skip  — discard this run, do not export")
-    print("=" * 56)
+    print("=" * 64)
+    print("  [1] step   — export STEP only  (for CAD tools / assembly)")
+    print("  [2] stl    — export STL only   (for slicers / mesh tools)")
+    print("  [3] both   — export STEP + STL (default)")
+    print("  [4] fusion — generate Fusion 360 script (parametric feature tree)")
+    print("  [5] skip   — discard this run, do not export")
+    print("=" * 64)
 
     _MAP: dict[str, ExportChoice] = {
-        "1": "step",  "step": "step",  "s": "step",
-        "2": "stl",   "stl": "stl",
-        "3": "both",  "both": "both",  "b": "both",  "": "both",
-        "4": "skip",  "skip": "skip",  "n": "skip",  "no": "skip",
+        "1": "step",   "step": "step",   "s": "step",
+        "2": "stl",    "stl": "stl",
+        "3": "both",   "both": "both",   "b": "both",  "": "both",
+        "4": "fusion", "fusion": "fusion", "f": "fusion",
+        "5": "skip",   "skip": "skip",   "n": "skip",  "no": "skip",
         "discard": "skip",
     }
 
@@ -244,7 +249,7 @@ def _prompt_export_choice() -> ExportChoice:
 
     while True:
         try:
-            raw = input("  Your choice [1/2/3/4] (default: both): ").strip().lower()
+            raw = input("  Your choice [1/2/3/4/5] (default: both): ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             print("\n  (interrupted — skipping export)")
             return "skip"
@@ -252,4 +257,4 @@ def _prompt_export_choice() -> ExportChoice:
         if choice is not None:
             print(f"  Selected: {choice.upper()}")
             return choice
-        print(f"  Unrecognised: {raw!r} — enter 1, 2, 3, or 4")
+        print(f"  Unrecognised: {raw!r} — enter 1, 2, 3, 4, or 5")
