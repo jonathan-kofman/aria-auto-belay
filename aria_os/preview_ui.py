@@ -215,7 +215,16 @@ def show_preview(
         print(f"[PREVIEW] Source: {script_path}")
     print(f"[PREVIEW] STL:    {stl_path}  ({stl_kb:.1f} KB)")
     print(f"[PREVIEW] Viewer: {html_path}")
-    webbrowser.open(url)
+
+    # Use os.startfile on Windows so the OS default browser opens the HTML,
+    # not whichever app Python's webbrowser module happens to pick up
+    # (e.g. Cursor's embedded browser when running inside the IDE).
+    import platform
+    if platform.system() == "Windows":
+        import os
+        os.startfile(str(html_path))
+    else:
+        webbrowser.open(url)
 
     return _prompt_export_choice()
 
