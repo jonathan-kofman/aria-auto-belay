@@ -86,6 +86,14 @@ python run_aria_os.py --setup outputs/cad/step/aria_housing.step outputs/cam/ari
 # → outputs/cam/<part>/setup_sheet.md
 # → outputs/cam/<part>/setup_sheet.json  (validates against contracts/cam_setup_schema_v1.json)
 
+# Generate civil engineering DXF (headless, state-specific standards)
+python run_aria_os.py --autocad "drainage plan" --state TX --discipline drainage
+# → outputs/cad/dxf/<slug>.dxf  +  <slug>.json (standards applied, metadata)
+# Disciplines: transportation, drainage, grading, utilities, site
+# State: 2-letter code (TX, CA, NY, etc.) or omit for AASHTO national defaults
+python run_aria_os.py --autocad "road plan for subdivision" --state CO
+python run_aria_os.py --autocad "storm sewer layout" --state FL --out outputs/cad/dxf/project1/
+
 # Generate KiCad PCB script from a board description
 python run_aria_os.py --ecad "ARIA ESP32 board, 80x60mm, 12V, UART, BLE, HX711"
 # → outputs/ecad/<board_name>/<board_name>_pcbnew.py  (run in KiCad scripting console)
@@ -303,6 +311,20 @@ Generates operator-facing setup sheet from STEP + CAM script.
 - `get_machine_profile(name)` → Tormach 1100 (1.5 kW / 10 Nm) or HAAS VF2 (22 kW / 122 Nm); key is `max_spindle_power_w`
 - `validate_feeds_speeds(tool_dia_mm, material, depth_of_cut_mm, width_of_cut_mm, overhang_mm, spindle_power_w=1500)` → MRR, required power, Ra, deflection, `passed`
 
+### Civil engineering AutoCAD/DXF generation (`aria_os/autocad/`)
+Headless DXF generation for all civil engineering disciplines. No AutoCAD needed — uses ezdxf.
+- **Entry point**: `generate_civil_dxf(description, state, discipline, output_path)` → writes `.dxf` + `.json` sidecar
+- **`aria_os/autocad/__init__.py`** — exports `generate_civil_dxf`, `generate_all_disciplines`, layer/standards helpers
+- **`aria_os/autocad/layer_manager.py`** — `LAYER_DEFS` (50+ layers, NCS-compliant), `DISCIPLINE_LAYERS`, `get_layer()`
+- **`aria_os/autocad/standards_library.py`** — `get_standard(state, discipline)` deep-merges AASHTO 7th Ed. national defaults with all 50-state DOT overrides; covers roads, drainage, grading, structural, ada
+- **`aria_os/autocad/civil_elements.py`** — ezdxf entity builders for roads, drainage, grading, utilities, survey, site, structural, annotation
+- **`aria_os/autocad/dxf_exporter.py`** — main DXF writer; calls `get_standard()` then discipline-specific plan generator; writes JSON sidecar with standards applied
+- **`aria_os/generators/autocad_generator.py`** — orchestrator-compatible `generate_autocad(plan, step_path, stl_path, repo_root)` entry point
+- **`cem/cem_civil.py`** — civil CEM: Manning's pipe sizing, Bishop slope stability, retaining wall Coulomb analysis, rational method; `compute_for_goal()` returns SF values + geometry params
+- **Tool routing**: `AUTOCAD_KEYWORDS` in `tool_router.py` routes "road plan", "drainage plan", "grading plan", "site plan", "dxf", "autocad", etc. → "autocad" backend (highest priority, checked before CadQuery)
+- **State standards**: frost depth, seismic category, wind speed, min pipe cover — all 50 states + DC in `_STATE_OVERRIDES`
+- **Output**: `outputs/cad/dxf/<slug>.dxf` + `<slug>.json`
+
 ### ECAD generation (`aria_os/ecad_generator.py`)
 Generates KiCad pcbnew Python script from board description (no LLM, keyword matching).
 - Extracts board dims (`80x60mm` pattern), selects components (ESP32, STM32, barrel jack, JST connectors, HX711, VESC, etc.)
@@ -462,6 +484,7 @@ Fail-safe principle: ESP32 crash → STM32 holds tension. STM32/VESC fault → b
 | `outputs/cad/stl/` | STL files | No — regenerable |
 | `outputs/cad/generated_code/` | Raw LLM CadQuery scripts | No |
 | `outputs/cad/grasshopper/<part>/` | Grasshopper params.json + script | Yes |
+| `outputs/cad/dxf/` | Civil engineering DXF files + JSON sidecar (state + standards applied) | No |
 | `outputs/cad/learning_log.json` | Attempt outcomes (success/fail + error) | Yes |
 | `outputs/cam/<part>/` | Fusion 360 CAM script + CAM summary JSON + `setup_sheet.md` + `setup_sheet.json` + `machinability.json` | No |
 | `outputs/drawings/` | GD&T engineering drawing SVGs | No |

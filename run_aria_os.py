@@ -960,6 +960,42 @@ def main():
         generate_ecad(_ecad_desc, out_dir=Path(_ecad_out) if _ecad_out else ROOT / "outputs" / "ecad")
         return
 
+    if len(sys.argv) >= 2 and sys.argv[1] == "--autocad":
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --autocad \"drainage plan\" [--state TX] [--discipline drainage] [--out outputs/cad/dxf/]")
+            sys.exit(1)
+        _autocad_args = sys.argv[2:]
+        _autocad_state = "national"
+        _autocad_discipline = None
+        _autocad_out = None
+        _autocad_desc_parts = []
+        i = 0
+        while i < len(_autocad_args):
+            if _autocad_args[i] == "--state" and i + 1 < len(_autocad_args):
+                _autocad_state = _autocad_args[i + 1]
+                i += 2
+            elif _autocad_args[i] == "--discipline" and i + 1 < len(_autocad_args):
+                _autocad_discipline = _autocad_args[i + 1]
+                i += 2
+            elif _autocad_args[i] == "--out" and i + 1 < len(_autocad_args):
+                _autocad_out = _autocad_args[i + 1]
+                i += 2
+            else:
+                _autocad_desc_parts.append(_autocad_args[i])
+                i += 1
+        _autocad_desc = " ".join(_autocad_desc_parts)
+        from aria_os.autocad import generate_civil_dxf
+        from pathlib import Path as _Path
+        _autocad_path = generate_civil_dxf(
+            description=_autocad_desc,
+            state=_autocad_state,
+            discipline=_autocad_discipline,
+            output_path=_Path(_autocad_out) if _autocad_out else None,
+        )
+        print(f"[autocad] DXF  : {_autocad_path}")
+        print(f"[autocad] JSON : {_autocad_path.with_suffix('.json')}")
+        return
+
     if len(sys.argv) >= 2 and sys.argv[1] == "--ecad-variants":
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --ecad-variants \"base description\" [--variants path/to/variants.json]")
@@ -1270,6 +1306,7 @@ def main():
         print("       python run_aria_os.py --assemble <config.json>")
         print("       python run_aria_os.py --constrain <config.json> [--proximity 50]")
         print("       python run_aria_os.py --draw <step_file>")
+        print("       python run_aria_os.py --autocad \"drainage plan\" [--state TX] [--discipline drainage] [--out path/]")
         print("       python run_aria_os.py --ecad \"board description\" [--out outputs/ecad/]")
         print("       python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
         print("       python run_aria_os.py --cam-validate <step_file> [--retries 2]")

@@ -68,6 +68,15 @@ CADQUERY_KEYWORDS = [
     "nozzle", "rocket", "lre", "liquid rocket", "turbopump", "injector",
 ]
 
+# Civil engineering plans route to AutoCAD/DXF generator
+AUTOCAD_KEYWORDS = [
+    "road plan", "street plan", "highway plan", "drainage plan", "storm sewer",
+    "grading plan", "site plan", "utility plan", "civil plan", "civil engineering",
+    "dxf", "autocad", "right of way", "row plan", "earthwork plan",
+    "pavement design", "site civil", "land development plan",
+    "storm drain plan", "culvert plan", "retaining wall plan",
+]
+
 # part_ids that should always use Blender (lattice/SDF-based generation)
 BLENDER_PART_IDS = {
     "lattice", "gyroid_lattice", "aria_lattice", "sdf_lattice",
@@ -76,19 +85,22 @@ BLENDER_PART_IDS = {
 
 def select_cad_tool(goal: str, plan: dict[str, Any]) -> str:
     """
-    Return one of: "cadquery", "fusion", "grasshopper", "blender"
+    Return one of: "autocad", "cadquery", "fusion", "grasshopper", "blender"
 
     Priority:
-      1. cadquery    - LRE/nozzle hard-override
-      2. grasshopper - 6 core ARIA structural parts
-      3. fusion      - lattice, generative, sheet metal, additive, CAM, sim, sculpt
-      4. blender     - visualization / mesh repair only
-      5. cadquery    - default fallback
+      1. autocad     - civil engineering plans (DXF output)
+      2. cadquery    - LRE/nozzle hard-override
+      3. grasshopper - 6 core ARIA structural parts
+      4. fusion      - lattice, generative, sheet metal, additive, CAM, sim, sculpt
+      5. blender     - visualization / mesh repair only
+      6. cadquery    - default fallback
     """
     goal_lower = (goal or "").lower()
     part_id    = str(plan.get("part_id", ""))
     features   = plan.get("features", []) or []
 
+    if any(kw in goal_lower for kw in AUTOCAD_KEYWORDS):
+        return "autocad"
     if any(kw in goal_lower for kw in CADQUERY_KEYWORDS):
         return "cadquery"
     if part_id in BLENDER_PART_IDS:

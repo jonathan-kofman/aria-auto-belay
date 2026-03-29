@@ -26,6 +26,12 @@ _KEYWORD_MAP: list[tuple[list[str], str]] = [
     # Mechanical clock / horology keywords
     (["clock", "skeleton clock", "pendulum", "mainspring", "gear train",
       "escapement", "horology"], "cem_clock"),
+    # Civil engineering keywords
+    (["road plan", "street plan", "highway plan", "drainage plan", "storm sewer",
+      "grading plan", "site plan", "utility plan", "civil", "culvert",
+      "retaining wall", "dxf", "autocad", "road design", "storm drain",
+      "right of way", "row plan", "earthwork", "pavement design",
+      "site civil", "land development"], "cem_civil"),
     # ARIA auto-belay keywords
     (["aria", "belay", "ratchet", "brake drum", "spool", "cam collar",
       "centrifugal", "clutch", "rope guide", "catch pawl", "flyweight",
@@ -34,8 +40,11 @@ _KEYWORD_MAP: list[tuple[list[str], str]] = [
 
 # Part-ID prefix → module name (checked before keyword scan)
 _PART_ID_PREFIX_MAP: dict[str, str] = {
-    "aria_": "cem_aria",
-    "lre_":  "cem_lre",
+    "aria_":  "cem_aria",
+    "lre_":   "cem_lre",
+    "civil_": "cem_civil",
+    "road_":  "cem_civil",
+    "drain_": "cem_civil",
 }
 
 
