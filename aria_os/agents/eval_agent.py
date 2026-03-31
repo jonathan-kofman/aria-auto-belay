@@ -261,20 +261,37 @@ class EvalAgent:
         except Exception:
             user_spec = state.spec
 
+        # Determine if height_mm came from "thick" (plate thickness ≠ total bbox)
+        goal_lower = state.goal.lower()
+        _height_is_thickness = any(kw in goal_lower for kw in ("thick", "plate", "sheet"))
+
         checks = [
-            ("od_mm", "OD"),
-            ("width_mm", "width"),
-            ("height_mm", "height"),
-            ("depth_mm", "depth"),
+            ("od_mm", "OD", False),
+            ("width_mm", "width", False),
+            ("height_mm", "height", _height_is_thickness),
+            ("depth_mm", "depth", False),
         ]
-        for key, label in checks:
+        for key, label, is_thickness in checks:
             val = user_spec.get(key)
             if not val:
                 continue
             val = float(val)
-            tol = max(2.0, val * 0.20)  # 20% tolerance (raised features OK within reason)
 
-            # Check if ANY bbox axis matches within tolerance
+            if is_thickness:
+                # "6mm thick" means the plate material is 6mm. The total bbox
+                # can be taller because features (pockets, bosses, ribs) extend
+                # above or below. Validate that the MINIMUM bbox axis is close
+                # to the thickness (the thin dimension of a plate).
+                min_axis = min(bb.values()) if bb else 0
+                tol = max(2.0, val * 0.5)  # 50% tolerance — plate features can double height
+                if min_axis > val + tol:
+                    state.failures.append(
+                        f"bbox: minimum axis {min_axis:.1f}mm is much larger than "
+                        f"thickness={val:.1f}mm. The base plate should be ~{val:.1f}mm thin.")
+                # Don't fail if total bbox is larger — that's features on top
+                continue
+
+            tol = max(2.0, val * 0.20)
             if not any(abs(bb.get(axis, 0) - val) <= tol for axis in ("x", "y", "z")):
                 closest = min(bb.values(), key=lambda v: abs(v - val)) if bb else 0
                 state.failures.append(
