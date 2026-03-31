@@ -35,7 +35,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 _DEFAULT_OLLAMA_HOST   = "http://localhost:11434"
-_DEFAULT_OLLAMA_MODEL  = "deepseek-coder"
+_DEFAULT_OLLAMA_MODEL  = "qwen2.5-coder:7b"
 _DEFAULT_GEMINI_MODEL  = "gemini-2.0-flash"
 
 # Note injected into system prompt when using a local model
@@ -184,26 +184,34 @@ def _try_anthropic(prompt: str, system: str, repo_root: "Path | None" = None) ->
         if system:
             kwargs["system"] = system
         # Try current model, fall back to older on model-not-found errors
+        import time as _time
         for model in ("claude-sonnet-4-6", "claude-3-5-sonnet-20241022"):
-            try:
-                msg = client.messages.create(model=model, **kwargs)
-                text = "".join(
-                    b.text for b in msg.content if hasattr(b, "text")
-                )
+            for _retry in range(3):
                 try:
-                    event_bus.emit(
-                        "llm_output",
-                        f"[LLM] anthropic/{model}",
-                        {"backend": "anthropic", "model": model},
+                    msg = client.messages.create(model=model, **kwargs)
+                    text = "".join(
+                        b.text for b in msg.content if hasattr(b, "text")
                     )
-                except Exception:
-                    pass
-                print(f"[LLM] anthropic/{model}")
-                return text
-            except Exception as exc:
-                if "model" in str(exc).lower():
-                    continue
-                raise
+                    try:
+                        event_bus.emit(
+                            "llm_output",
+                            f"[LLM] anthropic/{model}",
+                            {"backend": "anthropic", "model": model},
+                        )
+                    except Exception:
+                        pass
+                    print(f"[LLM] anthropic/{model}")
+                    return text
+                except Exception as exc:
+                    exc_str = str(exc).lower()
+                    if "model" in exc_str:
+                        break  # try next model
+                    if "overloaded" in exc_str or "529" in exc_str:
+                        wait = 5 * (2 ** _retry)  # 5s, 10s, 20s
+                        print(f"[LLM] anthropic overloaded, retry in {wait}s...")
+                        _time.sleep(wait)
+                        continue
+                    raise
     except Exception as exc:
         print(f"[LLM] anthropic failed: {exc}")
     return None
