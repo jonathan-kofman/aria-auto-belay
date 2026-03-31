@@ -53,7 +53,27 @@ class EvalAgent:
             state.failures.append("STEP file not generated")
             return
 
-        # 2. Geometry validation (face-region analysis — reliable, no heuristics)
+        # 2. Single solid check — a manufacturable part must be ONE connected body
+        try:
+            import cadquery as cq
+            _shape = cq.importers.importStep(step_path)
+            _solids = _shape.val().Solids()
+            if len(_solids) > 1:
+                _solid_info = ", ".join(
+                    f"{s.BoundingBox().xlen:.0f}x{s.BoundingBox().ylen:.0f}x{s.BoundingBox().zlen:.0f}mm"
+                    for s in _solids[:4]
+                )
+                state.failures.append(
+                    f"solid_count: part has {len(_solids)} disconnected solids ({_solid_info}). "
+                    f"All features must be unioned into a single body. "
+                    f"Use result = base.union(feature) to join them."
+                )
+            elif len(_solids) == 0:
+                state.failures.append("solid_count: STEP contains no solids")
+        except Exception:
+            pass
+
+        # 3. Geometry validation (face-region analysis — reliable, no heuristics)
         try:
             from ..geometry_validator import validate_geometry
             geo = validate_geometry(step_path, state.part_id, state.spec, state.goal)

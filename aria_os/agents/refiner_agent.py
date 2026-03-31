@@ -59,6 +59,12 @@ _FAILURE_FIXES: dict[str, str] = {
     "Workplane.cylinder":    "CadQuery has NO .cylinder() method. Use .circle(radius).extrude(height) instead.",
     "got an unexpected keyword": "Check CadQuery API — .extrude() takes (distance), not (depth=). Remove named kwargs.",
     "No pending wires":      "The .polyline() or .moveTo() call failed. Ensure points are valid and the wire is closed before .extrude().",
+    "solid_count.*disconnected": (
+        "The part has multiple separate bodies that are not joined. "
+        "You MUST union all features into one solid: result = base.union(pocket).union(boss). "
+        "If .union() fails, the features may not be touching — move them so they overlap the base. "
+        "Check that .workplane(offset=...) positions features ON the base, not floating above it."
+    ),
     "STEP not readable":     "CadQuery export failed. Simplify geometry — remove complex booleans.",
     # CAM
     "undercut":              "Part has undercuts requiring 4/5-axis. Add draft angles or redesign to be 3-axis machinable.",
