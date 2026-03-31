@@ -250,9 +250,16 @@ class EvalAgent:
                 )
 
     def _check_bbox_vs_spec(self, state: DesignState) -> None:
-        """Check if generated bbox approximately matches requested dimensions."""
+        """Check if generated bbox approximately matches USER-specified dimensions.
+        Only checks dims from the original goal extraction, not CEM-injected values."""
         bb = state.bbox
-        spec = state.spec
+
+        # Re-extract spec from goal only (no CEM contamination)
+        try:
+            from ..spec_extractor import extract_spec
+            user_spec = extract_spec(state.goal)
+        except Exception:
+            user_spec = state.spec
 
         checks = [
             ("od_mm", "OD"),
@@ -261,7 +268,7 @@ class EvalAgent:
             ("depth_mm", "depth"),
         ]
         for key, label in checks:
-            val = spec.get(key)
+            val = user_spec.get(key)
             if not val:
                 continue
             val = float(val)

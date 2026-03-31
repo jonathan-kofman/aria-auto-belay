@@ -36,8 +36,9 @@ class DesignerAgent(BaseAgent):
         2. If no template or template output fails eval, fall back to LLM generation.
         The agent is still agentic: SpecAgent extracts params, EvalAgent validates.
         """
-        if self.domain == "cad":
-            # Try template-based generation first (fast path)
+        if self.domain == "cad" and state.iteration <= 1 and not state.refinement_instructions:
+            # Try template on FIRST iteration only. If eval fails and refiner
+            # provides instructions, subsequent iterations use LLM to adapt.
             template_used = self._try_template(state)
             if template_used:
                 return
