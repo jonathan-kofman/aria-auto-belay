@@ -54,3 +54,6 @@ outputs/logs/
 
 # Keep assembly configs
 # assembly_configs/ is NOT ignored
+# MillForge private (proprietary scheduling/sourcing/vision)
+.millforge/
+millforge_private/
