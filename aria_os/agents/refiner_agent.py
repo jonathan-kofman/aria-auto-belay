@@ -102,57 +102,84 @@ class RefinerAgent(BaseAgent):
         self.repo_root = repo_root
 
     def refine(self, state: DesignState) -> None:
-        """Analyze failures and populate state.refinement_instructions."""
+        """Analyze failures and populate state.refinement_instructions.
+
+        The refiner is CODE-AWARE: it reads the actual generated code and
+        proposes specific line-level fixes, not generic advice.
+        """
         if not state.failures:
             state.refinement_instructions = ""
             state.parameter_overrides = {}
             return
 
-        # Try deterministic fixes first
-        import re
-        deterministic_fixes = []
-        for failure in state.failures:
-            for pattern, fix in _FAILURE_FIXES.items():
-                if re.search(pattern, failure, re.IGNORECASE):
-                    deterministic_fixes.append(f"- {failure} -> FIX: {fix}")
-                    break
-
-        # If all failures have deterministic fixes, skip LLM
-        if len(deterministic_fixes) == len(state.failures):
-            state.refinement_instructions = (
-                "Fix these issues in the next iteration:\n" +
-                "\n".join(deterministic_fixes)
-            )
-            print(f"  [RefinerAgent] {len(deterministic_fixes)} fixes from lookup table")
-            return
-
-        # LLM for novel/ambiguous failures
-        prompt = (
-            f"## Current Failures\n"
-            + "\n".join(f"- {f}" for f in state.failures)
-            + f"\n\n## Current Spec\n{json.dumps(state.spec, indent=2, default=str)}"
-            + f"\n\n## Current Bbox\n{json.dumps(state.bbox, default=str)}"
-        )
-
-        if deterministic_fixes:
-            prompt += "\n\n## Known Fixes (already resolved)\n" + "\n".join(deterministic_fixes)
-
+        # Always use LLM for refinement — it reads the actual code and failures
+        # to produce specific fixes. Deterministic lookup is too generic.
+        prompt = self._build_code_aware_prompt(state)
         response = self.run(prompt, state)
 
-        # Parse JSON from response
-        try:
-            json_match = _extract_json(response)
-            if json_match:
-                parsed = json.loads(json_match)
-                state.refinement_instructions = parsed.get("instructions", response)
-                state.parameter_overrides = parsed.get("parameter_overrides", {})
-            else:
+        if response:
+            try:
+                json_match = _extract_json(response)
+                if json_match:
+                    parsed = json.loads(json_match)
+                    state.refinement_instructions = parsed.get("instructions", response)
+                    state.parameter_overrides = parsed.get("parameter_overrides", {})
+                else:
+                    state.refinement_instructions = response
+            except Exception:
                 state.refinement_instructions = response
-        except Exception:
-            state.refinement_instructions = response
+        else:
+            # LLM failed — fall back to deterministic
+            import re
+            deterministic_fixes = []
+            for failure in state.failures:
+                for pattern, fix in _FAILURE_FIXES.items():
+                    if re.search(pattern, failure, re.IGNORECASE):
+                        deterministic_fixes.append(f"- {failure} -> FIX: {fix}")
+                        break
+            state.refinement_instructions = (
+                "Fix these issues in the next iteration:\n" +
+                "\n".join(deterministic_fixes) if deterministic_fixes else
+                "Previous attempt failed. Try a different approach."
+            )
+            print(f"  [RefinerAgent] {len(deterministic_fixes)} deterministic fixes (LLM unavailable)")
+            return
 
-        print(f"  [RefinerAgent] Generated refinement guidance "
-              f"({len(state.parameter_overrides)} param overrides)")
+        n_overrides = len(state.parameter_overrides)
+        print(f"  [RefinerAgent] Code-aware refinement ({n_overrides} param overrides)")
+
+    def _build_code_aware_prompt(self, state: DesignState) -> str:
+        """Build a prompt that includes the actual generated code + failures.
+
+        This lets the LLM pinpoint exactly which line/value needs to change,
+        instead of giving generic "check your dimensions" advice.
+        """
+        # Truncate code to fit context
+        code = state.code[:2000] if state.code else "(no code available)"
+
+        parts = [
+            f"## FAILURES from the validator\n"
+            + "\n".join(f"- {f}" for f in state.failures),
+
+            f"\n## ACTUAL GENERATED CODE (this is what produced the wrong geometry)\n"
+            f"```python\n{code}\n```",
+
+            f"\n## CURRENT BBOX: {json.dumps(state.bbox, default=str)}",
+            f"\n## SPEC (what the user asked for): {json.dumps(state.spec, indent=2, default=str)}",
+        ]
+
+        if state.plan.get("build_recipe"):
+            parts.append(f"\n## BUILD RECIPE (what the geometry should look like):\n{state.plan['build_recipe'][:1000]}")
+
+        parts.append(
+            "\n## YOUR TASK\n"
+            "Read the actual code above. Find the SPECIFIC lines that cause the failures.\n"
+            "Tell the designer EXACTLY what to change — which variable, which value, which line.\n"
+            "Example: 'Change .extrude(10) on line 15 to .extrude(4) so the pocket stays within the 6mm base thickness'\n"
+            "Output JSON: {\"instructions\": \"specific fix instructions\", \"parameter_overrides\": {\"key\": value}}"
+        )
+
+        return "\n".join(parts)
 
 
 def _extract_json(text: str) -> str | None:

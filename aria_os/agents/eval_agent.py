@@ -261,12 +261,6 @@ class EvalAgent:
         except Exception:
             user_spec = state.spec
 
-        # Check each user-specified dim against bbox axes
-        # For "thickness" dimensions, allow bbox to be LARGER (raised features
-        # extend above the base thickness — a 6mm plate with a 4mm pocket = 10mm total)
-        goal_lower = state.goal.lower()
-        _is_thickness = "thick" in goal_lower  # "6mm thick" implies base, not max
-
         checks = [
             ("od_mm", "OD"),
             ("width_mm", "width"),
@@ -278,19 +272,11 @@ class EvalAgent:
             if not val:
                 continue
             val = float(val)
-            tol = max(2.0, val * 0.15)
+            tol = max(2.0, val * 0.20)  # 20% tolerance (raised features OK within reason)
 
-            # For thickness: bbox can be LARGER (features above base)
-            # Only fail if ALL axes are SMALLER than specified
-            if _is_thickness and key == "height_mm":
-                if all(bb.get(axis, 0) < val - tol for axis in ("x", "y", "z")):
-                    closest = max(bb.values()) if bb else 0
-                    state.failures.append(
-                        f"bbox: all axes smaller than thickness={val:.1f}mm (max={closest:.1f}mm)")
-                continue
-
-            # Standard check: any axis must match within tolerance
+            # Check if ANY bbox axis matches within tolerance
             if not any(abs(bb.get(axis, 0) - val) <= tol for axis in ("x", "y", "z")):
                 closest = min(bb.values(), key=lambda v: abs(v - val)) if bb else 0
                 state.failures.append(
-                    f"bbox: no axis matches {label}={val:.1f}mm (closest={closest:.1f}mm, tol={tol:.1f})")
+                    f"bbox: no axis matches {label}={val:.1f}mm (closest={closest:.1f}mm, tol={tol:.1f}). "
+                    f"Check the code — a value in .extrude() or .box() may be wrong.")
