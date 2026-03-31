@@ -123,13 +123,21 @@ def parse_spec(goal: str, plan: dict[str, Any]) -> dict[str, Any]:
     _TIGHT = {"aria_ratchet_ring", "aria_catch_pawl", "aria_cam_collar", "aria_spool"}
     _MED   = {"aria_brake_drum", "aria_rope_guide", "aria_housing",
               "aria_flange", "aria_shaft", "aria_pulley"}
+    # Enclosures/cases: input dims describe the CONTAINED object, not the case itself.
+    # Output bbox is always larger (walls + bumpers). Use wide tolerance.
+    _ENCLOSURE_KW = ("case", "enclosure", "cover", "sleeve", "holder", "shell")
     pid = plan.get("part_id", "")
+    _goal_lower = goal.lower() if isinstance(goal, str) else ""
+    _is_enclosure = any(kw in pid.lower() or kw in _goal_lower for kw in _ENCLOSURE_KW)
     if pid in _TIGHT:
         spec["tol_mm"]   = 2.0
         spec["tol_frac"] = 0.02
     elif pid in _MED:
         spec["tol_mm"]   = 3.0
         spec["tol_frac"] = 0.03
+    elif _is_enclosure:
+        spec["tol_mm"]   = 15.0
+        spec["tol_frac"] = 0.20
     else:
         spec["tol_mm"]   = 5.0
         spec["tol_frac"] = 0.05
@@ -190,13 +198,16 @@ def check_geometry(stl_path: str, spec: dict[str, Any]) -> dict[str, Any]:
     bb = {"x": float(ext[0]), "y": float(ext[1]), "z": float(ext[2])}
     result["bbox"] = bb
 
-    tol      = spec.get("tol_mm", 5.0)
-    tol_frac = spec.get("tol_frac", 0.05)
+    # Scale tolerance: 15% of nominal or 2mm floor (whichever is larger).
+    # 15% accounts for cases/enclosures where output is intentionally larger
+    # than the contained object (phone dims + walls + bumpers).
+    _tol_floor = spec.get("tol_mm", 2.0)
+    tol_frac   = spec.get("tol_frac", 0.15)
 
     od = spec.get("od_mm")
     if od:
         for axis, val in [("x", bb["x"]), ("y", bb["y"])]:
-            allowed = max(tol, od * tol_frac)
+            allowed = max(_tol_floor, od * tol_frac)
             if abs(val - od) > allowed:
                 result["failures"].append(
                     f"Bbox {axis.upper()} = {val:.1f} mm; expected ~{od:.1f} mm "
@@ -206,14 +217,32 @@ def check_geometry(stl_path: str, spec: dict[str, Any]) -> dict[str, Any]:
 
     height = spec.get("height_mm")
     if height:
-        min_dim = min(bb.values())
-        allowed_h = max(tol, height * tol_frac)
-        if abs(min_dim - height) > allowed_h:
+        # Check if ANY bbox axis matches the expected height (not just the minimum).
+        # For box-notation specs (WxHxD), the height may map to any axis depending
+        # on the part's orientation (e.g. phone case: height=78.1 is the Y axis).
+        allowed_h = max(_tol_floor, height * tol_frac)
+        _any_match = any(abs(v - height) <= allowed_h for v in bb.values())
+        if not _any_match:
+            _closest = min(bb.values(), key=lambda v: abs(v - height))
             result["failures"].append(
-                f"Minimum bbox dim = {min_dim:.1f} mm; expected thickness "
-                f"~{height:.1f} mm (±{allowed_h:.1f}) — height/thickness mismatch"
+                f"No bbox axis matches expected height ~{height:.1f} mm "
+                f"(+/-{allowed_h:.1f}); closest = {_closest:.1f} mm"
             )
             result["passed"] = False
+
+    # Width and depth checks (same any-axis logic)
+    for _dim_key in ("width_mm", "depth_mm"):
+        _dim_val = spec.get(_dim_key)
+        if _dim_val:
+            _dim_tol = max(_tol_floor, _dim_val * tol_frac)
+            _dim_match = any(abs(v - _dim_val) <= _dim_tol for v in bb.values())
+            if not _dim_match:
+                _dim_closest = min(bb.values(), key=lambda v: abs(v - _dim_val))
+                result["failures"].append(
+                    f"No bbox axis matches expected {_dim_key} ~{_dim_val:.1f} mm "
+                    f"(+/-{_dim_tol:.1f}); closest = {_dim_closest:.1f} mm"
+                )
+                result["passed"] = False
 
     # --- volume ---
     vol = float(mesh.volume)

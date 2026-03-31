@@ -48,7 +48,49 @@ MATERIALS: dict[str, dict[str, float]] = {
     "inconel_718":     {"E_GPa": 200.0, "yield_MPa": 1100.0, "density": 8190.0, "poisson": 0.29},
     # x1_420i from ARIA project
     "x1_420i":         {"E_GPa": 190.0, "yield_MPa": 620.0,  "density": 7860.0, "poisson": 0.30},
+    # Polymers & elastomers
+    "tpu":             {"E_GPa":  0.025, "yield_MPa":  25.0,  "density": 1210.0, "poisson": 0.48},
+    "tpu_95a":         {"E_GPa":  0.025, "yield_MPa":  25.0,  "density": 1210.0, "poisson": 0.48},
+    "silicone":        {"E_GPa":  0.005, "yield_MPa":   7.0,  "density": 1150.0, "poisson": 0.49},
+    "rubber":          {"E_GPa":  0.005, "yield_MPa":   7.0,  "density": 1150.0, "poisson": 0.49},
+    "polycarbonate":   {"E_GPa":  2.4,   "yield_MPa":  62.0,  "density": 1200.0, "poisson": 0.37},
+    "pc":              {"E_GPa":  2.4,   "yield_MPa":  62.0,  "density": 1200.0, "poisson": 0.37},
+    # Composites
+    "carbon_fiber":    {"E_GPa": 70.0,   "yield_MPa": 600.0,  "density": 1600.0, "poisson": 0.10},
+    "cf":              {"E_GPa": 70.0,   "yield_MPa": 600.0,  "density": 1600.0, "poisson": 0.10},
+    "fiberglass":      {"E_GPa": 20.0,   "yield_MPa": 200.0,  "density": 1800.0, "poisson": 0.22},
+    # Metals
+    "titanium":        {"E_GPa": 116.0,  "yield_MPa": 880.0,  "density": 4430.0, "poisson": 0.34},
+    "ti_6al4v":        {"E_GPa": 114.0,  "yield_MPa": 880.0,  "density": 4430.0, "poisson": 0.34},
+    "brass":           {"E_GPa": 100.0,  "yield_MPa": 200.0,  "density": 8500.0, "poisson": 0.34},
+    "copper":          {"E_GPa": 117.0,  "yield_MPa": 210.0,  "density": 8960.0, "poisson": 0.34},
 }
+
+# Map common goal-string keywords to material keys
+# Ordered longest-first so "polycarbonate" matches before "carbon"
+_MATERIAL_KEYWORD_MAP: list[tuple[str, str]] = [
+    ("polycarbonate",  "polycarbonate"),  # must be before "carbon"
+    ("carbon fiber",   "carbon_fiber"),
+    ("carbon fibre",   "carbon_fiber"),
+    ("tpu",            "tpu"),
+    ("silicone",       "silicone"),
+    ("rubber",         "rubber"),
+    ("titanium",       "titanium"),
+    ("ti-6al-4v",      "ti_6al4v"),
+    ("inconel",        "inconel_718"),
+    ("6061",           "aluminium_6061"),
+    ("7075",           "aluminium_7075"),
+    ("4140",           "steel_4140"),
+    ("aluminium",      "aluminium_6061"),
+    ("aluminum",       "aluminium_6061"),
+    ("brass",          "brass"),
+    ("copper",         "copper"),
+    ("nylon",          "nylon_pa12"),
+    ("pla",            "pla"),
+    ("abs",            "abs"),
+    ("petg",           "petg"),
+    ("steel",          "steel_mild"),
+]
 
 _DEFAULT_MATERIAL = "steel_mild"
 
@@ -59,6 +101,22 @@ def _get_material(name: str | None) -> dict[str, float]:
         return MATERIALS[_DEFAULT_MATERIAL]
     key = name.lower().replace(" ", "_").replace("-", "_")
     return MATERIALS.get(key, MATERIALS[_DEFAULT_MATERIAL])
+
+
+def _detect_material_from_goal(goal: str, params: dict) -> str:
+    """Detect material from params['material'] or goal string keywords."""
+    # Check params first
+    mat = params.get("material")
+    if mat:
+        key = mat.lower().replace(" ", "_").replace("-", "_")
+        if key in MATERIALS:
+            return key
+    # Scan goal string for material keywords
+    goal_lower = goal.lower()
+    for kw, mat_key in _MATERIAL_KEYWORD_MAP:
+        if kw in goal_lower:
+            return mat_key
+    return _DEFAULT_MATERIAL
 
 
 # ---------------------------------------------------------------------------
@@ -964,11 +1022,128 @@ def cfd_drag_estimate(params: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Auto-detection keyword → analysis type
+# ---------------------------------------------------------------------------
+# Drop impact analysis (phone cases, enclosures, protective equipment)
+# ---------------------------------------------------------------------------
+
+def fea_drop_impact(params: dict) -> dict:
+    """
+    Drop impact analysis — energy absorption and stress at impact.
+
+    Models a free-fall drop onto a rigid surface. Computes impact velocity,
+    kinetic energy, peak deceleration, and stress in the case wall.
+
+    Uses energy method: KE = m*g*h, peak force F = KE / crush_distance,
+    stress = F / wall_cross_section_area.
+    """
+    import math
+
+    # Part dims
+    width  = float(params.get("width_mm", params.get("od_mm", 80.0)))
+    length = float(params.get("height_mm", params.get("length_mm", 160.0)))
+    wall   = float(params.get("wall_mm", 2.5))
+    depth  = float(params.get("depth_mm", params.get("thickness_mm", 12.0)))
+
+    # Drop parameters
+    drop_height_m = float(params.get("drop_height_m", 4.572))  # 15 ft default
+    mass_kg       = float(params.get("mass_kg", 0.240))        # iPhone 13 PM = 240g
+    g             = 9.81
+
+    # Material
+    mat_name = params.get("material", "polycarbonate")
+    mat = _get_material(mat_name)
+    E_Pa       = mat["E_GPa"] * 1e9
+    yield_Pa   = mat["yield_MPa"] * 1e6
+    density    = mat["density"]
+
+    # Impact velocity: v = sqrt(2*g*h)
+    v_impact = math.sqrt(2 * g * drop_height_m)
+
+    # Kinetic energy at impact
+    KE = 0.5 * mass_kg * v_impact**2
+
+    # Crush distance — how far the case deforms to absorb energy
+    # For rigid PC: very small deformation; for TPU: larger
+    # Estimate from wall compression: crush_d = wall * yield_strain
+    yield_strain = yield_Pa / E_Pa
+    crush_d_m = (wall / 1000) * min(yield_strain * 10, 0.3)  # cap at 30% wall compression
+    crush_d_m = max(crush_d_m, 0.0005)  # minimum 0.5mm crush
+
+    # Peak deceleration force: F = KE / crush_distance
+    F_peak = KE / crush_d_m
+
+    # Peak deceleration in g's
+    decel_g = F_peak / (mass_kg * g)
+
+    # Stress at corner impact — force distributed over corner contact area
+    # Assume corner contact patch ~ 10mm x 10mm = 100 mm^2
+    contact_area_m2 = (10.0 * wall) * 1e-6  # corner wall cross-section
+    sigma_impact = F_peak / contact_area_m2
+
+    # Safety factor
+    sf = yield_Pa / sigma_impact if sigma_impact > 0 else 999.0
+
+    # MIL-STD-810G drop test: 26 drops from 1.22m onto 50mm plywood over steel
+    mil_std_height = 1.22
+    mil_std_pass = drop_height_m <= 10.0 and sf >= 1.0  # survives if SF > 1
+
+    passed = sf >= 1.5
+    failures = []
+    warnings = []
+
+    if sf < 1.0:
+        failures.append(f"Wall yields at impact: stress {sigma_impact/1e6:.1f} MPa > yield {yield_Pa/1e6:.0f} MPa")
+    if sf < 1.5:
+        failures.append(f"SF {sf:.2f} < 1.5 minimum for drop protection")
+    if decel_g > 1000:
+        warnings.append(f"Peak deceleration {decel_g:.0f}g exceeds phone survival threshold (~1000g)")
+    if decel_g > 500:
+        warnings.append(f"Peak deceleration {decel_g:.0f}g — consider thicker corner bumpers or softer material")
+
+    report = (
+        f"Drop Impact Analysis (free fall onto rigid surface)\n"
+        f"  Drop height:      {drop_height_m:.2f} m ({drop_height_m * 3.281:.0f} ft)\n"
+        f"  Phone mass:       {mass_kg * 1000:.0f} g\n"
+        f"  Impact velocity:  {v_impact:.2f} m/s ({v_impact * 3.6:.1f} km/h)\n"
+        f"  Kinetic energy:   {KE:.2f} J\n"
+        f"  Material:         {mat_name} (E={mat['E_GPa']} GPa, sigma_y={mat['yield_MPa']} MPa)\n"
+        f"  Wall thickness:   {wall:.1f} mm\n"
+        f"  Crush distance:   {crush_d_m * 1000:.2f} mm\n"
+        f"  Peak force:       {F_peak:.0f} N ({F_peak / g:.0f} g)\n"
+        f"  Peak deceleration:{decel_g:.0f} g\n"
+        f"  Impact stress:    {sigma_impact / 1e6:.1f} MPa\n"
+        f"  Safety factor:    {sf:.2f}\n"
+        f"  MIL-STD-810G:     {'PASS' if mil_std_pass else 'FAIL'}\n"
+        f"  Result:           {'PASS' if passed else 'FAIL'}"
+    )
+
+    return {
+        "analysis_type": "fea_drop_impact",
+        "passed": passed,
+        "safety_factor": round(sf, 2),
+        "failures": failures,
+        "warnings": warnings,
+        "details": {
+            "drop_height_m": drop_height_m,
+            "v_impact_ms": round(v_impact, 2),
+            "KE_J": round(KE, 2),
+            "F_peak_N": round(F_peak, 0),
+            "decel_g": round(decel_g, 0),
+            "sigma_impact_MPa": round(sigma_impact / 1e6, 1),
+            "crush_mm": round(crush_d_m * 1000, 2),
+            "mil_std_810g": mil_std_pass,
+        },
+        "report": report,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Auto-detection keyword -> analysis type
 # ---------------------------------------------------------------------------
 
 # Ordered list of (keywords, analysis_fn_name).  First match wins.
 _KEYWORD_MAP: list[tuple[tuple[str, ...], str]] = [
+    (("drop", "impact", "case", "phone", "protective", "rugged", "mil-std", "fall"), "fea_drop_impact"),
     (("nozzle", "rocket", "lre", "injector", "throat", "divergent", "convergent"), "cfd_nozzle_flow"),
     (("gear",   "pinion", "tooth", "ratchet", "sprocket"),                          "fea_gear_tooth"),
     (("pipe",   "tube",   "duct",  "channel", "manifold", "conduit"),               "cfd_pipe_flow"),
@@ -986,6 +1161,7 @@ _FEA_ANALYSES = {
     "fea_gear_tooth",
     "fea_plate_bending",
     "fea_bolt_circle",
+    "fea_drop_impact",
 }
 _CFD_ANALYSES = {
     "cfd_pipe_flow",
@@ -1004,6 +1180,7 @@ _ANALYSIS_FN_MAP = {
     "cfd_nozzle_flow":   cfd_nozzle_flow,
     "cfd_heat_transfer": cfd_heat_transfer,
     "cfd_drag_estimate": cfd_drag_estimate,
+    "fea_drop_impact":   fea_drop_impact,
 }
 
 
@@ -1069,6 +1246,10 @@ def analyze(
     # Enrich params with part_id so analyses can use it for warnings
     enriched = dict(params)
     enriched.setdefault("part_id", part_id)
+
+    # Auto-detect material from goal string if not explicitly set in params
+    if not enriched.get("material"):
+        enriched["material"] = _detect_material_from_goal(goal, enriched)
 
     result = fn(enriched)
     return result

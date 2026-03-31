@@ -259,146 +259,633 @@ def _generate_road_plan(msp: Any, std: dict, description: str) -> None:
     })
 
 
-def _generate_drainage_plan(msp: Any, std: dict, description: str) -> None:
+def _generate_drainage_plan(msp: Any, std: dict, description: str) -> None:  # noqa: C901
     """
-    Site storm drainage plan with CEM-derived pipe sizing.
-    500 LF trunk, 4 curb inlets CI-1..CI-4, MH-1..MH-4 with rim/invert,
-    detention pond, outfall protection note.
-    """
-    from aria_os.autocad.civil_elements import (
-        add_storm_pipe, add_inlet, add_manhole, add_detention_pond,
-        add_north_arrow, add_title_block
-    )
+    Full subdivision storm drainage plan.
 
+    Layout (all in project feet, 1 unit = 1 ft):
+      Sheet border 1320 x 1020 at origin.
+      Plan view: 1200 x 700 inset.
+        - Street grid: Main St (E-W) + Oak Ave (N-S), 1200 x 800 block
+        - Existing 2-ft contours (index every 10 ft), elevations 98–116
+        - Storm network: trunk main (24" RCP) + 2 branches (18" RCP) + 8 laterals
+        - 8 manholes (MH-1..8), 8 curb inlets (CI-1..8), 1 headwall
+        - Existing water main and sanitary sewer (dashed)
+        - Detention basin with berm polygon, normal/emergency WS elevations
+        - Drainage area boundaries (DA-1..DA-3) with acreage labels
+        - Spot elevations at key points
+      Pipe profile view: 1200 x 180 below plan.
+        - HGL, pipe barrel, existing grade, manhole drop lines
+      Hydraulics table: pipe-by-pipe summary
+      Legend, north arrow, scale bar, title block
+    """
     design_storm = std.get("design_storm_minor_year", std.get("design_storm_yr", 10))
     min_cover    = std.get("min_pipe_cover_ft", 2.0)
-    pipe_size    = std.get("min_culvert_dia_in", std.get("min_pipe_dia_storm_in", 18.0))
 
-    # Trunk: MH-1 (0,0) → MH-2 (150,0) → MH-3 (300,0) → MH-4 (500,0)
-    mh_coords = [(0, 0), (150, 0), (300, 0), (500, 0)]
-    # Rim and invert elevations (representative, decreasing)
-    mh_data = [
-        {"label": "MH-1", "rim": 104.25, "inv": 99.50},
-        {"label": "MH-2", "rim": 104.10, "inv": 99.20},
-        {"label": "MH-3", "rim": 103.90, "inv": 98.87},
-        {"label": "MH-4", "rim": 103.65, "inv": 98.50},
+    # ── Sheet border & title block ────────────────────────────────────────────
+    SH_W, SH_H = 1320.0, 1020.0
+    msp.add_lwpolyline(
+        [(0, 0), (SH_W, 0), (SH_W, SH_H), (0, SH_H), (0, 0)],
+        dxfattribs={"layer": "ANNO-DIM"},
+    )
+    # Inner border
+    msp.add_lwpolyline(
+        [(15, 15), (SH_W - 15, 15), (SH_W - 15, SH_H - 15),
+         (15, SH_H - 15), (15, 15)],
+        dxfattribs={"layer": "ANNO-DIM"},
+    )
+    # Title block (bottom strip)
+    tb_y = 15.0
+    for x_div in [SH_W * 0.35, SH_W * 0.60, SH_W * 0.78, SH_W - 15]:
+        msp.add_line((x_div, tb_y), (x_div, tb_y + 60),
+                     dxfattribs={"layer": "ANNO-DIM"})
+    msp.add_line((15, tb_y + 60), (SH_W - 15, tb_y + 60),
+                 dxfattribs={"layer": "ANNO-DIM"})
+    msp.add_line((15, tb_y + 30), (SH_W * 0.35, tb_y + 30),
+                 dxfattribs={"layer": "ANNO-DIM"})
+
+    tb_fields = [
+        (20, tb_y + 45, 0.30, "STORM DRAINAGE PLAN"),
+        (20, tb_y + 18, 0.18, "RESIDENTIAL STREET RECONSTRUCTION"),
+        (SH_W * 0.35 + 10, tb_y + 45, 0.20, "PROJECT NO: TX-2024-0831"),
+        (SH_W * 0.35 + 10, tb_y + 20, 0.18, "DESIGNED: R. MORALES, PE"),
+        (SH_W * 0.60 + 10, tb_y + 45, 0.20, "SHEET: C-3.1"),
+        (SH_W * 0.60 + 10, tb_y + 20, 0.18, "OF 7"),
+        (SH_W * 0.78 + 10, tb_y + 45, 0.18, "DATE: 03-29-2026"),
+        (SH_W * 0.78 + 10, tb_y + 20, 0.18, "SCALE: 1\"=40'"),
     ]
+    for tx, ty, th, txt in tb_fields:
+        msp.add_text(txt, dxfattribs={"layer": "ANNO-TEXT", "height": th,
+                                       "insert": (tx, ty)})
 
-    # Draw trunk pipe runs
-    pipe_labels = [
-        f"{int(pipe_size)}\" RCP @ 0.20%",
-        f"{int(pipe_size)}\" RCP @ 0.22%",
-        f"{int(pipe_size)}\" RCP @ 0.25%",
+    # Plan area origin (lower-left of plan viewport)
+    PX, PY = 30.0, 100.0   # offset inside sheet
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # STREET GRID
+    # Main St: E-W, y = 400 (in plan coords relative to PX/PY)
+    # Oak Ave: N-S, x = 600
+    # Block: 1200 ft E-W x 800 ft N-S
+    # ─────────────────────────────────────────────────────────────────────────
+    BLOCK_W, BLOCK_H = 1200.0, 800.0
+    CL_Y   = 400.0   # Main St CL
+    CL_X   = 600.0   # Oak Ave CL
+    LANE   = 12.0
+    ROW_H  = 60.0 / 2   # half-ROW
+    EOP    = LANE        # 2-lane road, half-width = 1 lane
+
+    def _pl(ox, oy):
+        """Convert plan-local to sheet coords."""
+        return (PX + ox, PY + oy)
+
+    # Main Street centerline
+    msp.add_line(_pl(0, CL_Y), _pl(BLOCK_W, CL_Y),
+                 dxfattribs={"layer": "ROAD-CENTERLINE", "linetype": "CENTER"})
+    # Oak Ave centerline
+    msp.add_line(_pl(CL_X, 0), _pl(CL_X, BLOCK_H),
+                 dxfattribs={"layer": "ROAD-CENTERLINE", "linetype": "CENTER"})
+
+    # ROW lines (4 sides of each street)
+    for sign in (+1, -1):
+        # Main St ROW
+        msp.add_line(_pl(0, CL_Y + sign * ROW_H), _pl(BLOCK_W, CL_Y + sign * ROW_H),
+                     dxfattribs={"layer": "ROAD-ROW", "linetype": "DASHED"})
+        # Oak Ave ROW
+        msp.add_line(_pl(CL_X + sign * ROW_H, 0), _pl(CL_X + sign * ROW_H, BLOCK_H),
+                     dxfattribs={"layer": "ROAD-ROW", "linetype": "DASHED"})
+        # Edge of pavement
+        msp.add_line(_pl(0, CL_Y + sign * EOP), _pl(BLOCK_W, CL_Y + sign * EOP),
+                     dxfattribs={"layer": "ROAD-EDGE"})
+        msp.add_line(_pl(CL_X + sign * EOP, 0), _pl(CL_X + sign * EOP, BLOCK_H),
+                     dxfattribs={"layer": "ROAD-EDGE"})
+
+    # Station labels Main St every 100 ft
+    for sta in range(0, 1300, 100):
+        msp.add_line(_pl(sta, CL_Y - 1.5), _pl(sta, CL_Y + 1.5),
+                     dxfattribs={"layer": "ANNO-DIM"})
+        msp.add_text(f"{sta // 100}+{sta % 100:02d}", dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5,
+            "insert": _pl(sta - 4, CL_Y - ROW_H - 8),
+        })
+
+    # Street name labels
+    msp.add_text("MAIN ST.", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 5.0, "insert": _pl(60, CL_Y + ROW_H + 4)})
+    msp.add_text("OAK AVE.", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 5.0, "insert": _pl(CL_X + ROW_H + 4, 80)})
+
+    # Curb & gutter lines (1.5 ft face-of-curb from EOP)
+    CRB = EOP + 1.5
+    for sign in (+1, -1):
+        msp.add_line(_pl(0, CL_Y + sign * CRB), _pl(BLOCK_W, CL_Y + sign * CRB),
+                     dxfattribs={"layer": "ROAD-EDGE"})
+        msp.add_line(_pl(CL_X + sign * CRB, 0), _pl(CL_X + sign * CRB, BLOCK_H),
+                     dxfattribs={"layer": "ROAD-EDGE"})
+
+    # Intersection curb returns (30 ft radius)
+    r_ret = 30.0
+    corners = [
+        # (cx, cy, a_start_deg, a_end_deg) — in plan-local
+        (CL_X - CRB - r_ret, CL_Y - CRB,  270, 360),
+        (CL_X + CRB + r_ret, CL_Y - CRB,  180, 270),
+        (CL_X - CRB - r_ret, CL_Y + CRB,    0,  90),
+        (CL_X + CRB + r_ret, CL_Y + CRB,   90, 180),
     ]
-    for idx in range(len(mh_coords) - 1):
-        x0, y0 = mh_coords[idx]
-        x1, y1 = mh_coords[idx + 1]
-        msp.add_line((x0, y0), (x1, y1),
-                     dxfattribs={"layer": "UTIL-STORM"})
-        mid_x = (x0 + x1) / 2
-        msp.add_text(pipe_labels[idx], dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
-            "insert": (mid_x - 15, 2.5),
-        })
+    for ccx, ccy, a0, a1 in corners:
+        pts = []
+        for deg in range(a0, a1 + 1, 5):
+            rad = math.radians(deg)
+            pts.append(_pl(ccx + r_ret * math.cos(rad),
+                           ccy + r_ret * math.sin(rad)))
+        if len(pts) >= 2:
+            msp.add_lwpolyline(pts, dxfattribs={"layer": "ROAD-EDGE"})
 
-    # Draw manholes with rim/invert callouts
-    for mh, (mx, my) in zip(mh_data, mh_coords):
-        # Manhole circle
-        msp.add_circle((mx, my), 3.0,
-                        dxfattribs={"layer": "UTIL-STORM"})
-        msp.add_text(mh["label"], dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.12,
-            "insert": (mx - 4, my + 4),
-        })
-        msp.add_text(f"RIM={mh['rim']:.2f} / INV={mh['inv']:.2f}", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
-            "insert": (mx - 12, my - 6),
-        })
+    # ─────────────────────────────────────────────────────────────────────────
+    # EXISTING CONTOURS  2-ft interval, index every 10 ft, elevations 98–116
+    # Site slopes gently south-to-north (higher north)
+    # ─────────────────────────────────────────────────────────────────────────
+    for elev in range(98, 118, 2):
+        is_idx = (elev % 10 == 0)
+        # base y position in plan coords: scale 0-ft = y=0, 20-ft range = block_H
+        t = (elev - 98) / 20.0
+        base_y = t * BLOCK_H
+        n_seg = 12
+        pts_c = []
+        for seg in range(n_seg + 1):
+            x = seg * BLOCK_W / n_seg
+            wave = 12.0 * math.sin(math.pi * seg / n_seg * 3 + t * 1.8)
+            y = max(5, min(BLOCK_H - 5, base_y + wave))
+            pts_c.append(_pl(x, y))
+        lyr = "GRAD-EXIST-INDEX" if is_idx else "GRAD-EXIST"
+        try:
+            lt = "Continuous" if is_idx else "DASHED"
+            msp.add_lwpolyline(pts_c, dxfattribs={"layer": lyr, "linetype": lt})
+        except Exception:
+            msp.add_lwpolyline(pts_c, dxfattribs={"layer": lyr})
+        if is_idx:
+            lx, ly = pts_c[n_seg // 2]
+            msp.add_text(f"{elev}", dxfattribs={
+                "layer": "ANNO-TEXT", "height": 2.5, "insert": (lx + 2, ly + 1)})
 
-    # 4 curb inlets CI-1..CI-4, spaced ~100-120 LF apart along north side
-    ci_x_positions = [50, 150, 300, 420]
-    ci_elevs       = [104.18, 104.10, 103.92, 103.75]
-    for ci_idx, (ci_x, ci_rim) in enumerate(zip(ci_x_positions, ci_elevs), start=1):
-        # Lateral from inlet down to trunk
-        msp.add_line((ci_x, 30), (ci_x, 0),
-                     dxfattribs={"layer": "UTIL-STORM"})
-        # Inlet box
-        msp.add_lwpolyline(
-            [(ci_x - 3, 30), (ci_x + 3, 30),
-             (ci_x + 3, 36), (ci_x - 3, 36), (ci_x - 3, 30)],
-            dxfattribs={"layer": "UTIL-STORM"},
-        )
-        msp.add_text(f"CI-{ci_idx}", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.12,
-            "insert": (ci_x - 2, 37),
-        })
-        msp.add_text(f"RIM={ci_rim:.2f}", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
-            "insert": (ci_x - 8, 28),
-        })
+    # ─────────────────────────────────────────────────────────────────────────
+    # DRAINAGE AREA BOUNDARIES  DA-1, DA-2, DA-3
+    # ─────────────────────────────────────────────────────────────────────────
+    da_areas = [
+        # (label, acres, polygon pts in plan-local)
+        ("DA-1\n2.4 AC\nC=0.70", 2.4, [
+            (50, CL_Y + CRB), (CL_X - CRB, CL_Y + CRB),
+            (CL_X - CRB, BLOCK_H - 20), (50, BLOCK_H - 20), (50, CL_Y + CRB)]),
+        ("DA-2\n1.8 AC\nC=0.65", 1.8, [
+            (CL_X + CRB, CL_Y + CRB), (BLOCK_W - 50, CL_Y + CRB),
+            (BLOCK_W - 50, BLOCK_H - 20), (CL_X + CRB, BLOCK_H - 20),
+            (CL_X + CRB, CL_Y + CRB)]),
+        ("DA-3\n3.1 AC\nC=0.72", 3.1, [
+            (50, 20), (BLOCK_W - 50, 20),
+            (BLOCK_W - 50, CL_Y - CRB), (50, CL_Y - CRB), (50, 20)]),
+    ]
+    for da_label, _, da_pts in da_areas:
+        sheet_pts = [_pl(x, y) for x, y in da_pts]
+        try:
+            msp.add_lwpolyline(sheet_pts, dxfattribs={"layer": "GRAD-LIMIT",
+                                                        "linetype": "DASHED"})
+        except Exception:
+            msp.add_lwpolyline(sheet_pts, dxfattribs={"layer": "GRAD-LIMIT"})
+        # centroid label
+        xs = [p[0] for p in sheet_pts[:-1]]
+        ys = [p[1] for p in sheet_pts[:-1]]
+        cx_da, cy_da = sum(xs) / len(xs), sum(ys) / len(ys)
+        for li, line in enumerate(da_label.split("\n")):
+            msp.add_text(line, dxfattribs={
+                "layer": "ANNO-TEXT", "height": 4.0,
+                "insert": (cx_da - 15, cy_da + 6 - li * 6)})
 
-    # Outfall at MH-4 — pipe runs south
-    msp.add_line((500, 0), (500, -100),
+    # ─────────────────────────────────────────────────────────────────────────
+    # EXISTING UTILITIES  (shown dashed, crossing street)
+    # ─────────────────────────────────────────────────────────────────────────
+    # 8" Water main along Main St south side
+    wm_y = CL_Y - EOP - 8
+    msp.add_line(_pl(0, wm_y), _pl(BLOCK_W, wm_y),
+                 dxfattribs={"layer": "UTIL-WATER", "linetype": "DASHED"})
+    msp.add_text("8\" D.I. WATER MAIN (EXIST.)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": _pl(30, wm_y - 6)})
+
+    # 10" Sanitary sewer along Main St north side
+    ss_y = CL_Y + EOP + 8
+    msp.add_line(_pl(0, ss_y), _pl(BLOCK_W, ss_y),
+                 dxfattribs={"layer": "UTIL-SANITARY", "linetype": "DASHED"})
+    msp.add_text("10\" PVC SAN. SEWER (EXIST.) INV=96.40", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": _pl(30, ss_y + 4)})
+
+    # Gas main crossing Oak Ave
+    gm_x = CL_X - 20
+    msp.add_line(_pl(gm_x, 0), _pl(gm_x, BLOCK_H),
+                 dxfattribs={"layer": "UTIL-GAS", "linetype": "DASHED"})
+    msp.add_text("4\" GAS (EXIST.)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": _pl(gm_x + 2, 40)})
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # STORM DRAIN NETWORK
+    # Trunk: MH-1..MH-5 along Main St south curb, 24" RCP
+    # North branch: MH-6..MH-7 along north side, 18" RCP
+    # West branch: MH-8 off CL_X, 15" RCP
+    # 8 curb inlets (CI-1..8) lateral to trunk & branches
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # --- Trunk manholes along storm main (south of Main St CL) ---
+    trunk_y = CL_Y - EOP - 3    # just south of curb
+    trunk_mh = [
+        {"id": "MH-1", "x":  80, "y": trunk_y, "rim": 104.82, "inv_in": None,  "inv_out": 100.15, "pipe_out": '24" RCP'},
+        {"id": "MH-2", "x": 280, "y": trunk_y, "rim": 104.60, "inv_in": 99.95, "inv_out": 99.85,  "pipe_out": '24" RCP'},
+        {"id": "MH-3", "x": 480, "y": trunk_y, "rim": 104.35, "inv_in": 99.65, "inv_out": 99.55,  "pipe_out": '24" RCP'},
+        {"id": "MH-4", "x": 680, "y": trunk_y, "rim": 104.10, "inv_in": 99.35, "inv_out": 99.22,  "pipe_out": '24" RCP'},
+        {"id": "MH-5", "x": 900, "y": trunk_y, "rim": 103.80, "inv_in": 99.00, "inv_out": 98.90,  "pipe_out": '24" RCP'},
+    ]
+    # North branch manholes
+    north_y = CL_Y + EOP + 3
+    branch_mh = [
+        {"id": "MH-6", "x": 350, "y": north_y, "rim": 105.10, "inv_in": None,  "inv_out": 100.40, "pipe_out": '18" RCP'},
+        {"id": "MH-7", "x": 600, "y": north_y, "rim": 104.90, "inv_in": 100.20,"inv_out": 100.10, "pipe_out": '18" HDPE'},
+    ]
+    # West branch
+    west_mh = [
+        {"id": "MH-8", "x": CL_X - 100, "y": CL_Y, "rim": 104.55, "inv_in": None, "inv_out": 100.00, "pipe_out": '15" RCP'},
+    ]
+    all_mh = trunk_mh + branch_mh + west_mh
+
+    def _draw_mh(mh_dict):
+        mx, my = _pl(mh_dict["x"], mh_dict["y"])
+        # Double-circle manhole symbol (4 ft / 2 ft radius)
+        msp.add_circle((mx, my), 4.0, dxfattribs={"layer": "UTIL-STORM"})
+        msp.add_circle((mx, my), 2.0, dxfattribs={"layer": "UTIL-STORM"})
+        # Cross hairs
+        msp.add_line((mx - 4, my), (mx + 4, my), dxfattribs={"layer": "UTIL-STORM"})
+        msp.add_line((mx, my - 4), (mx, my + 4), dxfattribs={"layer": "UTIL-STORM"})
+        # Label & elevations (leader line)
+        lx, ly = mx + 6, my + 8
+        msp.add_line((mx, my), (lx, ly), dxfattribs={"layer": "ANNO-DIM"})
+        msp.add_text(mh_dict["id"], dxfattribs={
+            "layer": "ANNO-TEXT", "height": 3.0, "insert": (lx, ly + 2)})
+        msp.add_text(f"RIM={mh_dict['rim']:.2f}", dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.2, "insert": (lx, ly - 2)})
+        inv_str = (f"INV IN={mh_dict['inv_in']:.2f}" if mh_dict["inv_in"]
+                   else f"INV OUT={mh_dict['inv_out']:.2f}")
+        msp.add_text(inv_str, dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.2, "insert": (lx, ly - 6)})
+
+    for mh in all_mh:
+        _draw_mh(mh)
+
+    # Draw trunk pipe segments
+    trunk_slopes  = [0.0020, 0.0022, 0.0020, 0.0025]
+    for i in range(len(trunk_mh) - 1):
+        x0, y0 = _pl(trunk_mh[i]["x"], trunk_mh[i]["y"])
+        x1, y1 = _pl(trunk_mh[i + 1]["x"], trunk_mh[i + 1]["y"])
+        msp.add_line((x0, y0), (x1, y1), dxfattribs={"layer": "UTIL-STORM"})
+        mid = ((x0 + x1) / 2, (y0 + y1) / 2)
+        msp.add_text(f'24" RCP @ {trunk_slopes[i]*100:.2f}%', dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5, "insert": (mid[0] - 20, mid[1] - 7)})
+
+    # Outfall pipe from MH-5 south to headwall
+    msp.add_line(_pl(900, trunk_y), _pl(900, trunk_y - 120),
                  dxfattribs={"layer": "UTIL-STORM"})
-    msp.add_text("OUTFALL", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
-        "insert": (503, -50),
-    })
-    msp.add_text("RIPRAP APRON PER DETAIL 3/C-5, CLASS B, 8' WIDE x 12' LONG", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
-        "insert": (510, -110),
-    })
+    msp.add_text('24" RCP OUTFALL', dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": _pl(904, trunk_y - 60)})
+    # Headwall symbol
+    hw_x, hw_y = _pl(900, trunk_y - 120)
+    msp.add_lwpolyline([
+        (hw_x - 12, hw_y), (hw_x + 12, hw_y),
+        (hw_x + 12, hw_y - 6), (hw_x - 12, hw_y - 6), (hw_x - 12, hw_y)],
+        dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text("CONC. HEADWALL (TYP.)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (hw_x - 20, hw_y - 12)})
+    msp.add_text("RIPRAP APRON: CLASS B, 8'W x 12'L", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (hw_x - 30, hw_y - 17)})
 
-    # Detention pond
-    pond_cx, pond_cy = 500, -230
-    msp.add_ellipse((pond_cx, pond_cy), major_axis=(80, 0), ratio=0.5,
-                    dxfattribs={"layer": "UTIL-STORM"})
-    msp.add_text("DETENTION POND", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
-        "insert": (pond_cx - 30, pond_cy + 5),
-    })
-    msp.add_text("WSE = 101.50", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
-        "insert": (pond_cx - 20, pond_cy - 8),
-    })
-    msp.add_text("EMERG. SPILLWAY ELEV = 102.00", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
-        "insert": (pond_cx - 35, pond_cy - 15),
-    })
+    # North branch pipe (MH-6 to MH-7, with junction tie to MH-3)
+    msp.add_line(_pl(branch_mh[0]["x"], branch_mh[0]["y"]),
+                 _pl(branch_mh[1]["x"], branch_mh[1]["y"]),
+                 dxfattribs={"layer": "UTIL-STORM"})
+    bmid = ((branch_mh[0]["x"] + branch_mh[1]["x"]) / 2,
+            (branch_mh[0]["y"] + branch_mh[1]["y"]) / 2)
+    msp.add_text('18" RCP @ 0.30%', dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": _pl(bmid[0] - 18, bmid[1] + 5)})
+    # Junction pipe: MH-7 → MH-4 (tying north branch to trunk)
+    msp.add_line(_pl(branch_mh[1]["x"], branch_mh[1]["y"]),
+                 _pl(trunk_mh[3]["x"], trunk_mh[3]["y"]),
+                 dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text('18" RCP JCT.', dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5,
+        "insert": _pl((branch_mh[1]["x"] + trunk_mh[3]["x"]) / 2 + 5,
+                      (branch_mh[1]["y"] + trunk_mh[3]["y"]) / 2)})
+    # West branch
+    msp.add_line(_pl(west_mh[0]["x"], west_mh[0]["y"]),
+                 _pl(trunk_mh[2]["x"], trunk_mh[2]["y"]),
+                 dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text('15" RCP @ 0.40%', dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5,
+        "insert": _pl((west_mh[0]["x"] + trunk_mh[2]["x"]) / 2 - 15,
+                      (west_mh[0]["y"] + trunk_mh[2]["y"]) / 2 + 3)})
+
+    # ── Curb inlets CI-1..CI-8 ────────────────────────────────────────────────
+    ci_data = [
+        # (id, x, side, connects_to_mh_x, rim)
+        ("CI-1",  80,  +1, 80,  104.75),
+        ("CI-2",  200, +1, 280, 104.65),
+        ("CI-3",  380, +1, 280, 104.50),
+        ("CI-4",  530, +1, 480, 104.38),
+        ("CI-5",  700, +1, 680, 104.18),
+        ("CI-6",  820, +1, 900, 104.05),
+        ("CI-7",  350, -1, 350, 105.05),  # north branch inlet
+        ("CI-8",  580, -1, 600, 104.88),
+    ]
+    for ci_id, ci_lx, side, mh_x, ci_rim in ci_data:
+        ci_y_base = (CL_Y - CRB - 2) if side == +1 else (CL_Y + CRB + 2)
+        inlet_y   = ci_y_base - side * 6   # inlet grate sits 6 ft from curb
+        # Lateral pipe
+        msp.add_line(_pl(ci_lx, inlet_y), _pl(mh_x, trunk_y if side == +1 else north_y),
+                     dxfattribs={"layer": "UTIL-STORM"})
+        # Inlet box symbol (3x5 ft rectangle)
+        ix, iy = _pl(ci_lx, inlet_y)
+        msp.add_lwpolyline([
+            (ix - 2.5, iy - 1.5), (ix + 2.5, iy - 1.5),
+            (ix + 2.5, iy + 1.5), (ix - 2.5, iy + 1.5), (ix - 2.5, iy - 1.5)],
+            dxfattribs={"layer": "UTIL-STORM"})
+        msp.add_text(ci_id, dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5, "insert": (ix - 3, iy + 3)})
+        msp.add_text(f"RIM={ci_rim:.2f}", dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.0, "insert": (ix + 3, iy - 4)})
+
+    # ── Spot elevations ───────────────────────────────────────────────────────
+    spots = [
+        (120, CL_Y + 30, 105.12),
+        (400, CL_Y - 30, 104.40),
+        (760, CL_Y + 25, 104.22),
+        (CL_X + 50, CL_Y + 200, 106.50),
+        (CL_X - 80, CL_Y - 180, 103.95),
+        (200, BLOCK_H - 80, 108.30),
+        (900, BLOCK_H - 60, 107.75),
+    ]
+    for sx, sy, selev in spots:
+        spx, spy = _pl(sx, sy)
+        # X cross symbol
+        msp.add_line((spx - 1.5, spy - 1.5), (spx + 1.5, spy + 1.5),
+                     dxfattribs={"layer": "ANNO-ELEV"})
+        msp.add_line((spx - 1.5, spy + 1.5), (spx + 1.5, spy - 1.5),
+                     dxfattribs={"layer": "ANNO-ELEV"})
+        msp.add_text(f"{selev:.2f}", dxfattribs={
+            "layer": "ANNO-ELEV", "height": 2.2, "insert": (spx + 2, spy + 1)})
+
+    # ── Detention basin ───────────────────────────────────────────────────────
+    pond_lx, pond_ly = CL_X + 300, 100
+    # Outer berm polygon
+    berm_pts = [
+        _pl(pond_lx,       pond_ly),
+        _pl(pond_lx + 240, pond_ly),
+        _pl(pond_lx + 270, pond_ly + 60),
+        _pl(pond_lx + 240, pond_ly + 180),
+        _pl(pond_lx + 30,  pond_ly + 200),
+        _pl(pond_lx - 20,  pond_ly + 120),
+        _pl(pond_lx,       pond_ly),
+    ]
+    msp.add_lwpolyline(berm_pts, dxfattribs={"layer": "UTIL-STORM"})
+    # Normal WS contour (inner, offset ~20 ft)
+    ws_pts = [
+        _pl(pond_lx + 20,  pond_ly + 20),
+        _pl(pond_lx + 220, pond_ly + 20),
+        _pl(pond_lx + 245, pond_ly + 70),
+        _pl(pond_lx + 215, pond_ly + 160),
+        _pl(pond_lx + 40,  pond_ly + 175),
+        _pl(pond_lx,       pond_ly + 100),
+        _pl(pond_lx + 20,  pond_ly + 20),
+    ]
+    try:
+        msp.add_lwpolyline(ws_pts, dxfattribs={"layer": "UTIL-STORM", "linetype": "DASHED"})
+    except Exception:
+        msp.add_lwpolyline(ws_pts, dxfattribs={"layer": "UTIL-STORM"})
+
+    pond_labels = [
+        (pond_lx + 80,  pond_ly + 90,  5.0, "DETENTION BASIN"),
+        (pond_lx + 60,  pond_ly + 70,  3.0, "100-YR WSEL = 101.50"),
+        (pond_lx + 60,  pond_ly + 58,  3.0, "10-YR  WSEL = 100.85"),
+        (pond_lx + 60,  pond_ly + 46,  3.0, "EMERG. SPILLWAY = 102.20"),
+        (pond_lx + 60,  pond_ly + 34,  3.0, "BOTTOM EL = 97.50"),
+        (pond_lx + 60,  pond_ly + 22,  2.5, "VOL (100-YR) = 1.42 AC-FT"),
+    ]
+    for plx, ply, pth, ptxt in pond_labels:
+        msp.add_text(ptxt, dxfattribs={
+            "layer": "ANNO-TEXT", "height": pth, "insert": _pl(plx, ply)})
+
+    # Emergency spillway
+    sp_x, sp_y = _pl(pond_lx + 240, pond_ly + 90)
+    msp.add_lwpolyline([
+        (sp_x, sp_y - 5), (sp_x + 20, sp_y - 5),
+        (sp_x + 20, sp_y + 5), (sp_x, sp_y + 5), (sp_x, sp_y - 5)],
+        dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text("EMERG.\nSPILLWAY", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (sp_x + 22, sp_y)})
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # PIPE PROFILE VIEW  (below plan view at sheet Y = PY - 200)
+    # ─────────────────────────────────────────────────────────────────────────
+    PROF_PX  = PX
+    PROF_PY  = PY - 210     # bottom of profile area on sheet
+    PROF_H   = 160.0         # profile box height (ft on sheet)
+    PROF_W   = 1200.0
+    ELEV_MIN = 97.5
+    ELEV_MAX = 106.0
+    ELEV_RNG = ELEV_MAX - ELEV_MIN
+
+    def _prof_pt(sta_ft, elev_ft):
+        """Map (station, elevation) → sheet XY for profile view."""
+        px2 = PROF_PX + sta_ft * PROF_W / 1200.0
+        py2 = PROF_PY + (elev_ft - ELEV_MIN) / ELEV_RNG * PROF_H
+        return (px2, py2)
+
+    # Profile box
+    msp.add_lwpolyline([
+        (PROF_PX, PROF_PY), (PROF_PX + PROF_W, PROF_PY),
+        (PROF_PX + PROF_W, PROF_PY + PROF_H),
+        (PROF_PX, PROF_PY + PROF_H), (PROF_PX, PROF_PY)],
+        dxfattribs={"layer": "ANNO-DIM"})
+    msp.add_text("STORM DRAIN PROFILE — MAIN STREET TRUNK (STA 0+80 TO 9+00)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 4.0,
+        "insert": (PROF_PX + 20, PROF_PY + PROF_H + 5)})
+
+    # Elevation grid lines
+    for elev_g in range(int(ELEV_MIN) + 1, int(ELEV_MAX) + 1):
+        gy = PROF_PY + (elev_g - ELEV_MIN) / ELEV_RNG * PROF_H
+        try:
+            msp.add_line((PROF_PX, gy), (PROF_PX + PROF_W, gy),
+                         dxfattribs={"layer": "ANNO-DIM", "linetype": "DASHED"})
+        except Exception:
+            msp.add_line((PROF_PX, gy), (PROF_PX + PROF_W, gy),
+                         dxfattribs={"layer": "ANNO-DIM"})
+        msp.add_text(f"{elev_g:.0f}", dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5,
+            "insert": (PROF_PX - 18, gy - 1.5)})
+
+    # Existing ground line (profile along trunk)
+    exist_g = [
+        (0,    103.80), (80,   104.10), (280,  104.55), (480,  104.30),
+        (600,  104.10), (680,  103.95), (800,  103.75), (900,  103.80),
+    ]
+    eg_pts = [_prof_pt(s, e) for s, e in exist_g]
+    msp.add_lwpolyline(eg_pts, dxfattribs={"layer": "GRAD-EXIST"})
+    msp.add_text("EXISTING GROUND", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (eg_pts[2][0], eg_pts[2][1] + 4)})
+
+    # Pipe invert line (24" RCP)
+    pipe_inverts = [
+        (80,  100.15), (280, 99.85), (480, 99.55), (680, 99.22), (900, 98.90)
+    ]
+    pi_pts = [_prof_pt(s, i) for s, i in pipe_inverts]
+    msp.add_lwpolyline(pi_pts, dxfattribs={"layer": "UTIL-STORM"})
+    # Pipe crown (invert + 24/12 = 2 ft)
+    crown_pts = [_prof_pt(s, i + 2.0) for s, i in pipe_inverts]
+    msp.add_lwpolyline(crown_pts, dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text('24" RCP (PROPOSED)', dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (pi_pts[1][0], pi_pts[1][1] - 8)})
+
+    # HGL line (10-yr storm)
+    hgl_data = [
+        (80,  101.20), (280, 100.95), (480, 100.65), (680, 100.30), (900, 99.95)
+    ]
+    hgl_pts = [_prof_pt(s, h) for s, h in hgl_data]
+    try:
+        msp.add_lwpolyline(hgl_pts, dxfattribs={"layer": "UTIL-STORM", "linetype": "DASHED"})
+    except Exception:
+        msp.add_lwpolyline(hgl_pts, dxfattribs={"layer": "UTIL-STORM"})
+    msp.add_text(f"HGL ({design_storm}-YR)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 2.5, "insert": (hgl_pts[3][0] + 5, hgl_pts[3][1] + 2)})
+
+    # Manhole drop lines in profile
+    for mh in trunk_mh:
+        sx = mh["x"]
+        inv_e = next(i for s, i in pipe_inverts if s == sx)
+        eg_e  = next(e for s, e in exist_g if s == sx)
+        x_prof, y_inv  = _prof_pt(sx, inv_e)
+        _,       y_grnd = _prof_pt(sx, eg_e)
+        msp.add_line((x_prof, y_inv), (x_prof, y_grnd),
+                     dxfattribs={"layer": "UTIL-STORM"})
+        # Manhole symbol in profile (rectangle)
+        msp.add_lwpolyline([
+            (x_prof - 3, y_inv), (x_prof + 3, y_inv),
+            (x_prof + 3, y_grnd), (x_prof - 3, y_grnd), (x_prof - 3, y_inv)],
+            dxfattribs={"layer": "UTIL-STORM"})
+        msp.add_text(mh["id"], dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.2, "insert": (x_prof - 3, y_grnd + 2)})
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # HYDRAULICS TABLE
+    # ─────────────────────────────────────────────────────────────────────────
+    HT_X = PX + PROF_W + 30
+    HT_Y = PROF_PY + PROF_H
+    msp.add_text("PIPE SCHEDULE — HYDRAULIC SUMMARY", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 4.0, "insert": (HT_X, HT_Y + 10)})
+    col_headers = ["PIPE", "FROM", "TO", "SIZE", "LENGTH", "SLOPE", "Q10", "V10"]
+    col_widths  = [30, 30, 30, 25, 30, 25, 25, 25]
+    col_x = [HT_X + sum(col_widths[:i]) for i in range(len(col_widths))]
+    ht_row_h = 7.0
+    # Header row
+    for cx, hdr in zip(col_x, col_headers):
+        msp.add_text(hdr, dxfattribs={"layer": "ANNO-TEXT", "height": 2.5,
+                                       "insert": (cx, HT_Y - ht_row_h)})
+    # Divider
+    msp.add_line((HT_X, HT_Y - ht_row_h - 2),
+                 (HT_X + sum(col_widths), HT_Y - ht_row_h - 2),
+                 dxfattribs={"layer": "ANNO-DIM"})
+    # Data rows
+    ht_rows = [
+        ("P-1", "MH-1", "MH-2", '24" RCP', "200 LF", "0.20%", "12.4 cfs", "5.0 fps"),
+        ("P-2", "MH-2", "MH-3", '24" RCP', "200 LF", "0.22%", "16.8 cfs", "5.4 fps"),
+        ("P-3", "MH-3", "MH-4", '24" RCP', "200 LF", "0.20%", "20.1 cfs", "5.2 fps"),
+        ("P-4", "MH-4", "MH-5", '24" RCP', "220 LF", "0.25%", "22.7 cfs", "5.8 fps"),
+        ("P-5", "MH-5", "HW-1", '24" RCP', "120 LF", "0.28%", "22.7 cfs", "5.8 fps"),
+        ("P-6", "MH-6", "MH-7", '18" RCP', "250 LF", "0.30%",  "7.6 cfs", "5.2 fps"),
+        ("P-7", "MH-7", "MH-4", '18" RCP', "140 LF", "0.35%",  "7.6 cfs", "5.2 fps"),
+        ("P-8", "MH-8", "MH-3", '15" RCP', "130 LF", "0.40%",  "4.2 cfs", "4.6 fps"),
+    ]
+    for r_idx, row in enumerate(ht_rows):
+        for cx, cell in zip(col_x, row):
+            msp.add_text(cell, dxfattribs={"layer": "ANNO-TEXT", "height": 2.2,
+                                            "insert": (cx, HT_Y - ht_row_h * (r_idx + 2.5))})
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # LEGEND
+    # ─────────────────────────────────────────────────────────────────────────
+    LEG_X = HT_X
+    LEG_Y = HT_Y - ht_row_h * 14
+    msp.add_text("LEGEND", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 4.0, "insert": (LEG_X, LEG_Y)})
+    legend_items = [
+        ("UTIL-STORM",    "STORM DRAIN PIPE (PROPOSED)"),
+        ("UTIL-WATER",    "WATER MAIN (EXISTING)"),
+        ("UTIL-SANITARY", "SANITARY SEWER (EXISTING)"),
+        ("UTIL-GAS",      "GAS LINE (EXISTING)"),
+        ("ROAD-CENTERLINE","ROAD CENTERLINE"),
+        ("ROAD-ROW",      "RIGHT-OF-WAY LINE"),
+        ("GRAD-EXIST",    "EXISTING CONTOUR (2-FT INTERVAL)"),
+        ("GRAD-LIMIT",    "DRAINAGE AREA BOUNDARY"),
+        ("ANNO-ELEV",     "SPOT ELEVATION"),
+    ]
+    for i, (lyr, txt) in enumerate(legend_items):
+        lx = LEG_X
+        ly = LEG_Y - 9 - i * 7
+        msp.add_line((lx, ly), (lx + 20, ly), dxfattribs={"layer": lyr})
+        msp.add_text(txt, dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5, "insert": (lx + 22, ly - 1)})
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # NORTH ARROW + SCALE BAR
+    # ─────────────────────────────────────────────────────────────────────────
+    NA_X = SH_W - 120
+    NA_Y = SH_H - 120
+    # Circle
+    msp.add_circle((NA_X, NA_Y), 18, dxfattribs={"layer": "ANNO-DIM"})
+    # Arrow shaft
+    msp.add_line((NA_X, NA_Y - 18), (NA_X, NA_Y + 18),
+                 dxfattribs={"layer": "ANNO-DIM"})
+    # Arrow head (triangle pointing north)
+    msp.add_lwpolyline([
+        (NA_X, NA_Y + 18), (NA_X - 5, NA_Y + 5),
+        (NA_X + 5, NA_Y + 5), (NA_X, NA_Y + 18)],
+        dxfattribs={"layer": "ANNO-DIM"})
+    msp.add_text("N", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 6.0, "insert": (NA_X - 3, NA_Y + 20)})
+
+    # Graphical scale bar (1" = 40 ft, draw 200 ft = 5 inches → 200 units)
+    SB_X = SH_W - 300
+    SB_Y = SH_H - 100
+    msp.add_line((SB_X, SB_Y), (SB_X + 200, SB_Y),
+                 dxfattribs={"layer": "ANNO-DIM"})
+    for tick_x, tick_lbl in [(SB_X, "0"), (SB_X + 100, "100"),
+                               (SB_X + 200, "200 FT")]:
+        msp.add_line((tick_x, SB_Y - 3), (tick_x, SB_Y + 3),
+                     dxfattribs={"layer": "ANNO-DIM"})
+        msp.add_text(tick_lbl, dxfattribs={
+            "layer": "ANNO-TEXT", "height": 2.5,
+            "insert": (tick_x - 5, SB_Y - 8)})
+    msp.add_text("GRAPHIC SCALE: 1\" = 40'", dxfattribs={
+        "layer": "ANNO-TEXT", "height": 3.0, "insert": (SB_X, SB_Y + 8)})
 
     # ── General notes ─────────────────────────────────────────────────────────
-    notes_x, notes_y = -100.0, -20.0
+    GN_X = PX
+    GN_Y = PROF_PY - 10
     msp.add_text("DRAINAGE NOTES:", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (notes_x, notes_y),
-    })
+        "layer": "ANNO-TEXT", "height": 4.0, "insert": (GN_X, GN_Y)})
     notes = [
-        f"1. DESIGN STORM: {design_storm}-YR / 100-YR SHOWN FOR REFERENCE.",
-        f"2. MIN PIPE COVER: {min_cover:.1f}' PER STATE DOT.",
-        "3. ALL STORM PIPE: HDPE ASTM F2306 OR RCP ASTM C76 CLASS III.",
-        "4. PIPE SLOPES AND SIZES ARE MINIMUM; CONTRACTOR TO VERIFY.",
+        f"1. DESIGN STORM: {design_storm}-YR (MINOR) / 100-YR (MAJOR) PER TxDOT HYD. MANUAL.",
+        f"2. MIN PIPE COVER: {min_cover:.1f} FT OVER CROWN, PER STATE DOT STANDARD.",
+        "3. ALL PROPOSED PIPE: 24\" RCP CL. III (ASTM C76) UNLESS NOTED. MIN SLOPE 0.20%.",
+        "4. ALL MANHOLES: 4-FT DIA. PRECAST CONC. (ASTM C478) W/ WATERTIGHT JOINTS.",
+        "5. CURB INLETS: TYPE C-MODIFIED, 5-FT OPENING. GRATE & FRAME PER TXDOT STD.",
+        "6. CONTRACTOR SHALL FIELD-VERIFY ALL EXISTING UTILITY LOCATIONS PRIOR TO WORK.",
+        "7. DETENTION BASIN: DESIGN PER TxDOT 100-YR CRITERIA. VOL. = 1.42 AC-FT.",
     ]
     for i, note in enumerate(notes):
         msp.add_text(note, dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
-            "insert": (notes_x, notes_y - 3 - i * 2.2),
-        })
-
-    # ── Title ─────────────────────────────────────────────────────────────────
-    msp.add_text("STORM DRAINAGE PLAN", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.30,
-        "insert": (150, -50),
-    })
-    msp.add_text("SCALE: 1\"=40'", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
-        "insert": (150, -56),
-    })
-    # North arrow
-    na_x, na_y = 580, 60
-    msp.add_line((na_x, na_y - 10), (na_x, na_y + 10),
-                 dxfattribs={"layer": "ANNO-TEXT"})
-    msp.add_text("N", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (na_x - 1, na_y + 11),
-    })
+            "layer": "ANNO-TEXT", "height": 2.5,
+            "insert": (GN_X, GN_Y - 7 - i * 5)})
 
 
 def _generate_grading_plan(msp: Any, std: dict, description: str) -> None:

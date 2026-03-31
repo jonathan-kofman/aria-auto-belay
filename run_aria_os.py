@@ -773,6 +773,16 @@ def _run_full(goal: str) -> None:
         except Exception as e:
             print(f"[FULL] FEA skipped: {e}")
 
+    # 2b. Instant quote (after FEA, before drawing)
+    if step and _Path(step).exists():
+        print("\n[FULL] Generating instant quote...")
+        try:
+            from aria_os.agents.quote_agent import QuoteAgent, run_quote_cli
+            _q_mat = params.get("material", "aluminium_6061")
+            run_quote_cli(step, material=_q_mat, process="cnc", quantity=1)
+        except Exception as e:
+            print(f"[FULL] Quote skipped: {e}")
+
     # 3. GD&T drawing (if not already made by auto_draw)
     if step and _Path(step).exists() and not session.get("drawing_path"):
         print("\n[FULL] Generating GD&T drawing...")
@@ -798,37 +808,23 @@ def _run_full(goal: str) -> None:
         except Exception as e:
             print(f"[FULL] Render skipped: {e}")
 
-    # 5. CAM script + setup sheet (requires STEP)
+    # 5. CAM script + setup sheet (requires STEP) — uses autonomous CAM agent
     if step and _Path(step).exists():
-        print("\n[FULL] Generating CAM script...")
-        _cam_script_path = None
+        print("\n[FULL] Running autonomous CAM agent...")
         _mat = params.get("material", "aluminium_6061")
+        _machine = "generic_vmc"
+        if "--machine" in sys.argv:
+            _machine = sys.argv[sys.argv.index("--machine") + 1]
         try:
-            from aria_os.cam_generator import generate_cam_script
-            _cam_result = generate_cam_script(step, material=_mat)
-            # cam_generator returns a Path to the written script
-            if _cam_result and _Path(_cam_result).exists():
-                _cam_script_path = _Path(_cam_result)
+            from aria_os.agents.cam_agent import run_cam_agent
+            _cam_result = run_cam_agent(
+                step, material=_mat, machine=_machine, repo_root=_root)
+            if _cam_result.get("passed"):
+                print(f"[FULL] CAM agent: PASS — {_cam_result.get('cycle_time_min', '?')} min cycle")
+            else:
+                print(f"[FULL] CAM agent: completed with {len(_cam_result.get('violations', []))} violations")
         except Exception as e:
-            print(f"[FULL] CAM skipped: {e}")
-
-        if _cam_script_path:
-            print("\n[FULL] Generating setup sheet...")
-            try:
-                from aria_os.cam_setup import write_setup_sheet
-                _machine = "tormach_1100"
-                if "--machine" in sys.argv:
-                    _machine = sys.argv[sys.argv.index("--machine") + 1]
-                write_setup_sheet(
-                    step_path=step,
-                    cam_script_path=str(_cam_script_path),
-                    material=_mat,
-                    out_dir=_cam_script_path.parent,
-                    part_id=_Path(step).stem,
-                    machine_name=_machine,
-                )
-            except Exception as e:
-                print(f"[FULL] Setup sheet skipped: {e}")
+            print(f"[FULL] CAM agent skipped: {e}")
 
     print(f"\n{'='*64}")
     print(f"  FULL PIPELINE COMPLETE")
@@ -866,14 +862,17 @@ def main():
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "--cam":
         if len(sys.argv) < 3:
-            print("Usage: python run_aria_os.py --cam <step_file> [--material aluminium_6061]")
+            print("Usage: python run_aria_os.py --cam <step_file> [--material aluminium_6061] [--machine generic_vmc]")
             sys.exit(1)
-        from aria_os.cam_generator import generate_cam_script
         step_arg = sys.argv[2]
         mat = "aluminium_6061"
         if "--material" in sys.argv:
             mat = sys.argv[sys.argv.index("--material") + 1]
-        generate_cam_script(step_arg, material=mat)
+        machine = "generic_vmc"
+        if "--machine" in sys.argv:
+            machine = sys.argv[sys.argv.index("--machine") + 1]
+        from aria_os.agents.cam_agent import run_cam_agent
+        run_cam_agent(step_arg, material=mat, machine=machine, repo_root=ROOT)
         return
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--setup":
@@ -925,6 +924,27 @@ def main():
                 print(f"[CAM-VALIDATE] Retrying ({_cv_attempt}/{_cv_retries})...")
         print(f"\n[CAM-VALIDATE] FAIL after {_cv_retries + 1} attempt(s).")
         sys.exit(1)
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "--quote":
+        # Usage: python run_aria_os.py --quote <step_file> [--material aluminium_6061] [--process cnc] [--qty 10]
+        if len(sys.argv) < 3:
+            print("Usage: python run_aria_os.py --quote <step_file> [--material aluminium_6061] [--process cnc] [--qty 10]")
+            sys.exit(1)
+        from aria_os.agents.quote_agent import run_quote_cli
+        _q_step = sys.argv[2]
+        if not Path(_q_step).is_absolute():
+            _q_step = str(ROOT / _q_step)
+        _q_mat = "aluminium_6061"
+        _q_proc = "cnc"
+        _q_qty = 1
+        if "--material" in sys.argv:
+            _q_mat = sys.argv[sys.argv.index("--material") + 1]
+        if "--process" in sys.argv:
+            _q_proc = sys.argv[sys.argv.index("--process") + 1]
+        if "--qty" in sys.argv:
+            _q_qty = int(sys.argv[sys.argv.index("--qty") + 1])
+        run_quote_cli(_q_step, material=_q_mat, process=_q_proc, quantity=_q_qty)
+        return
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--draw":
         if len(sys.argv) < 3:
@@ -1381,7 +1401,8 @@ def main():
         print("       python run_aria_os.py --cam-validate <step_file> [--retries 2]")
         print("       python run_aria_os.py --setup <step_file> <cam_script> [--material aluminium_6061]")
         print("       python run_aria_os.py \"part description\" --render")
-        print("       python run_aria_os.py --full \"part description\"  # generate+FEA+draw+render+CAM+setup in one shot")
+        print("       python run_aria_os.py --quote <step_file> [--material aluminium_6061] [--process cnc] [--qty 10]")
+        print("       python run_aria_os.py --full \"part description\"  # generate+FEA+draw+render+CAM+setup+quote in one shot")
         print("Example: python run_aria_os.py \"generate the ARIA housing shell\"")
         sys.exit(1)
 
@@ -1391,10 +1412,40 @@ def main():
     _force_fea = "--fea" in _args
     _force_cfd = "--cfd" in _args
     _render = "--render" in _args
-    _args = [a for a in _args if a not in ("--preview", "--fea", "--cfd", "--render")]
-    goal = " ".join(_args)
+    _no_agent = "--no-agent" in _args
+    _agent_mode_flag = "--agent-mode" in _args
+    _max_agent_iter = 15
+    for i, a in enumerate(_args):
+        if a == "--max-agent-iterations" and i + 1 < len(_args):
+            try:
+                _max_agent_iter = int(_args[i + 1])
+            except ValueError:
+                pass
+    _strip_flags = {"--preview", "--fea", "--cfd", "--render",
+                    "--no-agent", "--agent-mode", "--max-agent-iterations"}
+    _args_clean = []
+    _skip_next = False
+    for a in _args:
+        if _skip_next:
+            _skip_next = False
+            continue
+        if a in _strip_flags:
+            if a == "--max-agent-iterations":
+                _skip_next = True
+            continue
+        _args_clean.append(a)
+    goal = " ".join(_args_clean)
+
+    # Determine agent mode: --agent-mode forces on, --no-agent forces off, else auto
+    _agent_mode = None  # auto
+    if _agent_mode_flag:
+        _agent_mode = True
+    elif _no_agent:
+        _agent_mode = False
+
     from aria_os import run
-    session = run(goal, repo_root=ROOT, preview=_preview)
+    session = run(goal, repo_root=ROOT, preview=_preview,
+                  agent_mode=_agent_mode, max_agent_iterations=_max_agent_iter)
 
     # --render: save a PNG preview of the generated STL
     if _render and isinstance(session, dict):

@@ -35,6 +35,12 @@ from typing import Any, Optional
 # ---------------------------------------------------------------------------
 
 _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
+    ("phone case",    "phone_case"),   # protective phone/device case
+    ("iphone case",   "phone_case"),
+    ("device case",   "phone_case"),
+    ("protective case","phone_case"),
+    ("drop proof case","phone_case"),
+    ("drop-proof case","phone_case"),
     ("base plate",    "base_plate"),   # flat mounting plate → flat_plate template
     ("mount plate",   "base_plate"),
     ("mounting plate","base_plate"),
@@ -262,11 +268,11 @@ def extract_spec(description: str) -> dict[str, Any]:
     if n_teeth:
         spec["n_teeth"] = n_teeth
 
-    # --- WxHxD box notation (e.g. "50x100x200mm" or "50 x 100 x 200 mm") ---
-    # Always overrides single-value prose extractions — a WxHxD triple is more
-    # authoritative than any individual "4mm wide" or "8mm tall" substring.
+    # --- WxHxD box notation ---
+    # Matches: "50x100x200mm", "50 x 100 x 200 mm", "160.8mm x 78.1mm x 12mm"
+    # Always overrides single-value prose extractions.
     _box_m = re.search(
-        r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm",
+        r"(\d+(?:\.\d+)?)\s*(?:mm)?\s*[xX×]\s*(\d+(?:\.\d+)?)\s*(?:mm)?\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm",
         text, re.I,
     )
     if _box_m:
@@ -278,7 +284,7 @@ def extract_spec(description: str) -> dict[str, Any]:
     # Only runs when the 3D pattern didn't already fire
     if "width_mm" not in spec or "depth_mm" not in spec:
         _box2_m = re.search(
-            r"(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm(?!\s*[xX×])",
+            r"(\d+(?:\.\d+)?)\s*(?:mm)?\s*[xX×]\s*(\d+(?:\.\d+)?)\s*mm(?!\s*[xX×])",
             text, re.I,
         )
         if _box2_m:

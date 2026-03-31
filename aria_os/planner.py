@@ -214,8 +214,8 @@ def plan(goal: str, context: dict[str, str] | None = None, repo_root: Path | Non
     # ---------- ARIA housing shell ----------
     if "housing" in goal_lower and ("shell" in goal_lower or "box" in goal_lower or "aria housing" in goal_lower):
         housing_dims = get_part_dimensions("aria_housing", cem, repo_root)
-        w = float(cem_nums.get("housing_od_mm", housing_dims.get("od_mm", constants.get("housing_width", 700.0))))
-        h = float(cem_nums.get("housing_od_mm", housing_dims.get("od_mm", constants.get("housing_height", 680.0))))
+        w = float(cem_nums.get("housing_width_mm", housing_dims.get("width_mm", constants.get("housing_width", 200.0))))
+        h = float(cem_nums.get("housing_height_mm", housing_dims.get("height_mm", constants.get("housing_height", 150.0))))
         d = float(cem_nums.get("housing_length_mm", housing_dims.get("length_mm", constants.get("housing_depth", 344.0))))
         wall = float(cem_nums.get("housing_wall_mm", housing_dims.get("wall_mm", constants.get("wall_thickness", 10.0))))
         bore = constants.get("bearing_od", 47.2)

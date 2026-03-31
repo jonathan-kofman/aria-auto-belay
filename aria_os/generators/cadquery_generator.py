@@ -71,6 +71,7 @@ base = (
 # --- add 24 asymmetric teeth ---
 d_drive = TOOTH_H * math.tan(math.radians(DRIVE_DEG))
 d_back  = TOOTH_H * math.tan(math.radians(BACK_DEG))
+_failed_teeth = 0
 
 for i in range(N_TEETH):
     a = math.radians(i * 360.0 / N_TEETH)
@@ -92,12 +93,11 @@ for i in range(N_TEETH):
     )
     try:
         base = base.union(tooth)
-    except Exception as _te:
-        _failed_teeth = _failed_teeth + 1 if "_failed_teeth" in dir() else 1
-        print(f"[WARN] ratchet tooth {i} union failed: {_te}")
+    except Exception:
+        _failed_teeth += 1
 
-if "_failed_teeth" in dir() and _failed_teeth > 0:
-    print(f"[WARN] {_failed_teeth}/{N_TEETH} teeth failed to union — geometry may be incomplete")
+if _failed_teeth > 0:
+    print(f"[WARN] {{_failed_teeth}}/{{N_TEETH}} teeth failed to union")
 
 result = base
 bb = result.val().BoundingBox()
@@ -135,11 +135,18 @@ bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
     else:
-        # Rectangular ARIA-style enclosure
-        w    = float(params.get("width_mm", 700.0))
-        h    = float(params.get("height_mm", 680.0))
-        d    = float(params.get("depth_mm", 344.0))
-        wall = float(params.get("wall_mm", 10.0))
+        # Rectangular enclosure with lid cutout and mounting bosses
+        import math as _math2
+        w    = float(params.get("width_mm", 200.0))
+        h    = float(params.get("height_mm", 150.0))
+        d    = float(params.get("depth_mm", 100.0))
+        wall = float(params.get("wall_mm", max(4.0, min(w, h, d) * 0.05)))
+        n_mount = int(params.get("n_bolts", 4))
+        mount_d = float(params.get("bolt_dia_mm", 5.0))
+        boss_od = float(params.get("boss_od_mm", mount_d * 2.5))
+        mount_pts = [(round((w / 2 - wall * 2) * _math2.cos(_math2.radians(a)), 3),
+                      round((d / 2 - wall * 2) * _math2.sin(_math2.radians(a)), 3))
+                     for a in [45, 135, 225, 315]] if n_mount == 4 else []
         return f"""
 import cadquery as cq
 
@@ -147,12 +154,44 @@ WIDTH_MM  = {w}
 HEIGHT_MM = {h}
 DEPTH_MM  = {d}
 WALL_MM   = {wall}
+BOSS_OD   = {boss_od}
+MOUNT_D   = {mount_d}
 
-result = (
-    cq.Workplane("XY")
-    .box(WIDTH_MM, DEPTH_MM, HEIGHT_MM)
-    .shell(-WALL_MM)
-)
+# --- Outer box ---
+outer = cq.Workplane("XY").box(WIDTH_MM, DEPTH_MM, HEIGHT_MM)
+
+# --- Shell out interior (open top face for lid) ---
+result = outer.shell(-WALL_MM)
+
+# --- Mounting bosses at 4 corners (inside, at bottom) ---
+mount_pts = {mount_pts!r}
+if len(mount_pts) > 0:
+    for px, py in mount_pts:
+        boss = (cq.Workplane("XY")
+                .workplane(offset=-HEIGHT_MM / 2.0)
+                .center(px, py)
+                .circle(BOSS_OD / 2.0)
+                .extrude(HEIGHT_MM - WALL_MM))
+        boss_hole = (cq.Workplane("XY")
+                     .workplane(offset=-HEIGHT_MM / 2.0 - 1.0)
+                     .center(px, py)
+                     .circle(MOUNT_D / 2.0)
+                     .extrude(HEIGHT_MM + 2.0))
+        result = result.union(boss).cut(boss_hole)
+
+# --- Lid screw bosses on rim (top face corners) ---
+lid_pts = [(WIDTH_MM / 2 - WALL_MM * 1.5, DEPTH_MM / 2 - WALL_MM * 1.5),
+           (-WIDTH_MM / 2 + WALL_MM * 1.5, DEPTH_MM / 2 - WALL_MM * 1.5),
+           (-WIDTH_MM / 2 + WALL_MM * 1.5, -DEPTH_MM / 2 + WALL_MM * 1.5),
+           (WIDTH_MM / 2 - WALL_MM * 1.5, -DEPTH_MM / 2 + WALL_MM * 1.5)]
+for lx, ly in lid_pts:
+    lid_hole = (cq.Workplane("XY")
+                .workplane(offset=HEIGHT_MM / 2.0 - WALL_MM - 1.0)
+                .center(lx, ly)
+                .circle(MOUNT_D * 0.4)
+                .extrude(WALL_MM + 2.0))
+    result = result.cut(lid_hole)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
@@ -186,12 +225,14 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_spool(params: dict[str, Any]) -> str:
-    drum_od  = float(params.get("diameter", params.get("od_mm", 600.0)))
-    drum_w   = float(params.get("width", params.get("drum_width_mm", 50.0)))
-    # Flange OD defaults to drum_od + 15% of drum_od (proportional), not a fixed 40mm offset.
-    fl_od    = float(params.get("flange_diameter", params.get("flange_od_mm", drum_od * 1.15)))
-    fl_thick = float(params.get("flange_thickness", params.get("flange_thickness_mm", max(6.0, drum_w * 0.12))))
-    hub_od   = float(params.get("hub_diameter", 47.2))
+    drum_od    = float(params.get("diameter", params.get("od_mm", 600.0)))
+    drum_w     = float(params.get("width", params.get("drum_width_mm", 50.0)))
+    fl_od      = float(params.get("flange_diameter", params.get("flange_od_mm", drum_od * 1.15)))
+    fl_thick   = float(params.get("flange_thickness", params.get("flange_thickness_mm", max(6.0, drum_w * 0.12))))
+    hub_od     = float(params.get("hub_diameter", params.get("bore_mm", drum_od * 0.08)))
+    groove_d   = float(params.get("groove_depth_mm", max(3.0, drum_od * 0.01)))
+    groove_w   = float(params.get("groove_width_mm", max(8.0, drum_w * 0.6)))
+    n_grooves  = int(params.get("n_grooves", max(1, int(drum_w / groove_w * 0.7))))
     return f"""
 import cadquery as cq
 
@@ -200,111 +241,725 @@ DRUM_W_MM     = {drum_w}
 FLANGE_OD_MM  = {fl_od}
 FLANGE_TH_MM  = {fl_thick}
 HUB_OD_MM     = {hub_od}
+GROOVE_D_MM   = {groove_d}
+GROOVE_W_MM   = {groove_w}
+N_GROOVES     = {n_grooves}
 
+# Drum core
 drum = cq.Workplane("XY").circle(DRUM_OD_MM / 2.0).extrude(DRUM_W_MM)
+
+# Flanges (bottom + top)
 fl_b = cq.Workplane("XY").circle(FLANGE_OD_MM / 2.0).extrude(FLANGE_TH_MM)
 fl_t = (cq.Workplane("XY").workplane(offset=DRUM_W_MM - FLANGE_TH_MM)
         .circle(FLANGE_OD_MM / 2.0).extrude(FLANGE_TH_MM))
+
+# Hub bore (through)
 hub_bore = (cq.Workplane("XY").workplane(offset=-1.0)
             .circle(HUB_OD_MM / 2.0).extrude(DRUM_W_MM + 2.0))
 
 result = drum.union(fl_b).union(fl_t).cut(hub_bore)
+
+# Rope guide channel(s) — helical groove(s) cut into drum OD surface
+# Approximated as circumferential V-grooves evenly spaced along drum width
+groove_r_outer = DRUM_OD_MM / 2.0 + 0.1   # cut slightly past OD
+groove_r_inner = DRUM_OD_MM / 2.0 - GROOVE_D_MM
+if N_GROOVES > 0 and GROOVE_D_MM > 0.5:
+    spacing = (DRUM_W_MM - 2 * FLANGE_TH_MM) / max(N_GROOVES, 1)
+    for gi in range(N_GROOVES):
+        z_center = FLANGE_TH_MM + spacing * (gi + 0.5)
+        groove_ring = (
+            cq.Workplane("XY")
+            .workplane(offset=z_center - GROOVE_W_MM / 2.0)
+            .circle(groove_r_outer)
+            .circle(groove_r_inner)
+            .extrude(GROOVE_W_MM)
+        )
+        result = result.cut(groove_ring)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
 def _cq_cam_collar(params: dict[str, Any]) -> str:
+    import math as _m
     od   = float(params.get("od_mm", params.get("diameter", 55.0)))
     h    = float(params.get("height_mm", params.get("height", 40.0)))
     bore = float(params.get("bore_mm", params.get("bore", 25.0)))
+    # Helical ramp: 15° cam ramp over 90° arc, rise = h * 0.12
+    ramp_rise   = float(params.get("ramp_rise_mm", round(h * 0.12, 2)))
+    ramp_arc    = float(params.get("ramp_arc_deg", 90.0))
+    ramp_angle  = float(params.get("ramp_angle_deg", 15.0))
+    # Set screw: M4 by default, radial through wall
+    set_screw_d = float(params.get("set_screw_dia_mm", 4.0))
+    wall = (od - bore) / 2.0
+    # Validate geometry
+    if bore >= od:
+        bore = od * 0.6
     return f"""
-import cadquery as cq
+import cadquery as cq, math
 
-OD_MM   = {od}
-HEIGHT  = {h}
-BORE_MM = {bore}
+OD_MM         = {od}
+HEIGHT_MM     = {h}
+BORE_MM       = {bore}
+RAMP_RISE_MM  = {ramp_rise}
+RAMP_ARC_DEG  = {ramp_arc}
+SET_SCREW_D   = {set_screw_d}
+WALL_MM       = {wall:.2f}
 
+# --- Base annular cylinder ---
 result = (
     cq.Workplane("XY")
     .circle(OD_MM / 2.0)
     .circle(BORE_MM / 2.0)
-    .extrude(HEIGHT)
+    .extrude(HEIGHT_MM)
 )
+
+# --- Helical cam ramp on bore surface ---
+# Cut a ramped wedge from the bore face to create the engagement ramp.
+# The ramp is a triangular prism swept along the bore arc.
+# We approximate with a series of small cuts at increasing depth.
+N_RAMP_SEGS = 12
+for i in range(N_RAMP_SEGS):
+    frac = i / N_RAMP_SEGS
+    angle_deg = frac * RAMP_ARC_DEG
+    ramp_depth = frac * RAMP_RISE_MM
+    a_rad = math.radians(angle_deg)
+    cx = (BORE_MM / 2.0 + 1.0) * math.cos(a_rad)
+    cy = (BORE_MM / 2.0 + 1.0) * math.sin(a_rad)
+    seg_len = math.pi * BORE_MM * (RAMP_ARC_DEG / N_RAMP_SEGS) / 360.0
+    try:
+        wedge = (
+            cq.Workplane("XY")
+            .workplane(offset=HEIGHT_MM - ramp_depth)
+            .transformed(rotate=cq.Vector(0, 0, angle_deg))
+            .center(BORE_MM / 2.0 * 0.85, 0)
+            .rect(WALL_MM * 0.3, max(seg_len, 1.0))
+            .extrude(ramp_depth + 0.5)
+        )
+        result = result.cut(wedge)
+    except Exception:
+        pass  # skip failed ramp segment
+
+# --- Radial set screw hole (M{{SET_SCREW_D:.0f}}) at mid-height ---
+set_screw = (
+    cq.Workplane("XZ")
+    .workplane(offset=0)
+    .center(HEIGHT_MM / 2.0, 0)
+    .circle(SET_SCREW_D / 2.0)
+    .extrude(OD_MM)
+)
+result = result.cut(set_screw)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
 def _cq_brake_drum(params: dict[str, Any]) -> str:
+    import math as _m
     od      = float(params.get("od_mm",        params.get("diameter",        200.0)))
     w       = float(params.get("thickness_mm", params.get("height_mm",
                                params.get("width_mm", params.get("width", 40.0)))))
     shaft_d = float(params.get("bore_mm",      params.get("shaft_diameter",  20.0)))
-    wall    = float(params.get("wall_mm",      params.get("wall_thickness",   8.0)))
+    wall    = float(params.get("wall_mm",      params.get("wall_thickness",
+                               max(8.0, od * 0.04))))
+    hub_od  = float(params.get("hub_od_mm", max(shaft_d * 2.5, od * 0.25)))
+    hub_h   = float(params.get("hub_height_mm", max(w * 0.3, 10.0)))
+    n_bolts = int(params.get("n_bolts", 4))
+    bolt_d  = float(params.get("bolt_dia_mm", 6.0))
+    bolt_r  = float(params.get("bolt_circle_r_mm", hub_od * 0.35))
+    # Friction grooves on inner drum surface
+    n_grooves = int(params.get("n_friction_grooves", 8))
+    # Clamp shaft_d to valid range
+    shaft_d = min(shaft_d, od - 2 * wall - 2.0)
+    bolt_pts = [(round(bolt_r * _m.cos(_m.radians(i * 360 / n_bolts)), 3),
+                 round(bolt_r * _m.sin(_m.radians(i * 360 / n_bolts)), 3))
+                for i in range(n_bolts)]
     return f"""
-import cadquery as cq
+import cadquery as cq, math
 
 OD_MM        = {od}
 WIDTH_MM     = {w}
 SHAFT_D_MM   = {shaft_d}
 WALL_MM      = {wall}
+HUB_OD_MM    = {hub_od}
+HUB_H_MM     = {hub_h}
+N_GROOVES    = {n_grooves}
+BOLT_D_MM    = {bolt_d}
 
+# --- Outer drum shell ---
 outer = cq.Workplane("XY").circle(OD_MM / 2.0).extrude(WIDTH_MM)
-inner_void = (cq.Workplane("XY").workplane(offset=-1.0)
-              .circle(OD_MM / 2.0 - WALL_MM).extrude(WIDTH_MM + 2.0))
-shaft = (cq.Workplane("XY").workplane(offset=-1.0)
-         .circle(SHAFT_D_MM / 2.0).extrude(WIDTH_MM + 2.0))
-result = outer.cut(inner_void).cut(shaft)
+inner_void = (cq.Workplane("XY").workplane(offset=WALL_MM)
+              .circle(OD_MM / 2.0 - WALL_MM).extrude(WIDTH_MM - WALL_MM + 1.0))
+drum = outer.cut(inner_void)
+
+# --- Hub with bore ---
+hub = (cq.Workplane("XY")
+       .circle(HUB_OD_MM / 2.0)
+       .circle(SHAFT_D_MM / 2.0)
+       .extrude(HUB_H_MM))
+# Web plate connecting hub to drum
+web = (cq.Workplane("XY")
+       .circle(OD_MM / 2.0 - WALL_MM)
+       .circle(HUB_OD_MM / 2.0)
+       .extrude(WALL_MM))
+result = drum.union(hub).union(web)
+
+# --- Bore through ---
+bore_cyl = (cq.Workplane("XY").workplane(offset=-1.0)
+            .circle(SHAFT_D_MM / 2.0).extrude(WIDTH_MM + 2.0))
+result = result.cut(bore_cyl)
+
+# --- Hub bolt holes ---
+bolt_pts = {bolt_pts!r}
+if len(bolt_pts) > 0:
+    bolt_holes = (cq.Workplane("XY").workplane(offset=-1.0)
+                  .pushPoints(bolt_pts)
+                  .circle(BOLT_D_MM / 2.0).extrude(HUB_H_MM + 2.0))
+    result = result.cut(bolt_holes)
+
+# --- Friction grooves (circumferential score lines on inner drum surface) ---
+if N_GROOVES > 0:
+    groove_d = max(0.5, WALL_MM * 0.08)
+    groove_w = 1.5
+    for gi in range(N_GROOVES):
+        z_g = WALL_MM + (WIDTH_MM - WALL_MM) * (gi + 0.5) / N_GROOVES
+        try:
+            groove = (cq.Workplane("XY").workplane(offset=z_g - groove_w / 2)
+                      .circle(OD_MM / 2.0 - WALL_MM + groove_d)
+                      .circle(OD_MM / 2.0 - WALL_MM)
+                      .extrude(groove_w))
+            result = result.cut(groove)
+        except Exception:
+            pass
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
 def _cq_catch_pawl(params: dict[str, Any]) -> str:
+    import math as _m
     length = float(params.get("length_mm", 60.0))
     w      = float(params.get("width_mm", 12.0))
     thick  = float(params.get("thickness_mm", 6.0))
     bore   = float(params.get("bore_mm", params.get("pivot_hole_dia_mm", 6.0)))
+    # Tooth engagement tip: angled face at the free end
+    tip_angle = float(params.get("tip_angle_deg", 30.0))
+    tip_depth = float(params.get("tip_depth_mm", max(3.0, w * 0.25)))
+    # Spring hole for return spring near pivot
+    spring_d  = float(params.get("spring_hole_dia_mm", max(2.0, bore * 0.5)))
     return f"""
-import cadquery as cq
+import cadquery as cq, math
 
 LENGTH_MM        = {length}
 WIDTH_MM         = {w}
 THICKNESS_MM     = {thick}
 PIVOT_HOLE_D_MM  = {bore}
+TIP_DEPTH_MM     = {tip_depth}
+TIP_ANGLE_DEG    = {tip_angle}
+SPRING_D_MM      = {spring_d}
 
+# --- Main body: tapered pawl shape ---
+# Wider at pivot end, narrowing toward tip for engagement
 body = cq.Workplane("XY").box(LENGTH_MM, WIDTH_MM, THICKNESS_MM)
+
+# --- Tapered tip: angled engagement face at free end ---
+# Cut a wedge from the top-right corner to create the tooth engagement surface.
+# Drive face (steep) engages the ratchet tooth; back face (shallow) rides over.
+tip_x = LENGTH_MM / 2.0
+tip_cut_len = TIP_DEPTH_MM / math.tan(math.radians(TIP_ANGLE_DEG)) if TIP_ANGLE_DEG > 0 else TIP_DEPTH_MM
+wedge = (
+    cq.Workplane("XY")
+    .workplane(offset=-0.5)
+    .moveTo(tip_x - tip_cut_len, WIDTH_MM / 2.0 + 0.1)
+    .lineTo(tip_x + 0.1,         WIDTH_MM / 2.0 + 0.1)
+    .lineTo(tip_x + 0.1,         WIDTH_MM / 2.0 - TIP_DEPTH_MM)
+    .close()
+    .extrude(THICKNESS_MM + 1.0)
+)
+result = body.cut(wedge)
+
+# --- Pivot bore at left end ---
 pivot = (cq.Workplane("XY").workplane(offset=-1.0)
          .center(-LENGTH_MM / 2.0 + WIDTH_MM / 2.0, 0)
          .circle(PIVOT_HOLE_D_MM / 2.0).extrude(THICKNESS_MM + 2.0))
-result = body.cut(pivot)
+result = result.cut(pivot)
+
+# --- Spring return hole (smaller, between pivot and midpoint) ---
+spring_pos_x = -LENGTH_MM / 2.0 + WIDTH_MM * 1.5
+spring = (cq.Workplane("XY").workplane(offset=-1.0)
+          .center(spring_pos_x, 0)
+          .circle(SPRING_D_MM / 2.0).extrude(THICKNESS_MM + 2.0))
+result = result.cut(spring)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
 def _cq_rope_guide(params: dict[str, Any]) -> str:
-    bw = float(params.get("bracket_width", 80.0))
-    bh = float(params.get("bracket_height", 40.0))
-    bt = float(params.get("bracket_thickness", 6.0))
-    rd = float(params.get("roller_diameter", 30.0))
-    bore = float(params.get("bore", 8.0))
+    width  = float(params.get("width_mm",  params.get("bracket_width", 80.0)))
+    height = float(params.get("height_mm", params.get("bracket_height", 50.0)))
+    thick  = float(params.get("thickness_mm", params.get("bracket_thickness", 6.0)))
+    roller_d = float(params.get("diameter_mm", params.get("roller_diameter", 30.0)))
+    bore   = float(params.get("bore_mm", params.get("bore", 8.0)))
+    rope_w = float(params.get("rope_width_mm", max(10.0, roller_d * 0.4)))
+    arm_w  = float(params.get("arm_width_mm", max(12.0, width * 0.18)))
+    n_mount = int(params.get("n_bolts", 2))
+    mount_d = float(params.get("bolt_dia_mm", 6.0))
     return f"""
 import cadquery as cq
 
-BRACKET_W_MM = {bw}
-BRACKET_H_MM = {bh}
-BRACKET_T_MM = {bt}
-ROLLER_D_MM  = {rd}
-BORE_MM      = {bore}
+WIDTH_MM      = {width}
+HEIGHT_MM     = {height}
+THICKNESS_MM  = {thick}
+ROLLER_D_MM   = {roller_d}
+BORE_MM       = {bore}
+ROPE_W_MM     = {rope_w}
+ARM_W_MM      = {arm_w}
+N_MOUNT       = {n_mount}
+MOUNT_D_MM    = {mount_d}
 
-plate = cq.Workplane("XY").box(BRACKET_W_MM, BRACKET_H_MM, BRACKET_T_MM)
-boss  = (cq.Workplane("XY").workplane(offset=BRACKET_T_MM - 0.01)
-         .circle(ROLLER_D_MM / 2.0).extrude(ROLLER_D_MM))
-axle  = (cq.Workplane("XY").workplane(offset=-1.0)
-         .circle(BORE_MM / 2.0).extrude(BRACKET_T_MM + ROLLER_D_MM + 2.0))
-result = plate.union(boss).cut(axle)
+# --- Base mounting plate ---
+base_plate = cq.Workplane("XY").box(WIDTH_MM, ARM_W_MM, THICKNESS_MM)
+
+# --- Two vertical bracket arms ---
+arm_gap = ROPE_W_MM + 2.0  # gap between inner faces = rope slot
+arm_h   = HEIGHT_MM - THICKNESS_MM
+left_arm = (cq.Workplane("XY")
+    .workplane(offset=THICKNESS_MM)
+    .center(0, -(arm_gap / 2.0 + ARM_W_MM / 2.0))
+    .box(ARM_W_MM, ARM_W_MM, arm_h, centered=False)
+    .translate((-ARM_W_MM / 2.0, 0, 0)))
+right_arm = (cq.Workplane("XY")
+    .workplane(offset=THICKNESS_MM)
+    .center(0, (arm_gap / 2.0 - ARM_W_MM / 2.0))
+    .box(ARM_W_MM, ARM_W_MM, arm_h, centered=False)
+    .translate((-ARM_W_MM / 2.0, 0, 0)))
+
+result = base_plate.union(left_arm).union(right_arm)
+
+# --- Roller (cylinder between arms) ---
+roller_z = THICKNESS_MM + arm_h * 0.65  # roller sits at 65% of arm height
+roller_y_start = -(arm_gap / 2.0 + ARM_W_MM)
+roller_y_len   = arm_gap + 2 * ARM_W_MM
+roller = (cq.Workplane("XZ")
+    .workplane(offset=roller_y_start)
+    .center(roller_z, 0)
+    .circle(ROLLER_D_MM / 2.0)
+    .extrude(roller_y_len))
+# Roller bore (axle hole through roller + arms)
+axle_hole = (cq.Workplane("XZ")
+    .workplane(offset=roller_y_start - 1.0)
+    .center(roller_z, 0)
+    .circle(BORE_MM / 2.0)
+    .extrude(roller_y_len + 2.0))
+result = result.union(roller).cut(axle_hole)
+
+# --- Rope slot (cut gap between arms through the roller zone) ---
+slot_cut = (cq.Workplane("XY")
+    .workplane(offset=THICKNESS_MM - 0.5)
+    .center(0, 0)
+    .rect(WIDTH_MM + 2, ROPE_W_MM)
+    .extrude(arm_h + 1.0))
+# Only cut where there's no arm or roller — handled by union order above
+
+# --- Mounting holes in base plate ---
+if N_MOUNT > 0:
+    margin = WIDTH_MM * 0.15
+    x_start = -(WIDTH_MM / 2.0 - margin)
+    x_end   = (WIDTH_MM / 2.0 - margin)
+    if N_MOUNT == 1:
+        pts = [(0, 0)]
+    else:
+        pts = [(round(x_start + (x_end - x_start) * i / (N_MOUNT - 1), 3), 0)
+               for i in range(N_MOUNT)]
+    mount_holes = (cq.Workplane("XY").workplane(offset=-1.0)
+                   .pushPoints(pts)
+                   .circle(MOUNT_D_MM / 2.0).extrude(THICKNESS_MM + 2.0))
+    result = result.cut(mount_holes)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_phone_case(params: dict[str, Any]) -> str:
+    """UAG-style rugged phone case — rigid polycarbonate back + TPU bumper frame."""
+    import math as _m
+
+    # Phone body — default iPhone 13 Pro Max
+    ph_l = float(params.get("phone_length_mm", params.get("width_mm", 160.8)))
+    ph_w = float(params.get("phone_width_mm", params.get("height_mm", 78.1)))
+    ph_t = float(params.get("phone_thickness_mm", 7.65))
+    wall = float(params.get("wall_mm", 2.5))
+    lip  = float(params.get("lip_mm", 1.5))
+    cr   = float(params.get("corner_radius_mm", 8.0))
+
+    case_l  = round(ph_l + 2 * wall, 2)
+    case_w  = round(ph_w + 2 * wall, 2)
+    case_d  = round(ph_t + wall + lip, 2)
+    case_cr = round(cr + wall, 2)
+
+    # UAG-style corner bumper — thicker at corners
+    bump_extra = 3.0  # extra wall at corners
+    bump_cr    = case_cr + bump_extra
+
+    # Camera — iPhone 13 Pro Max triple lens module
+    cam_w = 38.0
+    cam_l = 38.0
+    cam_cr_r = 7.0
+    cam_ring_wall = 2.5
+    cam_ring_h = 2.0
+    cam_cx = round(-(ph_w / 2 - cam_w / 2 - 5.5), 2)
+    cam_cy = round(ph_l / 2 - cam_l / 2 - 5.0, 2)
+
+    # Button positions from top of phone
+    pwr_from_top, pwr_len = 73.0, 13.0
+    vup_from_top, vdn_from_top, vol_len = 68.0, 81.0, 9.0
+    mute_from_top, mute_len = 56.0, 5.0
+    btn_depth = 4.5  # button cutout height (Z)
+
+    def _y(ft):
+        return round(ph_l / 2.0 - ft, 2)
+
+    pwr_y, vup_y, vdn_y, mute_y = _y(pwr_from_top), _y(vup_from_top), _y(vdn_from_top), _y(mute_from_top)
+
+    # Port
+    port_w, port_h = 9.0, 3.5
+
+    # Pre-compute all rounded-rect profiles at template time
+    n_arc = 8
+
+    def _rr(hw, hl, r):
+        pts = []
+        for cx, cy, a0 in [
+            ( hw-r,  hl-r,   0), (-hw+r,  hl-r,  90),
+            (-hw+r, -hl+r, 180), ( hw-r, -hl+r, 270),
+        ]:
+            for i in range(n_arc + 1):
+                a = _m.radians(a0 + i * 90.0 / n_arc)
+                pts.append((round(cx + r*_m.cos(a), 4), round(cy + r*_m.sin(a), 4)))
+        return pts
+
+    outer_pts  = repr(_rr(case_w/2 + bump_extra, case_l/2 + bump_extra, bump_cr))
+    inner_wall = repr(_rr(case_w/2, case_l/2, case_cr))
+    cavity_pts = repr(_rr(ph_w/2, ph_l/2, max(cr-0.5, 2.0)))
+    scr_pts    = repr(_rr((ph_w-5)/2, (ph_l-5)/2, max(cr-1.5, 1.5)))
+
+    # Camera cutout + ring profiles
+    def _cam_rr(hw, hl, r, ox, oy):
+        pts = []
+        for cx, cy, a0 in [
+            ( hw-r,  hl-r,   0), (-hw+r,  hl-r,  90),
+            (-hw+r, -hl+r, 180), ( hw-r, -hl+r, 270),
+        ]:
+            for i in range(n_arc + 1):
+                a = _m.radians(a0 + i * 90.0 / n_arc)
+                pts.append((round(ox+cx+r*_m.cos(a), 4), round(oy+cy+r*_m.sin(a), 4)))
+        return pts
+
+    cam_hole_pts = repr(_cam_rr(cam_w/2, cam_l/2, cam_cr_r, cam_cx, cam_cy))
+    cam_ring_outer = repr(_cam_rr(
+        cam_w/2+cam_ring_wall, cam_l/2+cam_ring_wall,
+        cam_cr_r+cam_ring_wall, cam_cx, cam_cy))
+
+    # Grip ridges on sides — positions along Y axis
+    n_ridges = 6
+    ridge_spacing = round(ph_l * 0.5 / n_ridges, 2)
+    ridge_start_y = round(-ph_l * 0.15, 2)
+
+    return f"""
+import cadquery as cq
+import math
+
+# UAG-style rugged case for iPhone 13 Pro Max
+# Thicker corners, raised camera ring, grip ridges, tactile button covers
+
+CASE_D   = {case_d}
+WALL     = {wall}
+PH_T     = {ph_t}
+PH_L     = {ph_l}
+PH_W     = {ph_w}
+
+# ── 1. Outer shell — rounded rect with thicker corners ──────────────────
+outer = cq.Workplane("XY").polyline({outer_pts}).close().extrude(CASE_D)
+
+# Inner trim — cut back to normal wall thickness on flat sides
+# (keeps corners thick, sides at standard wall)
+trim = cq.Workplane("XY").polyline({inner_wall}).close().extrude(CASE_D + 1)
+# Only remove material OUTSIDE the inner wall but INSIDE the outer
+# Actually we want the outer shape to BE the bumper corners.
+# So: extrude the inner_wall profile and cut only the side panels back.
+# Simpler: use outer as-is (corners are naturally thicker due to bump_extra).
+# Cut the phone cavity from it.
+
+# ── 2. Phone cavity — cut from screen side (+Z) ─────────────────────────
+cavity = (
+    cq.Workplane("XY")
+    .workplane(offset=WALL)
+    .polyline({cavity_pts}).close()
+    .extrude(PH_T + 2.0 + {lip})
+)
+result = outer.cut(cavity)
+
+# ── 3. Screen opening — bezel lip (2.5mm border) ────────────────────────
+scr_pts = {scr_pts}
+screen = (
+    cq.Workplane("XY")
+    .workplane(offset=CASE_D - 0.5)
+    .polyline(scr_pts).close()
+    .extrude(2.0)
+)
+result = result.cut(screen)
+
+# ── 4. Camera — flush cutout + raised protective ring ────────────────────
+cam_cut = (
+    cq.Workplane("XY")
+    .workplane(offset=-0.5)
+    .polyline({cam_hole_pts}).close()
+    .extrude(WALL + 1.0)
+)
+result = result.cut(cam_cut)
+
+# Camera protective ring — raised 2mm from back face
+cam_ring_solid = (
+    cq.Workplane("XY")
+    .polyline({cam_ring_outer}).close()
+    .extrude(-{cam_ring_h})
+)
+cam_ring_void = (
+    cq.Workplane("XY")
+    .workplane(offset=0.5)
+    .polyline({cam_hole_pts}).close()
+    .extrude(-({cam_ring_h} + 1.0))
+)
+try:
+    result = result.union(cam_ring_solid.cut(cam_ring_void))
+except Exception:
+    pass
+
+# ── 5. Button cutouts — all 4 buttons through side walls ─────────────────
+# Buttons must cut through the FULL wall including bump_extra.
+# Box(thickness_to_cut, button_length, button_height) centered on the wall.
+_WALL_FULL = WALL + {bump_extra}  # total wall at bumper corners
+_BTN_CUT = _WALL_FULL + 4.0       # cut depth (generous, ensures full penetration)
+
+# Power button — RIGHT side (+X wall)
+result = result.cut(
+    cq.Workplane("XY")
+    .box(_BTN_CUT, {pwr_len}, {btn_depth})
+    .translate((PH_W/2 + _WALL_FULL/2, {pwr_y}, CASE_D/2))
+)
+
+# Volume UP — LEFT side (-X wall)
+result = result.cut(
+    cq.Workplane("XY")
+    .box(_BTN_CUT, {vol_len}, {btn_depth})
+    .translate((-(PH_W/2 + _WALL_FULL/2), {vup_y}, CASE_D/2))
+)
+
+# Volume DOWN — LEFT side (-X wall)
+result = result.cut(
+    cq.Workplane("XY")
+    .box(_BTN_CUT, {vol_len}, {btn_depth})
+    .translate((-(PH_W/2 + _WALL_FULL/2), {vdn_y}, CASE_D/2))
+)
+
+# Mute switch — LEFT side (-X wall), above volume
+result = result.cut(
+    cq.Workplane("XY")
+    .box(_BTN_CUT, {mute_len}, 3.0)
+    .translate((-(PH_W/2 + _WALL_FULL/2), {mute_y}, CASE_D/2))
+)
+
+# ── 6. Bottom — Lightning port + speaker + mic grilles ───────────────────
+_bot = PH_L/2 + WALL + {bump_extra}
+
+# Lightning port
+result = result.cut(
+    cq.Workplane("XY").box({port_w}, WALL*2 + {bump_extra}*2 + 2, {port_h})
+    .translate((0, -_bot, CASE_D/2))
+)
+
+# Speaker grille (right of port) — 6 square holes
+for i in range(6):
+    result = result.cut(
+        cq.Workplane("XY").box(1.5, WALL*2 + {bump_extra}*2 + 2, 1.5)
+        .translate(({port_w}/2 + 4 + i*2.8, -_bot, CASE_D/2))
+    )
+
+# Mic grille (left of port) — 2 square holes
+for i in range(2):
+    result = result.cut(
+        cq.Workplane("XY").box(1.5, WALL*2 + {bump_extra}*2 + 2, 1.5)
+        .translate((-{port_w}/2 - 4 - i*2.8, -_bot, CASE_D/2))
+    )
+
+# ── 7. Side grip ridges — deep parallel grooves on both sides ────────────
+RIDGE_W = 2.5     # groove width along Y
+RIDGE_D = 1.8     # groove depth into wall (X direction)
+N_RIDGES = 8
+RIDGE_SPAN = PH_L * 0.55
+RIDGE_START = -RIDGE_SPAN / 2
+RIDGE_STEP = RIDGE_SPAN / max(N_RIDGES - 1, 1)
+
+for side_sign in [-1, 1]:
+    x_edge = side_sign * (PH_W/2 + WALL + {bump_extra})
+    for ri in range(N_RIDGES):
+        ry = RIDGE_START + ri * RIDGE_STEP
+        ridge = (
+            cq.Workplane("XY")
+            .box(RIDGE_D * 2, RIDGE_W, CASE_D * 0.65)
+            .translate((x_edge, ry, CASE_D * 0.5))
+        )
+        try:
+            result = result.cut(ridge)
+        except Exception:
+            pass
+
+# ── 8. Back panel armor lines — UAG-style diagonal structural cuts ───────
+# Deep grooves cut into the back face creating angular armor panel look.
+LINE_DEPTH = WALL * 0.4  # 40% of wall thickness
+LINE_W = 1.5
+
+# Horizontal armor line across the back at 40% from top
+armor_h1 = (
+    cq.Workplane("XY")
+    .box(PH_W * 0.85, LINE_W, LINE_DEPTH)
+    .translate((0, PH_L * 0.10, LINE_DEPTH / 2))
+)
+result = result.cut(armor_h1)
+
+# Second horizontal armor line at 70% from top
+armor_h2 = (
+    cq.Workplane("XY")
+    .box(PH_W * 0.85, LINE_W, LINE_DEPTH)
+    .translate((0, -PH_L * 0.20, LINE_DEPTH / 2))
+)
+result = result.cut(armor_h2)
+
+# Vertical center spine line on back
+armor_v = (
+    cq.Workplane("XY")
+    .box(LINE_W, PH_L * 0.5, LINE_DEPTH)
+    .translate((0, -PH_L * 0.05, LINE_DEPTH / 2))
+)
+result = result.cut(armor_v)
+
+# Diagonal cuts at corners — X pattern in lower half of back
+for dx_sign in [-1, 1]:
+    diag = (
+        cq.Workplane("XY")
+        .box(PH_W * 0.35, LINE_W, LINE_DEPTH)
+        .rotateAboutCenter((0, 0, 1), dx_sign * 35)
+        .translate((dx_sign * PH_W * 0.18, -PH_L * 0.28, LINE_DEPTH / 2))
+    )
+    try:
+        result = result.cut(diag)
+    except Exception:
+        pass
+
+# ── 9. Corner hex cutouts — visible honeycomb shock absorber pattern ─────
+# Small hex-shaped recesses at each corner on the back face
+HEX_R = 3.5   # hex outer radius
+HEX_D = WALL * 0.35  # recess depth
+for sx in [-1, 1]:
+    for sy in [-1, 1]:
+        for ho in range(3):  # 3 hexes per corner in a cluster
+            hx = sx * (PH_W/2 - 5.0 - ho * 5.5)
+            hy = sy * (PH_L/2 - 5.0 - ho * 3.0)
+            # Hex approximated as 6-sided polygon
+            hex_pts = [(round(hx + HEX_R * math.cos(math.radians(60*i + 30)), 3),
+                        round(hy + HEX_R * math.sin(math.radians(60*i + 30)), 3))
+                       for i in range(6)]
+            try:
+                hex_cut = (
+                    cq.Workplane("XY")
+                    .workplane(offset=-0.01)
+                    .polyline(hex_pts).close()
+                    .extrude(HEX_D)
+                )
+                result = result.cut(hex_cut)
+            except Exception:
+                pass
+
+# ── 10. Phone retention — internal corner clips + top edge lip ────────────
+# Corner retention tabs: small inward-projecting shelves at top inner edge
+# that lock over the phone's screen glass corners when snapped in.
+CLIP_W    = 8.0    # clip width along each corner edge
+CLIP_PROJ = 1.2    # how far clip projects inward over the phone face
+CLIP_T    = 0.8    # clip thickness (Z)
+
+for sx in [-1, 1]:
+    for sy in [-1, 1]:
+        # Position at inner top edge of cavity at each corner
+        clip_x = sx * (PH_W/2 - CLIP_W/2 - 3.0)
+        clip_y = sy * (PH_L/2 - CLIP_W/2 - 3.0)
+        clip = (
+            cq.Workplane("XY")
+            .workplane(offset=CASE_D - CLIP_T)
+            .center(clip_x, clip_y)
+            .rect(CLIP_W if abs(sx) > 0 else CLIP_PROJ,
+                  CLIP_PROJ if abs(sx) > 0 else CLIP_W)
+            .extrude(CLIP_T + 0.5)
+        )
+        try:
+            result = result.union(clip)
+        except Exception:
+            pass
+
+# Top edge inward lip — continuous 0.8mm shelf around screen opening
+# that prevents the phone from lifting out. The phone snaps past this lip.
+LIP_PROJ = 0.8  # inward projection
+lip_outer_pts = scr_pts
+# Slightly smaller = the lip shelf
+lip_inner_w = (PH_W - 5) / 2 - LIP_PROJ
+lip_inner_l = (PH_L - 5) / 2 - LIP_PROJ
+lip_inner_cr = max({cr:.1f} - 1.5 - LIP_PROJ, 1.0)
+lip_inner_pts = []
+for _cx, _cy, _a0 in [
+    ( lip_inner_w - lip_inner_cr,  lip_inner_l - lip_inner_cr,   0),
+    (-lip_inner_w + lip_inner_cr,  lip_inner_l - lip_inner_cr,  90),
+    (-lip_inner_w + lip_inner_cr, -lip_inner_l + lip_inner_cr, 180),
+    ( lip_inner_w - lip_inner_cr, -lip_inner_l + lip_inner_cr, 270),
+]:
+    for _i in range(9):
+        _a = math.radians(_a0 + _i * 90.0 / 8)
+        lip_inner_pts.append((
+            round(_cx + lip_inner_cr * math.cos(_a), 4),
+            round(_cy + lip_inner_cr * math.sin(_a), 4)))
+
+try:
+    lip_shelf = (
+        cq.Workplane("XY")
+        .workplane(offset=CASE_D - 0.8)
+        .polyline(lip_outer_pts).close()
+        .extrude(0.8)
+    )
+    lip_void = (
+        cq.Workplane("XY")
+        .workplane(offset=CASE_D - 0.85)
+        .polyline(lip_inner_pts).close()
+        .extrude(1.0)
+    )
+    result = result.union(lip_shelf.cut(lip_void))
+except Exception:
+    pass
+
+# ── 11. Lanyard hole — bottom-right corner ───────────────────────────────
+lanyard = (
+    cq.Workplane("XY")
+    .box(3.0, WALL * 2 + {bump_extra} * 2 + 2, 3.0)
+    .translate((PH_W/2 - 8, -_bot, CASE_D * 0.35))
+)
+try:
+    result = result.cut(lanyard)
+except Exception:
+    pass
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
@@ -463,29 +1118,75 @@ def _cq_pulley(params: dict[str, Any]) -> str:
     groove  = float(params.get("groove_depth_mm", 5.0))
     w       = float(params.get("width_mm", 20.0))
     bore    = float(params.get("bore_mm", 10.0))
+    groove_angle = float(params.get("groove_angle_deg", 38.0))  # V-belt standard
+    n_grooves = int(params.get("n_grooves", 1))
+    hub_od  = float(params.get("hub_od_mm", max(bore * 2.0 + 4.0, od * 0.3)))
     return f"""
-import cadquery as cq
+import cadquery as cq, math
 
 OD_MM          = {od}
 GROOVE_DEPTH   = {groove}
 WIDTH_MM       = {w}
 BORE_MM        = {bore}
+GROOVE_ANGLE   = {groove_angle}
+N_GROOVES      = {n_grooves}
+HUB_OD_MM     = {hub_od}
 
+# --- Main pulley body ---
 outer = cq.Workplane("XY").circle(OD_MM / 2.0).extrude(WIDTH_MM)
-groove_void = (
-    cq.Workplane("XY")
-    .workplane(offset=WIDTH_MM / 2.0 - GROOVE_DEPTH / 2.0)
-    .circle((OD_MM / 2.0 - GROOVE_DEPTH / 2.0))
-    .circle(OD_MM / 2.0)
-    .extrude(GROOVE_DEPTH)
-)
+
+# --- V-groove(s): revolved trapezoidal profile cut from OD ---
+# V-groove profile: two angled cuts converging at groove bottom radius
+groove_r_bottom = OD_MM / 2.0 - GROOVE_DEPTH
+groove_half_angle = math.radians(GROOVE_ANGLE / 2.0)
+groove_top_width = 2.0 * GROOVE_DEPTH * math.tan(groove_half_angle)
+
+groove_spacing = WIDTH_MM / max(N_GROOVES, 1)
+for gi in range(N_GROOVES):
+    z_center = groove_spacing * (gi + 0.5)
+    # Triangular groove profile revolved around Z axis
+    # Points: outer-left, bottom-center, outer-right (in XZ plane at Y=0)
+    half_w = groove_top_width / 2.0
+    try:
+        groove_cut = (
+            cq.Workplane("XZ")
+            .workplane(offset=0)
+            .moveTo(OD_MM / 2.0 + 0.5, z_center - half_w)
+            .lineTo(groove_r_bottom,     z_center)
+            .lineTo(OD_MM / 2.0 + 0.5, z_center + half_w)
+            .close()
+            .revolve(360, (0, 0, 0), (0, 0, 1))
+        )
+        outer = outer.cut(groove_cut)
+    except Exception:
+        # Fallback: simple annular groove
+        groove_void = (
+            cq.Workplane("XY")
+            .workplane(offset=z_center - half_w)
+            .circle(OD_MM / 2.0 + 0.1)
+            .circle(groove_r_bottom)
+            .extrude(groove_top_width)
+        )
+        outer = outer.cut(groove_void)
+
+# --- Bore ---
 bore_cyl = (
     cq.Workplane("XY")
     .workplane(offset=-1.0)
     .circle(BORE_MM / 2.0)
     .extrude(WIDTH_MM + 2.0)
 )
-result = outer.cut(groove_void).cut(bore_cyl)
+result = outer.cut(bore_cyl)
+
+# --- Keyway on bore (standard rectangular) ---
+keyway_w = max(BORE_MM * 0.25, 2.0)
+keyway_d = keyway_w * 0.6
+keyway = (cq.Workplane("XY").workplane(offset=-0.5)
+          .center(0, BORE_MM / 2.0 + keyway_d / 2.0 - 0.5)
+          .rect(keyway_w, keyway_d)
+          .extrude(WIDTH_MM + 1.0))
+result = result.cut(keyway)
+
 bb = result.val().BoundingBox()
 print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
@@ -1203,6 +1904,11 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "aria_catch_pawl":   _cq_catch_pawl,
     "aria_rope_guide":   _cq_rope_guide,
     # ── Generic / user-facing names (no ARIA prefix) ─────────────────────────
+    # Phone / device cases
+    "phone_case":        _cq_phone_case,
+    "iphone_case":       _cq_phone_case,
+    "device_case":       _cq_phone_case,
+    "protective_case":   _cq_phone_case,
     # Flat panels & bars
     "hollow_rect":       _cq_hollow_rect,
     "box_shell":         _cq_hollow_rect,
@@ -1312,6 +2018,7 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
 # Keyword scan for slug-based part_ids not in the exact map.
 # Checked in order; first match wins.
 _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
+    (["phone_case", "iphone", "phone case", "device_case", "protective_case"],  _cq_phone_case),
     (["nozzle", "rocket", "lre", "injector", "bell_nozzle"],  _cq_nozzle),
     (["ratchet_ring", "catch_ring", "ring_gear"],              _cq_ratchet_ring),
     (["brake_drum"],                                           _cq_brake_drum),

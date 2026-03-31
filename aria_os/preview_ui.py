@@ -19,11 +19,33 @@ import os
 import re
 import sys
 import tempfile
-import webbrowser
 from pathlib import Path
 from typing import Any, Literal
 
 ExportChoice = Literal["step", "stl", "both", "fusion", "skip"]
+
+
+def _open_simple_browser(url: str) -> None:
+    """
+    Open *url* in Cursor's Simple Browser panel. Never opens system browser.
+    Uses the cursor:// URI protocol handler via PowerShell Start-Process.
+    """
+    import subprocess
+
+    # cursor:// protocol triggers Cursor's built-in URI handler
+    cursor_uri = f"cursor://simpleBrowser.show?url={url}"
+
+    try:
+        subprocess.run(
+            ["powershell", "-Command", f'Start-Process "{cursor_uri}"'],
+            capture_output=True, timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass
+
+    print(f"[PREVIEW] If Simple Browser didn't open:")
+    print(f"[PREVIEW]   Ctrl+Shift+P -> 'Simple Browser: Show' -> paste: {url}")
+
 
 # ---------------------------------------------------------------------------
 # DXF preview HTML  (SVG embedded inline, pan/zoom + layer toggles)
@@ -49,10 +71,9 @@ _DXF_HTML_TEMPLATE = """\
               user-select:none; white-space:nowrap; }}
   .badge:hover {{ border-color:#58a6ff; color:#58a6ff; }}
   #main    {{ flex:1; display:flex; overflow:hidden; }}
-  #canvas  {{ flex:1; overflow:hidden; position:relative; cursor:grab; background:#0d1117; }}
+  #canvas  {{ flex:1; overflow:hidden; cursor:grab; background:#0d1117; }}
   #canvas.grabbing {{ cursor:grabbing; }}
-  #svg-wrap {{ position:absolute; top:0; left:0; transform-origin:0 0; }}
-  #svg-wrap svg {{ display:block; }}
+  #canvas svg {{ width:100%; height:100%; display:block; }}
   #sidebar {{ width:220px; background:#161b22; border-left:1px solid #30363d;
               overflow-y:auto; flex-shrink:0; }}
   #sidebar h3 {{ font-size:11px; text-transform:uppercase; letter-spacing:.08em;
@@ -80,9 +101,7 @@ _DXF_HTML_TEMPLATE = """\
   <span class="badge" id="all-toggle" onclick="toggleAll()">Hide All</span>
 </div>
 <div id="main">
-  <div id="canvas">
-    <div id="svg-wrap">{svg_content}</div>
-  </div>
+  <div id="canvas">{svg_content}</div>
   <div id="sidebar">
     <h3>Layers ({layer_count})</h3>
     <div id="layer-list">{layer_rows}</div>
@@ -90,32 +109,86 @@ _DXF_HTML_TEMPLATE = """\
 </div>
 <div id="footer">
   <span>Pan: drag &nbsp;&middot;&nbsp; Zoom: scroll &nbsp;&middot;&nbsp; Reset: double-click</span>
-  <span id="coord-display">x: — &nbsp; y: —</span>
+  <span id="coord-display">x: \u2014 &nbsp; y: \u2014</span>
 </div>
 <script>
-const wrap = document.getElementById('svg-wrap');
-const canvas = document.getElementById('canvas');
-let tx = 40, ty = 40, scale = 1.0;
+// ViewBox-based pan/zoom — works for any coordinate magnitude.
+// We never CSS-scale the SVG element; instead we shift/scale its viewBox.
 
-function applyTransform() {{
-  wrap.style.transform = `translate(${{tx}}px,${{ty}}px) scale(${{scale}})`;
+const canvas = document.getElementById('canvas');
+const svg    = canvas.querySelector('svg');
+
+// Current viewBox state
+let vbx = 0, vby = 0, vbw = 1, vbh = 1;
+
+function readVB() {{
+  const parts = (svg.getAttribute('viewBox') || '0 0 1 1').split(/[ \t,]+/).map(Number);
+  vbx = parts[0]; vby = parts[1]; vbw = parts[2]; vbh = parts[3];
+}}
+
+function writeVB() {{
+  svg.setAttribute('viewBox', `${{vbx}} ${{vby}} ${{vbw}} ${{vbh}}`);
+}}
+
+// Convert canvas-pixel offset to SVG-unit offset
+function pxToSVG(dpx, dpy) {{
+  const cw = canvas.clientWidth  || 1;
+  const ch = canvas.clientHeight || 1;
+  return [dpx * vbw / cw, dpy * vbh / ch];
 }}
 
 function fitView() {{
-  const svg = wrap.querySelector('svg');
-  if (!svg) return;
-  const vb = svg.getAttribute('viewBox');
-  if (!vb) return;
-  const [, , vw, vh] = vb.split(' ').map(Number);
-  const cw = canvas.clientWidth - 40;
-  const ch = canvas.clientHeight - 40;
-  scale = Math.min(cw / vw, ch / vh) * 0.92;
-  tx = (canvas.clientWidth  - vw * scale) / 2;
-  ty = (canvas.clientHeight - vh * scale) / 2;
-  applyTransform();
+  // Try getBBox() to find actual content bounds (works for inline SVG in a document)
+  try {{
+    const bb = svg.getBBox();
+    if (bb.width > 1 && bb.height > 1) {{
+      const pad = Math.max(bb.width, bb.height) * 0.04 + 1;
+      vbx = bb.x - pad;
+      vby = bb.y - pad;
+      vbw = bb.width  + 2 * pad;
+      vbh = bb.height + 2 * pad;
+      // Match canvas aspect to avoid distortion
+      const cw = canvas.clientWidth  || 800;
+      const ch = canvas.clientHeight || 600;
+      const aspect = cw / ch;
+      const vbAspect = vbw / vbh;
+      if (vbAspect > aspect) {{
+        const newH = vbw / aspect;
+        vby -= (newH - vbh) / 2;
+        vbh = newH;
+      }} else {{
+        const newW = vbh * aspect;
+        vbx -= (newW - vbw) / 2;
+        vbw = newW;
+      }}
+      writeVB();
+      return;
+    }}
+  }} catch(e) {{}}
+  // Fallback: restore original viewBox from data attribute
+  const orig = svg.dataset.origVb;
+  if (orig) {{
+    svg.setAttribute('viewBox', orig);
+    readVB();
+  }}
 }}
-function zoomIn()  {{ scale = Math.min(scale * 1.25, 200); applyTransform(); }}
-function zoomOut() {{ scale = Math.max(scale / 1.25, 0.02); applyTransform(); }}
+
+function zoomIn()  {{ zoomAround(canvas.clientWidth/2, canvas.clientHeight/2, 1/1.25); }}
+function zoomOut() {{ zoomAround(canvas.clientWidth/2, canvas.clientHeight/2, 1.25); }}
+
+function zoomAround(cx, cy, factor) {{
+  // cx, cy are canvas pixel coords of zoom focus
+  const cw = canvas.clientWidth  || 1;
+  const ch = canvas.clientHeight || 1;
+  // SVG coords of focus point
+  const sx = vbx + cx / cw * vbw;
+  const sy = vby + cy / ch * vbh;
+  vbw *= factor;
+  vbh *= factor;
+  vbx = sx - cx / cw * vbw;
+  vby = sy - cy / ch * vbh;
+  writeVB();
+}}
 
 // Pan
 let drag = false, lastX = 0, lastY = 0;
@@ -123,22 +196,22 @@ canvas.addEventListener('mousedown', e => {{
   if (e.button !== 0) return;
   drag = true; lastX = e.clientX; lastY = e.clientY;
   canvas.classList.add('grabbing');
+  e.preventDefault();
 }});
 window.addEventListener('mousemove', e => {{
   if (!drag) return;
-  tx += e.clientX - lastX; ty += e.clientY - lastY;
+  const [dx, dy] = pxToSVG(lastX - e.clientX, lastY - e.clientY);
+  vbx += dx; vby += dy;
   lastX = e.clientX; lastY = e.clientY;
-  applyTransform();
-  // coordinate display
-  const svg = wrap.querySelector('svg');
-  const vb  = svg && svg.getAttribute('viewBox');
-  if (vb) {{
-    const [vx, vy, vw, vh] = vb.split(' ').map(Number);
-    const svgX = (e.clientX - canvas.getBoundingClientRect().left - tx) / scale + vx;
-    const svgY = (e.clientY - canvas.getBoundingClientRect().top  - ty) / scale + vy;
-    document.getElementById('coord-display').textContent =
-      `x: ${{svgX.toFixed(1)}} &nbsp; y: ${{(-svgY).toFixed(1)}}`;
-  }}
+  writeVB();
+  // coord display (SVG Y axis is flipped vs engineering Y-up)
+  const rect = canvas.getBoundingClientRect();
+  const cw = canvas.clientWidth  || 1;
+  const ch = canvas.clientHeight || 1;
+  const sx = vbx + (e.clientX - rect.left) / cw * vbw;
+  const sy = vby + (e.clientY - rect.top)  / ch * vbh;
+  document.getElementById('coord-display').textContent =
+    `x: ${{sx.toFixed(1)}} \u00a0 y: ${{(-sy).toFixed(1)}}`;
 }});
 window.addEventListener('mouseup', () => {{ drag = false; canvas.classList.remove('grabbing'); }});
 canvas.addEventListener('dblclick', fitView);
@@ -146,30 +219,24 @@ canvas.addEventListener('dblclick', fitView);
 // Scroll zoom
 canvas.addEventListener('wheel', e => {{
   e.preventDefault();
-  const rect   = canvas.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-  const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
-  tx = mouseX - (mouseX - tx) * factor;
-  ty = mouseY - (mouseY - ty) * factor;
-  scale = Math.max(0.02, Math.min(200, scale * factor));
-  applyTransform();
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+  zoomAround(cx, cy, e.deltaY > 0 ? 1.12 : 1/1.12);
 }}, {{ passive: false }});
 
 // Layer toggles
 const layerStates = {{}};
 function toggleLayer(name) {{
   layerStates[name] = !layerStates[name];
-  const svg = wrap.querySelector('svg');
-  if (svg) {{
-    // ezdxf groups layers as <g class="dxf-layer" data-layer="NAME">
-    svg.querySelectorAll('[data-layer]').forEach(g => {{
-      if (g.dataset.layer === name) g.style.display = layerStates[name] ? 'none' : '';
-    }});
-    // fallback: id-based grouping
-    const gById = svg.getElementById('layer-' + name.replace(/[^a-zA-Z0-9_-]/g,'_'));
-    if (gById) gById.style.display = layerStates[name] ? 'none' : '';
-  }}
+  // ezdxf groups by data-layer attribute
+  svg.querySelectorAll('[data-layer]').forEach(g => {{
+    if (g.dataset.layer === name)
+      g.style.display = layerStates[name] ? 'none' : '';
+  }});
+  // manual fallback: id-based groups
+  const gById = svg.getElementById('layer-' + name.replace(/[^a-zA-Z0-9_-]/g,'_'));
+  if (gById) gById.style.display = layerStates[name] ? 'none' : '';
   const row = document.querySelector(`.layer-row[data-layer="${{name}}"]`);
   if (row) row.classList.toggle('hidden', layerStates[name]);
 }}
@@ -186,8 +253,11 @@ function toggleAll() {{
   document.getElementById('all-toggle').textContent = allHidden ? 'Show All' : 'Hide All';
 }}
 
-// Initial fit after a short delay (SVG needs to be rendered)
-setTimeout(fitView, 120);
+// Boot
+readVB();
+// Save original viewBox before any fitView changes
+svg.dataset.origVb = svg.getAttribute('viewBox') || '';
+setTimeout(fitView, 100);
 window.addEventListener('resize', fitView);
 </script>
 </body>
@@ -253,12 +323,19 @@ def _dxf_to_svg(dxf_path: "Path") -> tuple[str, list[dict]]:
         frontend = Frontend(context, backend)
         frontend.draw_layout(msp, finalize=True)
         svg_string = backend.get_string(page)
-        # Strip XML declaration; force transparent background
+        # Strip XML declaration
         lines = [l for l in svg_string.splitlines() if not l.startswith("<?xml")]
         svg_string = "\n".join(lines)
+        # Remove physical width/height attrs (e.g. width="600mm") so SVG fills container.
+        # Keep viewBox so JS can read coordinate space.
+        svg_string = re.sub(r'\s+width="[^"]*"', '', svg_string, count=1)
+        svg_string = re.sub(r'\s+height="[^"]*"', '', svg_string, count=1)
+        # Force SVG to fill 100% of its container
         svg_string = re.sub(
-            r'(<svg\b[^>]*?)(\s*style="[^"]*")?(\s*>)',
-            lambda m: m.group(1) + ' style="background:transparent;display:block"' + m.group(3),
+            r'(<svg\b[^>]*?)(>)',
+            lambda m: m.group(1)
+            + ' width="100%" height="100%" style="display:block"'
+            + m.group(2),
             svg_string, count=1
         )
         return svg_string, layer_info
@@ -452,8 +529,7 @@ def show_dxf_preview(
     url = f"http://localhost:{port}/{html_path.name}"
     print(f"[DXF PREVIEW] {entity_count} entities across {len(layer_info)} layers")
     print(f"[DXF PREVIEW] URL --> {url}")
-    print(f"[DXF PREVIEW] In Cursor: Ctrl+Shift+P -> 'Simple Browser: Show' -> paste URL")
-    webbrowser.open(url)
+    _open_simple_browser(url)
 
 
 # ---------------------------------------------------------------------------
@@ -640,7 +716,8 @@ def show_preview(
 
     # Write to a temp file and open in browser
     tmp_dir  = Path(tempfile.gettempdir())
-    html_path = tmp_dir / f"aria_preview_{part_id}.html"
+    _slug = re.sub(r"[^a-z0-9_]", "_", part_id.lower())[:40]
+    html_path = tmp_dir / f"aria_preview_{_slug}.html"
     html_path.write_text(html, encoding="utf-8")
 
     # Serve via a local HTTP server so Simple Browser (http:// only) can load it.
@@ -671,10 +748,15 @@ def show_preview(
         print(f"[PREVIEW] Source: {script_path}")
     print(f"[PREVIEW] STL:    {stl_path}  ({stl_kb:.1f} KB)")
     print(f"[PREVIEW]")
-    print(f"[PREVIEW] URL --> http://localhost:{port}/{html_path.name}")
-    print(f"[PREVIEW]")
-    print(f"[PREVIEW] In Cursor: Ctrl+Shift+P -> 'Simple Browser: Show' -> paste URL above")
+    print(f"[PREVIEW] URL --> {http_url}")
     print(f"[PREVIEW] Keep this terminal open while viewing.")
+    _open_simple_browser(http_url)
+
+    # Give the browser 2s to connect, then re-print URL for manual paste
+    import time as _time
+    _time.sleep(2)
+    print(f'[PREVIEW] If not visible, paste this URL into Simple Browser:')
+    print(f'[PREVIEW]   {http_url}')
 
     if view_only:
         print(f"\n[PREVIEW] Server running — press Ctrl+C to stop.")
