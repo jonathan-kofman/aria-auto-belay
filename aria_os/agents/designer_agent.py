@@ -36,9 +36,13 @@ class DesignerAgent(BaseAgent):
         2. If no template or template output fails eval, fall back to LLM generation.
         The agent is still agentic: SpecAgent extracts params, EvalAgent validates.
         """
-        if self.domain == "cad" and state.iteration <= 1 and not state.refinement_instructions:
-            # Try template on FIRST iteration only. If eval fails and refiner
-            # provides instructions, subsequent iterations use LLM to adapt.
+        if (self.domain == "cad"
+            and state.iteration <= 1
+            and not state.refinement_instructions
+            and not state.plan.get("build_recipe")):
+            # Try template on FIRST iteration only, BUT skip if a build recipe
+            # exists (coordinator already researched the actual shape — don't
+            # override with a generic template).
             template_used = self._try_template(state)
             if template_used:
                 return
@@ -50,9 +54,20 @@ class DesignerAgent(BaseAgent):
             f"## Specifications\n{json.dumps(state.spec, indent=2, default=str)}\n",
         ]
 
+        # Include build recipe if available (from Coordinator Phase 2)
+        build_recipe = state.plan.get("build_recipe", "")
+        if build_recipe:
+            prompt_parts.append(
+                f"## BUILD RECIPE (follow these steps EXACTLY)\n"
+                f"The Coordinator Agent analyzed research and created this step-by-step recipe.\n"
+                f"Translate each step into CadQuery Python code:\n\n"
+                f"{build_recipe[:3000]}\n"
+            )
+
         # Include web research context if available
         research = state.plan.get("research_context", "")
-        if research:
+        if research and not build_recipe:
+            # Only include raw research if no build recipe (recipe already incorporates research)
             prompt_parts.append(
                 f"## Reference Information (from web research)\n"
                 f"Use these real-world specs and design features as guidance:\n"

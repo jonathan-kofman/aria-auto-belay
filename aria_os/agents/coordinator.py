@@ -141,48 +141,67 @@ class CoordinatorAgent:
         from .search_chain import get_search_chain
         chain = get_search_chain()
 
-        # Run 3 research queries in parallel
+        # Run 4 research queries in parallel — targeted for CAD generation
+        from .features import get_features
+        _web_ok = get_features().WEB_SEARCH
+
         async def _research_materials():
-            from .features import get_features
-            if not get_features().WEB_SEARCH:
-                return {"status": "skipped", "reason": "WEB_SEARCH disabled"}
-            results = await chain.search(f"{ctx.goal} material properties specifications")
-            data = {"results": [{"title": r.title, "snippet": r.snippet} for r in results]}
+            if not _web_ok:
+                return {"status": "skipped"}
+            results = await chain.search(f"{ctx.goal} material properties yield strength density")
+            data = {"results": [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in results]}
             ctx.save_artifact("research_materials.json", data)
             return data
 
-        async def _research_standards():
-            from .features import get_features
-            if not get_features().WEB_SEARCH:
+        async def _research_shape():
+            """Find what this part actually looks like — geometry description."""
+            if not _web_ok:
                 return {"status": "skipped"}
-            results = await chain.search(f"{ctx.goal} engineering standards compliance")
-            data = {"results": [{"title": r.title, "snippet": r.snippet} for r in results]}
-            ctx.save_artifact("research_standards.json", data)
+            results = await chain.search(f"{ctx.goal} shape geometry cross section features components")
+            data = {"results": [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in results]}
+            ctx.save_artifact("research_shape.json", data)
             return data
 
-        async def _research_similar():
-            from .features import get_features
-            if not get_features().WEB_SEARCH:
+        async def _research_dimensions():
+            """Find real-world dimensions and measurements."""
+            if not _web_ok:
                 return {"status": "skipped"}
-            results = await chain.search(f"{ctx.goal} dimensions CAD reference")
-            data = {"results": [{"title": r.title, "snippet": r.snippet} for r in results]}
-            ctx.save_artifact("research_similar.json", data)
+            results = await chain.search(f"{ctx.goal} exact dimensions mm measurements size chart")
+            data = {"results": [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in results]}
+            ctx.save_artifact("research_dimensions.json", data)
             return data
 
-        # Execute all 3 in parallel
-        mat, std, sim = await asyncio.gather(
+        async def _research_cad():
+            """Find CAD references, 3D models, engineering drawings."""
+            if not _web_ok:
+                return {"status": "skipped"}
+            results = await chain.search(f"{ctx.goal} 3D model CAD STEP engineering drawing")
+            data = {"results": [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in results]}
+            ctx.save_artifact("research_cad.json", data)
+            return data
+
+        # Execute all 4 in parallel
+        mat, shape, dims, cad = await asyncio.gather(
             _research_materials(),
-            _research_standards(),
-            _research_similar(),
+            _research_shape(),
+            _research_dimensions(),
+            _research_cad(),
             return_exceptions=True,
         )
 
         ctx.research_materials = mat if isinstance(mat, dict) else {"error": str(mat)}
-        ctx.research_standards = std if isinstance(std, dict) else {"error": str(std)}
-        ctx.research_similar = sim if isinstance(sim, dict) else {"error": str(sim)}
+        ctx.research_standards = shape if isinstance(shape, dict) else {"error": str(shape)}
+        ctx.research_similar = dims if isinstance(dims, dict) else {"error": str(dims)}
+
+        # Store all research for Phase 2
+        ctx._research_shape = shape if isinstance(shape, dict) else {}
+        ctx._research_dims = dims if isinstance(dims, dict) else {}
+        ctx._research_cad = cad if isinstance(cad, dict) else {}
 
         n_results = sum(
-            len(d.get("results", [])) for d in [ctx.research_materials, ctx.research_standards, ctx.research_similar]
+            len(d.get("results", [])) for d in [
+                ctx.research_materials, ctx.research_standards,
+                ctx.research_similar, ctx._research_cad]
             if isinstance(d, dict)
         )
         print(f"  [Phase 1] Complete: {n_results} total research results")
@@ -193,22 +212,25 @@ class CoordinatorAgent:
 
     async def _phase_2_synthesize(self, ctx: JobContext) -> None:
         _emit(ctx, "phase", "Phase 2: Synthesis", {"phase": 2})
-        print(f"\n  [Phase 2] Synthesizing geometry spec...")
+        print(f"\n  [Phase 2] Synthesizing geometry spec from research...")
 
-        # Use SpecAgent + research context to build spec
+        # Step 1: Extract structured spec from goal
         from .spec_agent import SpecAgent
         from .design_state import DesignState
 
         state = DesignState(goal=ctx.goal, repo_root=ctx.repo_root)
 
-        # Inject research into plan
+        # Compile all research into a single context
         research_text = ""
-        for label, data in [("Materials", ctx.research_materials),
-                            ("Standards", ctx.research_standards),
-                            ("Similar Parts", ctx.research_similar)]:
+        for label, data in [
+            ("Shape & Geometry", getattr(ctx, "_research_shape", {})),
+            ("Dimensions", getattr(ctx, "_research_dims", {})),
+            ("CAD References", getattr(ctx, "_research_cad", {})),
+            ("Materials", ctx.research_materials),
+        ]:
             if isinstance(data, dict) and data.get("results"):
                 research_text += f"\n## {label}\n"
-                for r in data["results"][:3]:
+                for r in data["results"][:5]:
                     research_text += f"- {r.get('title', '')}: {r.get('snippet', '')}\n"
 
         state.plan["research_context"] = research_text
@@ -216,17 +238,72 @@ class CoordinatorAgent:
         spec_agent = SpecAgent(ctx.repo_root)
         spec_agent.extract(state)
 
+        # Step 2: Use LLM to synthesize a BUILD RECIPE from research
+        # This is the critical step — turn raw search results into a
+        # step-by-step CadQuery geometry description that the 7b model can follow.
+        build_recipe = await self._synthesize_build_recipe(ctx, state.spec, research_text)
+
         ctx.geometry_spec = {
             "spec": state.spec,
             "cem_params": state.cem_params,
             "material": state.material,
             "research_context": research_text[:2000],
+            "build_recipe": build_recipe,
         }
         ctx.save_artifact("geometry_spec.json", ctx.geometry_spec)
 
         print(f"  [Phase 2] Spec: {len(state.spec)} params, material: {state.material or 'auto'}")
+        if build_recipe:
+            print(f"  [Phase 2] Build recipe: {len(build_recipe)} chars")
         ctx.phases_completed.append("synthesis")
         _emit(ctx, "phase_complete", "Phase 2 done", {"phase": 2, "spec": state.spec})
+
+    async def _synthesize_build_recipe(
+        self, ctx: JobContext, spec: dict, research: str
+    ) -> str:
+        """Use LLM to create a step-by-step CadQuery build recipe from research.
+
+        The recipe tells the DesignerAgent EXACTLY what geometry operations to perform,
+        in what order, with what dimensions. This compensates for the 7b model's
+        inability to reason about complex 3D shapes from scratch.
+        """
+        from .base_agent import _call_ollama
+        from .ollama_config import AGENT_MODELS
+
+        system = """You are a CAD geometry planner. Given a part description and web research about its shape,
+create a step-by-step CadQuery build recipe.
+
+Rules:
+- Describe ONLY CadQuery operations (box, circle, extrude, cut, union, polyline)
+- NEVER use .cylinder() — use .circle(r).extrude(h)
+- NEVER use .fillet() on first attempt
+- Include exact dimensions in mm for every operation
+- Each step should be one CadQuery operation
+
+Output format:
+STEP 1: Create base plate — cq.Workplane("XY").box(width, depth, thickness)
+STEP 2: Cut center bore — .faces(">Z").workplane().circle(r).cutThruAll()
+STEP 3: Add raised feature — .workplane(offset=thickness).rect(w, d).extrude(height)
+...etc
+
+Be SPECIFIC about dimensions. Use the research to determine realistic sizes."""
+
+        prompt = f"""Part request: {ctx.goal}
+
+Extracted spec: {json.dumps(spec, default=str)}
+
+Research findings:
+{research[:3000]}
+
+Create a step-by-step CadQuery build recipe for this part.
+Include exact dimensions from the research or spec.
+Describe the 3D shape in terms of CadQuery operations."""
+
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, _call_ollama, prompt, system, AGENT_MODELS.get("spec", "qwen2.5-coder:7b")
+        )
+        return response or ""
 
     # -- Phase 3: Geometry Generation + Validation ---------------------------
 
@@ -250,6 +327,7 @@ class CoordinatorAgent:
             max_iterations=10,
         )
         state.plan["research_context"] = ctx.geometry_spec.get("research_context", "")
+        state.plan["build_recipe"] = ctx.geometry_spec.get("build_recipe", "")
 
         # Run the refinement loop (sync — runs in thread pool)
         loop = asyncio.get_event_loop()
