@@ -349,6 +349,9 @@ DESIGNER_PROMPTS: dict[str, str] = {
 Rules:
 - Build solid first, then cuts/holes. Never fillet on first attempt.
 - Use faces(">Z"), faces("<X") for face selection, never by index.
+- NEVER use .cylinder() — it does NOT exist in CadQuery. Use .circle(r).extrude(h) instead.
+- NEVER use named kwargs like depth=, r=, height= in CadQuery methods. Use positional args.
+- For a flat plate with holes: cq.Workplane("XY").box(W, D, T) then .faces(">Z").workplane().pushPoints(pts).circle(r).cutThruAll()
 - End with: result = <your_solid>
 - Print BBOX at end: bb = result.val().BoundingBox(); print(f"BBOX:{bb.xlen:.3f},{bb.ylen:.3f},{bb.zlen:.3f}")
 - Use TOOL_CALL: get_cq_patterns() to see the CadQuery pattern reference.

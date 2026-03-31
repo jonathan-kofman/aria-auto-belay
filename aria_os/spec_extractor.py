@@ -41,7 +41,9 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("protective case","phone_case"),
     ("drop proof case","phone_case"),
     ("drop-proof case","phone_case"),
-    ("base plate",    "base_plate"),   # flat mounting plate → flat_plate template
+    ("baseplate",      "base_plate"),   # skateboard/mounting baseplate
+    ("base plate",    "base_plate"),   # flat mounting plate
+    ("truck baseplate","base_plate"),
     ("mount plate",   "base_plate"),
     ("mounting plate","base_plate"),
     ("face plate",    "base_plate"),
