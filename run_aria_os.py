@@ -1414,6 +1414,7 @@ def main():
     _render = "--render" in _args
     _no_agent = "--no-agent" in _args
     _agent_mode_flag = "--agent-mode" in _args
+    _coordinator_mode = "--coordinator" in _args
     _max_agent_iter = 15
     for i, a in enumerate(_args):
         if a == "--max-agent-iterations" and i + 1 < len(_args):
@@ -1422,7 +1423,7 @@ def main():
             except ValueError:
                 pass
     _strip_flags = {"--preview", "--fea", "--cfd", "--render",
-                    "--no-agent", "--agent-mode", "--max-agent-iterations"}
+                    "--no-agent", "--agent-mode", "--coordinator", "--max-agent-iterations"}
     _args_clean = []
     _skip_next = False
     for a in _args:
@@ -1442,6 +1443,25 @@ def main():
         _agent_mode = True
     elif _no_agent:
         _agent_mode = False
+
+    # Coordinator mode: full parallel pipeline with research + CAM + MillForge
+    if _coordinator_mode:
+        from aria_os.agents.coordinator import run_coordinator_sync
+        ctx = run_coordinator_sync(goal, repo_root=ROOT)
+        session = {
+            "goal": goal,
+            "agent_mode": True,
+            "coordinator": True,
+            "job_id": ctx.job_id,
+            "step_path": ctx.geometry_path,
+            "stl_path": ctx.stl_path,
+            "validation_passed": ctx.validation_passed,
+            "cam": ctx.cam_result,
+            "millforge_job": ctx.millforge_job,
+            "total_time_s": ctx.total_time_s,
+        }
+        print("Done.")
+        sys.exit(0)
 
     from aria_os import run
     session = run(goal, repo_root=ROOT, preview=_preview,

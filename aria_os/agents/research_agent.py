@@ -66,7 +66,7 @@ class ResearchAgent:
     def _search_specs(self, goal: str) -> str:
         """Search for product specifications and dimensions."""
         try:
-            from aria_os.agents._web_tools import web_search
+            from aria_os.agents.search_chain import web_search
             # Build a targeted spec search query
             query = f"{goal} dimensions specifications mm measurements"
             results = web_search(query)
@@ -79,7 +79,7 @@ class ResearchAgent:
     def _search_design(self, goal: str) -> str:
         """Search for design features, construction, and teardown info."""
         try:
-            from aria_os.agents._web_tools import web_search
+            from aria_os.agents.search_chain import web_search
             # Search for teardown / design analysis
             query = f"{goal} design features construction teardown engineering"
             results = web_search(query)
@@ -92,7 +92,7 @@ class ResearchAgent:
     def _search_cad_references(self, goal: str) -> str:
         """Search for existing CAD models or 3D printing references."""
         try:
-            from aria_os.agents._web_tools import web_search
+            from aria_os.agents.search_chain import web_search
             query = f"{goal} 3D model CAD dimensions cross section"
             results = web_search(query)
             if results:
