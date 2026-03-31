@@ -438,14 +438,28 @@ Describe the 3D shape in terms of CadQuery operations."""
             except Exception as e:
                 return {"status": "error", "error": str(e)}
 
-        # Execute ALL in parallel
-        cam, fea, drawing, dfm, fusion, quote = await asyncio.gather(
+        # ── Onshape: live parametric part ────────────────────────────────
+        async def _run_onshape():
+            try:
+                from .onshape_bridge import is_onshape_available, create_onshape_part
+                if not is_onshape_available():
+                    return {"status": "skipped", "reason": "ONSHAPE_ACCESS_KEY not set"}
+                part_name = f"ARIA-OS: {ctx.goal[:50]}"
+                result = await loop.run_in_executor(
+                    None, create_onshape_part, part_name, spec, ctx.goal)
+                return result or {"status": "no_result"}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        # Execute ALL 7 outputs in parallel
+        cam, fea, drawing, dfm, fusion, quote, onshape = await asyncio.gather(
             _run_cam(),
             _run_fea(),
             _run_drawing(),
             _run_dfm(),
             _run_fusion(),
             _run_quote(),
+            _run_onshape(),
             return_exceptions=True,
         )
 
@@ -461,6 +475,7 @@ Describe the 3D shape in terms of CadQuery operations."""
             ("DFM", dfm, lambda r: f"Score: {r.get('score', '?')}/100 — {r.get('process_recommendation', '')}" if r.get("score") else ""),
             ("Fusion", fusion, lambda r: r.get("script_path", "")),
             ("Quote", quote, lambda r: f"${r.get('unit_cost_usd', 0):.2f}" if r.get("unit_cost_usd") else ""),
+            ("Onshape", onshape, lambda r: r.get("url", "")),
         ]
         for name, result, fmt in results:
             if isinstance(result, dict):
@@ -484,6 +499,8 @@ Describe the 3D shape in terms of CadQuery operations."""
             ctx.save_artifact("drawing_path.txt", drawing["path"])
         if isinstance(fusion, dict) and fusion.get("script_path"):
             ctx.save_artifact("fusion_script_path.txt", fusion["script_path"])
+        if isinstance(onshape, dict) and onshape.get("url"):
+            ctx.save_artifact("onshape_url.txt", onshape["url"])
 
         ctx.phases_completed.append("manufacturing")
         _emit(ctx, "phase_complete", "Phase 4 done", {"phase": 4})
@@ -602,6 +619,10 @@ Describe the 3D shape in terms of CadQuery operations."""
             import json as _json2
             q = _json2.loads(quote_path.read_text())
             artifacts.append(f"  Quote:      ${q.get('unit_cost_usd', 0):.2f} ({q.get('process', '?')})")
+        # Onshape
+        onshape_url = ctx.scratchpad_dir / "onshape_url.txt"
+        if onshape_url.exists():
+            artifacts.append(f"  Onshape:    {onshape_url.read_text().strip()}")
         # MillForge
         if ctx.millforge_job:
             artifacts.append(f"  MillForge:  Job {ctx.millforge_job.get('aria_job_id')}")
