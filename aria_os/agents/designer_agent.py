@@ -21,11 +21,12 @@ class DesignerAgent(BaseAgent):
         super().__init__(
             name=f"DesignerAgent[{domain}]",
             system_prompt=DESIGNER_PROMPTS.get(domain, DESIGNER_PROMPTS["cad"]),
-            model=DESIGNER_MODELS.get(domain, "qwen2.5-coder:14b"),
+            model=DESIGNER_MODELS.get(domain, "qwen2.5-coder:7b"),
             tools=tools or {},
             max_context_tokens=CONTEXT_LIMITS["designer"],
             fallback_to_cloud=True,  # designer is the most critical agent
         )
+        self._prefer_cloud = True  # For code gen, cloud LLMs are far better than 7b
 
     def generate(self, state: DesignState) -> None:
         """Generate code and populate state.code, state.output_path, state.bbox.
@@ -36,13 +37,10 @@ class DesignerAgent(BaseAgent):
         2. If no template or template output fails eval, fall back to LLM generation.
         The agent is still agentic: SpecAgent extracts params, EvalAgent validates.
         """
-        if (self.domain == "cad"
-            and state.iteration <= 1
-            and not state.refinement_instructions
-            and not state.plan.get("build_recipe")):
-            # Try template on FIRST iteration only, BUT skip if a build recipe
-            # exists (coordinator already researched the actual shape — don't
-            # override with a generic template).
+        if self.domain == "cad" and state.iteration <= 1 and not state.refinement_instructions:
+            # Iteration 1: try template first (instant, reliable).
+            # Even with a build recipe — template geometry + agent params
+            # beats LLM-generated geometry every time.
             template_used = self._try_template(state)
             if template_used:
                 return
@@ -114,6 +112,25 @@ class DesignerAgent(BaseAgent):
         # For CAD domain: execute the code to produce STEP/STL
         if self.domain == "cad":
             self._execute_cad(state, code)
+
+    def _call_llm(self, prompt: str) -> str | None:
+        """Override: for CAD code generation, try cloud LLM first (Claude/Gemini).
+        Local 7b models can't write complex CadQuery geometry reliably.
+        Ollama handles non-code tasks (spec, refinement, routing) fine."""
+        if self._prefer_cloud and self.domain == "cad":
+            # Cloud first for geometry code
+            try:
+                from ..llm_client import call_llm
+                response = call_llm(prompt, system=self.system_prompt)
+                if response:
+                    return response
+            except Exception:
+                pass
+            # Fall back to Ollama if cloud unavailable
+            from .base_agent import _call_ollama
+            return _call_ollama(prompt, self.system_prompt, self.model)
+        # Non-CAD domains: use Ollama (standard path)
+        return super()._call_llm(prompt)
 
     def _try_template(self, state: DesignState) -> bool:
         """Try to generate using a CadQuery template with agent-extracted params.
