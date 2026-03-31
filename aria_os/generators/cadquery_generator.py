@@ -2038,6 +2038,7 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["pin", "dowel"],                                         _cq_pin),
     (["spacer", "washer", "bushing"],                          _cq_spacer),
     (["gear", "sprocket", "cog"],                              _cq_gear),
+    (["escapement", "escapement_wheel"],                       _cq_escape_wheel),
     (["ring", "collar", "annular"],                            _cq_spacer),
     (["nema", "stepper", "servo_motor"],                       _cq_nema_motor),
     (["mgn", "linear_rail"],                                   _cq_mgn_rail),

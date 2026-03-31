@@ -28,7 +28,21 @@ class DesignerAgent(BaseAgent):
         )
 
     def generate(self, state: DesignState) -> None:
-        """Generate code and populate state.code, state.output_path, state.bbox."""
+        """Generate code and populate state.code, state.output_path, state.bbox.
+
+        Strategy:
+        1. Check if a CadQuery template exists for this part type — if so, use it
+           directly with the agent-extracted params (instant, reliable).
+        2. If no template or template output fails eval, fall back to LLM generation.
+        The agent is still agentic: SpecAgent extracts params, EvalAgent validates.
+        """
+        if self.domain == "cad":
+            # Try template-based generation first (fast path)
+            template_used = self._try_template(state)
+            if template_used:
+                return
+
+        # LLM-based generation
         # Build the user prompt from state
         prompt_parts = [
             f"## Design Request\n{state.goal}\n",
@@ -84,6 +98,44 @@ class DesignerAgent(BaseAgent):
         # For CAD domain: execute the code to produce STEP/STL
         if self.domain == "cad":
             self._execute_cad(state, code)
+
+    def _try_template(self, state: DesignState) -> bool:
+        """Try to generate using a CadQuery template with agent-extracted params.
+        Returns True if successful (state populated), False to fall back to LLM."""
+        try:
+            from ..generators.cadquery_generator import _find_template_fn
+
+            # Check if a template matches the part type from spec
+            part_type = state.spec.get("part_type", "")
+            part_id = state.part_id or ""
+
+            # Try part_id first, then part_type
+            template_fn = _find_template_fn(part_id) or _find_template_fn(part_type)
+            if not template_fn:
+                return False
+
+            # Generate code using the template with agent-extracted params
+            code = template_fn(state.spec)
+            if not code or len(code) < 50:
+                return False
+
+            print(f"  [{self.name}] Using template for '{part_type or part_id}' with agent params")
+
+            state.code = code
+            state.generation_error = ""
+            self._execute_cad(state, code)
+
+            # Check if execution succeeded
+            if state.generation_error:
+                print(f"  [{self.name}] Template execution failed: {state.generation_error}")
+                state.generation_error = ""  # clear for LLM retry
+                return False
+
+            return True
+
+        except Exception as exc:
+            print(f"  [{self.name}] Template lookup failed: {exc}")
+            return False
 
     def _execute_cad(self, state: DesignState, code: str) -> None:
         """Execute CadQuery code and capture output files + bbox."""
