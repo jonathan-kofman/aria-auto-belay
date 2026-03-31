@@ -109,8 +109,10 @@ class DesignerAgent(BaseAgent):
             part_type = state.spec.get("part_type", "")
             part_id = state.part_id or ""
 
-            # Try part_id first, then part_type
-            template_fn = _find_template_fn(part_id) or _find_template_fn(part_type)
+            print(f"  [{self.name}] Template check: part_id='{part_id}', part_type='{part_type}'")
+
+            # Try part_type first (more specific), then part_id
+            template_fn = _find_template_fn(part_type) or _find_template_fn(part_id)
             if not template_fn:
                 return False
 

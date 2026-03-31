@@ -203,20 +203,25 @@ class CAMAgent(BaseAgent):
 
         # Phase 4: Generate CAM script — deterministic first (instant), LLM only if needed
         print(f"\n  [CAM] Generating script (deterministic)...")
-        script = self._generate_deterministic_script(part_id)
+        try:
+            script = self._generate_deterministic_script(part_id)
 
-        # Validate the deterministic script
-        validation = validate_cam_physics(self._operations, self._machine)
-        violations = validation.get("violations", [])
+            # Validate the deterministic script
+            validation = validate_cam_physics(self._operations, self._machine)
+            violations = validation.get("violations", [])
 
-        if not violations:
-            # Deterministic script passed — write outputs and return (no LLM needed)
-            result = self._write_outputs(part_id, script)
-            print(f"  [CAM] All validations passed (deterministic — no LLM needed)")
-            return result
+            if not violations:
+                # Deterministic script passed — write outputs and return (no LLM needed)
+                result = self._write_outputs(part_id, script)
+                print(f"  [CAM] All validations passed (deterministic — no LLM needed)")
+                return result
 
-        # Deterministic script has issues — try LLM refinement
-        print(f"  [CAM] {len(violations)} violations — trying LLM refinement...")
+            # Deterministic script has issues — try LLM refinement
+            print(f"  [CAM] {len(violations)} violations — trying LLM refinement...")
+        except Exception as _det_exc:
+            print(f"  [CAM] Deterministic generation failed: {_det_exc}")
+            print(f"  [CAM] Falling back to LLM...")
+
         result = self._generate_with_refinement(part_id, max_attempts)
 
         return result
