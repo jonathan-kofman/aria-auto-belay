@@ -273,26 +273,45 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                     print(f'[PREVIEW] No STL available. STEP at: {_sp}')
 
             if (_step_exists or _stl_exists) and session.get('export_choice') != 'skip':
+                # Auto-run FEA (no prompt in agent mode)
                 try:
-                    from .physics_analyzer import prompt_and_analyze as _phys
-                    _pr = _phys(part_id=part_id, params=_plan_params,
-                                goal=goal, step_path=str(step_path), repo_root=repo_root)
+                    from .physics_analyzer import analyze as _phys_analyze
+                    _pr = _phys_analyze(part_id or 'agent_part', 'auto', _plan_params, goal, str(repo_root))
                     if _pr:
                         session['physics_analysis'] = _pr
-                except Exception:
-                    pass
+                        if _pr.get('passed'):
+                            print(f'  [FEA] PASS -- SF={_pr.get("safety_factor", "?"):.2f}')
+                        else:
+                            print(f'  [FEA] FAIL -- SF={_pr.get("safety_factor", "?")}')
+                            for _f in _pr.get('failures', []):
+                                print(f'    {_f}')
+                except Exception as _fe:
+                    print(f'  [FEA] skipped: {_fe}')
 
+                # Auto-run GD&T drawing (no prompt in agent mode)
                 if _step_exists:
-                    _ask = auto_draw or _prompt_gdnt_drawing()
-                    if _ask:
-                        try:
-                            from .drawing_generator import generate_gdnt_drawing
-                            _dp = generate_gdnt_drawing(step_path, part_id or 'agent_part',
-                                                        params=_plan_params, repo_root=repo_root)
-                            print(f'[GD&T] Drawing saved: {_dp}')
-                            session['drawing_path'] = str(_dp)
-                        except Exception as _de:
-                            print(f'[GD&T] Drawing failed: {_de}')
+                    try:
+                        from .drawing_generator import generate_gdnt_drawing
+                        _dp = generate_gdnt_drawing(step_path, part_id or 'agent_part',
+                                                    params=_plan_params, repo_root=repo_root)
+                        print(f'  [GD&T] Drawing: {_dp}')
+                        session['drawing_path'] = str(_dp)
+                    except Exception as _de:
+                        print(f'  [GD&T] skipped: {_de}')
+
+                # Auto-run CAM (no prompt in agent mode)
+                if _step_exists:
+                    try:
+                        from .agents.cam_agent import run_cam_agent
+                        _mat = _plan_params.get('material', 'aluminium_6061')
+                        _cam_result = run_cam_agent(str(step_path), material=_mat)
+                        if _cam_result:
+                            session['cam'] = _cam_result
+                            print(f'  [CAM] Script: {_cam_result.get("script_path", "?")}')
+                    except KeyboardInterrupt:
+                        print(f'  [CAM] interrupted by user')
+                    except Exception as _ce:
+                        print(f'  [CAM] skipped: {_ce}')
 
             # ── Final summary ────────────────────────────────────────────────
             _all_cp = session.get('checkpoints', {})

@@ -80,7 +80,10 @@ class EvalAgent:
         except Exception as exc:
             state.failures.append(f"quality check error: {exc}")
 
-        # 4. Bbox vs spec check
+        # 4. Feature complexity check — detect lazy geometry (plain cylinders for gears, etc.)
+        self._check_feature_complexity(state, step_path)
+
+        # 5. Bbox vs spec check
         if state.bbox and state.spec:
             self._check_bbox_vs_spec(state)
 
@@ -185,6 +188,66 @@ class EvalAgent:
         if result and not result.get("passed", True):
             for v in result.get("violations", []):
                 state.failures.append(f"assembly: {v}")
+
+    def _check_feature_complexity(self, state: DesignState, step_path: str) -> None:
+        """
+        Detect lazy geometry — the DesignerAgent generating a plain cylinder/box
+        when the goal requires complex features (teeth, ribs, cutouts, etc.).
+
+        Uses face count as a proxy: a 40-tooth gear should have 100+ faces,
+        not 4 (plain cylinder). A phone case needs 50+ faces, not 6 (plain box).
+        """
+        goal_lower = state.goal.lower()
+        face_count = state.domain_results.get("geometry", {}).get("face_count", 0)
+        if face_count == 0:
+            try:
+                import cadquery as cq
+                shape = cq.importers.importStep(step_path)
+                face_count = len(shape.val().Faces())
+            except Exception:
+                return
+
+        # Gear/sprocket/escapement: needs teeth → many faces
+        n_teeth = state.spec.get("n_teeth", 0)
+        if n_teeth and n_teeth > 0:
+            min_faces = max(n_teeth * 2, 20)  # at least 2 faces per tooth
+            if face_count < min_faces:
+                state.failures.append(
+                    f"feature_complexity: goal requires {n_teeth} teeth but geometry has only "
+                    f"{face_count} faces — likely a plain cylinder, not a toothed part. "
+                    f"Need at least {min_faces} faces for {n_teeth} teeth."
+                )
+                return
+
+        # Detect gear/tooth keywords even without n_teeth in spec
+        _tooth_keywords = ("gear", "tooth", "teeth", "sprocket", "escapement", "pinion",
+                           "ratchet", "cog", "involute")
+        if any(kw in goal_lower for kw in _tooth_keywords):
+            if face_count < 20:
+                state.failures.append(
+                    f"feature_complexity: goal describes a toothed part but geometry has only "
+                    f"{face_count} faces — likely missing tooth features. Need 20+ faces."
+                )
+                return
+
+        # Case/enclosure/shell: needs cavity + cutouts
+        _shell_keywords = ("case", "housing", "enclosure", "shell", "box")
+        if any(kw in goal_lower for kw in _shell_keywords):
+            if face_count < 10:
+                state.failures.append(
+                    f"feature_complexity: goal describes a hollow part but geometry has only "
+                    f"{face_count} faces — likely a solid block, not a shelled part. Need 10+ faces."
+                )
+                return
+
+        # Bracket with holes: needs more than a plain plate
+        if "hole" in goal_lower or "bolt" in goal_lower:
+            n_bolts = state.spec.get("n_bolts", 0)
+            if n_bolts and face_count < 6 + n_bolts * 2:
+                state.failures.append(
+                    f"feature_complexity: goal specifies {n_bolts} holes but geometry has only "
+                    f"{face_count} faces — holes may not be cut. Need {6 + n_bolts * 2}+ faces."
+                )
 
     def _check_bbox_vs_spec(self, state: DesignState) -> None:
         """Check if generated bbox approximately matches requested dimensions."""

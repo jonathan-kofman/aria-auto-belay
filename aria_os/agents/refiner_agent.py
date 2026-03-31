@@ -35,6 +35,30 @@ _FAILURE_FIXES: dict[str, str] = {
     "no axis matches height":"Height mismatch — check extrude direction. CadQuery extrudes along Z by default.",
     "no axis matches width": "Width mismatch — verify .box() or .rect() first two args match spec.",
     "face_count.*low":       "Geometry is too simple. Add the required features (bores, cutouts, fillets).",
+    "feature_complexity.*teeth": (
+        "The part needs actual tooth geometry, not a plain cylinder. "
+        "Use a for-loop to create tooth profiles as polyline triangles and union them to the base ring. "
+        "Example pattern for N teeth:\n"
+        "  base = cq.Workplane('XY').circle(root_r).circle(bore/2).extrude(face_w)\n"
+        "  for i in range(N):\n"
+        "      angle = i * 2*math.pi/N\n"
+        "      # Compute 3 points: root_back, tip, root_front\n"
+        "      tooth = cq.Workplane('XY').polyline([p1, p2, p3]).close().extrude(face_w)\n"
+        "      base = base.union(tooth)\n"
+        "  result = base\n"
+        "IMPORTANT: Do NOT use .cylinder() — it doesn't exist in CadQuery. "
+        "Use .circle(r).extrude(h) for cylinders."
+    ),
+    "feature_complexity.*toothed": (
+        "Generate actual tooth profiles using polyline triangles unioned to a base ring. "
+        "Do NOT use .cylinder() — use .circle(r).extrude(h). "
+        "Each tooth is a triangle: 3 points at (root, tip, root) rotated by i*360/N degrees."
+    ),
+    "feature_complexity.*hollow": "Shell the part: outer.cut(inner_void). Don't just make a solid block.",
+    "feature_complexity.*hole": "Cut holes using: result.faces('>Z').workplane().pushPoints(pts).circle(d/2).cutThruAll()",
+    "Workplane.cylinder":    "CadQuery has NO .cylinder() method. Use .circle(radius).extrude(height) instead.",
+    "got an unexpected keyword": "Check CadQuery API — .extrude() takes (distance), not (depth=). Remove named kwargs.",
+    "No pending wires":      "The .polyline() or .moveTo() call failed. Ensure points are valid and the wire is closed before .extrude().",
     "STEP not readable":     "CadQuery export failed. Simplify geometry — remove complex booleans.",
     # CAM
     "undercut":              "Part has undercuts requiring 4/5-axis. Add draft angles or redesign to be 3-axis machinable.",

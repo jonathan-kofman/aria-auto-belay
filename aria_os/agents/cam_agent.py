@@ -201,7 +201,22 @@ class CAMAgent(BaseAgent):
         self._operations = self._build_operations()
         self._print_operations()
 
-        # Phase 4: Generate CAM script via LLM (with refinement loop)
+        # Phase 4: Generate CAM script — deterministic first (instant), LLM only if needed
+        print(f"\n  [CAM] Generating script (deterministic)...")
+        script = self._generate_deterministic_script(part_id)
+
+        # Validate the deterministic script
+        validation = validate_cam_physics(self._operations, self._machine)
+        violations = validation.get("violations", [])
+
+        if not violations:
+            # Deterministic script passed — write outputs and return (no LLM needed)
+            result = self._write_outputs(part_id, script)
+            print(f"  [CAM] All validations passed (deterministic — no LLM needed)")
+            return result
+
+        # Deterministic script has issues — try LLM refinement
+        print(f"  [CAM] {len(violations)} violations — trying LLM refinement...")
         result = self._generate_with_refinement(part_id, max_attempts)
 
         return result
@@ -288,6 +303,42 @@ class CAMAgent(BaseAgent):
             volume_cm3=self._geom.get("volume_cm3"),
         )
         print(f"  [CAM] Cycle time: ~{cycle} min")
+
+    def _write_outputs(self, part_id: str, script: str, violations: list[str] | None = None) -> dict[str, Any]:
+        """Write CAM script + summary JSON + setup sheet to disk."""
+        out_dir = OUT_CAM / part_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        script_path = out_dir / f"{part_id}_cam.py"
+        summary_path = out_dir / f"{part_id}_cam_summary.json"
+        setup_path = out_dir / "setup_sheet.md"
+
+        script_path.write_text(script, encoding="utf-8")
+        print(f"  [CAM] Script: {script_path}")
+
+        cycle_time = estimate_cycle_time(
+            self._operations,
+            bbox=self._geom.get("bbox"),
+            volume_cm3=self._geom.get("volume_cm3"),
+        )
+
+        summary = self._build_summary(part_id, cycle_time, violations or [])
+        summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+        setup_md = self._build_setup_sheet(part_id, cycle_time)
+        setup_path.write_text(setup_md, encoding="utf-8")
+        print(f"  [CAM] Setup sheet: {setup_path}")
+
+        return {
+            "script_path": str(script_path),
+            "summary_path": str(summary_path),
+            "setup_path": str(setup_path),
+            "operations": self._operations,
+            "cycle_time_min": cycle_time,
+            "tools_used": [t["id"] for t in self._selected_tools],
+            "passed": len(violations or []) == 0,
+            "violations": violations or [],
+        }
 
     def _generate_with_refinement(
         self, part_id: str, max_attempts: int
