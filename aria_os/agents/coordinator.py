@@ -349,54 +349,141 @@ Describe the 3D shape in terms of CadQuery operations."""
         ctx.phases_completed.append("geometry")
         _emit(ctx, "phase_complete", f"Phase 3: {tag}", {"phase": 3})
 
-    # -- Phase 4: Parallel CAM + Simulation ----------------------------------
+    # -- Phase 4: Parallel Manufacturing Outputs --------------------------------
+    # Run ALL output domains in parallel: CAM + FEA + Drawing + Fusion + DFM
 
     async def _phase_4_manufacturing(self, ctx: JobContext) -> None:
-        _emit(ctx, "phase", "Phase 4: CAM + Simulation (parallel)", {"phase": 4})
-        print(f"\n  [Phase 4] CAM + Simulation (parallel)...")
+        _emit(ctx, "phase", "Phase 4: Manufacturing outputs (parallel)", {"phase": 4})
+        print(f"\n  [Phase 4] Generating all outputs in parallel...")
 
+        loop = asyncio.get_event_loop()
+        step_exists = ctx.geometry_path and Path(ctx.geometry_path).exists()
+        spec = ctx.geometry_spec.get("spec", {})
+        material = ctx.geometry_spec.get("material", "aluminium_6061")
+        part_id = spec.get("part_type", "agent_part")
+
+        # ── CAM: toolpath generation ─────────────────────────────────────
         async def _run_cam():
-            if not ctx.geometry_path or not Path(ctx.geometry_path).exists():
+            if not step_exists:
                 return {"status": "skipped", "reason": "no geometry"}
             try:
                 from .cam_agent import run_cam_agent
-                loop = asyncio.get_event_loop()
-                material = ctx.geometry_spec.get("material", "aluminium_6061")
                 result = await loop.run_in_executor(
                     None, run_cam_agent, ctx.geometry_path, material)
                 return result or {"status": "no_result"}
             except Exception as e:
                 return {"status": "error", "error": str(e)}
 
-        async def _run_simulation():
-            from .features import get_features
-            if not get_features().ANSYS_SIMULATION:
-                return {"status": "skipped", "reason": "ANSYS_SIMULATION disabled"}
-            # Run FEA via physics_analyzer (sync)
+        # ── FEA: structural analysis ─────────────────────────────────────
+        async def _run_fea():
             try:
                 from ..physics_analyzer import analyze
-                loop = asyncio.get_event_loop()
-                spec = ctx.geometry_spec.get("spec", {})
                 result = await loop.run_in_executor(
                     None, analyze,
-                    spec.get("part_type", ""), "auto", spec, ctx.goal, str(ctx.repo_root))
+                    part_id, "auto", spec, ctx.goal, str(ctx.repo_root))
                 return result or {"status": "no_result"}
             except Exception as e:
                 return {"status": "error", "error": str(e)}
 
-        cam, sim = await asyncio.gather(
+        # ── GD&T Drawing: engineering drawing SVG ────────────────────────
+        async def _run_drawing():
+            if not step_exists:
+                return {"status": "skipped", "reason": "no geometry"}
+            try:
+                from ..drawing_generator import generate_gdnt_drawing
+                drawing_path = await loop.run_in_executor(
+                    None, generate_gdnt_drawing,
+                    ctx.geometry_path, part_id, spec, ctx.repo_root)
+                return {"status": "ok", "path": str(drawing_path)}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        # ── DFM: manufacturability analysis ──────────────────────────────
+        async def _run_dfm():
+            if not step_exists:
+                return {"status": "skipped", "reason": "no geometry"}
+            try:
+                from .dfm_agent import run_dfm_analysis
+                result = await loop.run_in_executor(
+                    None, run_dfm_analysis, ctx.geometry_path, ctx.goal, False)
+                return result or {"status": "no_result"}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        # ── Fusion 360: parametric script ────────────────────────────────
+        async def _run_fusion():
+            if not step_exists:
+                return {"status": "skipped", "reason": "no geometry"}
+            try:
+                from ..generators.fusion_generator import write_fusion_artifacts
+                result = await loop.run_in_executor(
+                    None, write_fusion_artifacts,
+                    ctx.geometry_spec.get("plan", {}), ctx.goal,
+                    ctx.geometry_path, ctx.stl_path or "",
+                    ctx.repo_root)
+                return result or {"status": "no_result"}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        # ── Quote: cost estimation ───────────────────────────────────────
+        async def _run_quote():
+            if not step_exists:
+                return {"status": "skipped", "reason": "no geometry"}
+            try:
+                from .quote_agent import QuoteAgent
+                qa = QuoteAgent()
+                result = await loop.run_in_executor(
+                    None, qa.quote, ctx.geometry_path, material)
+                return result or {"status": "no_result"}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        # Execute ALL in parallel
+        cam, fea, drawing, dfm, fusion, quote = await asyncio.gather(
             _run_cam(),
-            _run_simulation(),
+            _run_fea(),
+            _run_drawing(),
+            _run_dfm(),
+            _run_fusion(),
+            _run_quote(),
             return_exceptions=True,
         )
 
+        # Store results
         ctx.cam_result = cam if isinstance(cam, dict) else {"error": str(cam)}
-        ctx.simulation_result = sim if isinstance(sim, dict) else {"error": str(sim)}
+        ctx.simulation_result = fea if isinstance(fea, dict) else {"error": str(fea)}
 
-        if isinstance(cam, dict) and cam.get("script_path"):
-            print(f"  [Phase 4] CAM: {cam['script_path']}")
-        if isinstance(sim, dict) and sim.get("passed") is not None:
-            print(f"  [Phase 4] FEA: {'PASS' if sim['passed'] else 'FAIL'} SF={sim.get('safety_factor', '?')}")
+        # Print results
+        results = [
+            ("CAM", cam, lambda r: r.get("script_path", "")),
+            ("FEA", fea, lambda r: f"{'PASS' if r.get('passed') else 'FAIL'} SF={r.get('safety_factor', '?')}" if r.get("passed") is not None else ""),
+            ("Drawing", drawing, lambda r: r.get("path", "")),
+            ("DFM", dfm, lambda r: f"Score: {r.get('score', '?')}/100 — {r.get('process_recommendation', '')}" if r.get("score") else ""),
+            ("Fusion", fusion, lambda r: r.get("script_path", "")),
+            ("Quote", quote, lambda r: f"${r.get('unit_cost_usd', 0):.2f}" if r.get("unit_cost_usd") else ""),
+        ]
+        for name, result, fmt in results:
+            if isinstance(result, dict):
+                if result.get("status") == "skipped":
+                    continue
+                if result.get("status") == "error" or result.get("error"):
+                    print(f"  [Phase 4] {name}: error — {result.get('error', '')[:80]}")
+                else:
+                    detail = fmt(result)
+                    if detail:
+                        print(f"  [Phase 4] {name}: {detail}")
+            elif isinstance(result, Exception):
+                print(f"  [Phase 4] {name}: exception — {result}")
+
+        # Store in context for Phase 5
+        if isinstance(dfm, dict) and dfm.get("score"):
+            ctx.save_artifact("dfm_report.json", dfm)
+        if isinstance(quote, dict) and quote.get("unit_cost_usd"):
+            ctx.save_artifact("quote.json", quote)
+        if isinstance(drawing, dict) and drawing.get("path"):
+            ctx.save_artifact("drawing_path.txt", drawing["path"])
+        if isinstance(fusion, dict) and fusion.get("script_path"):
+            ctx.save_artifact("fusion_script_path.txt", fusion["script_path"])
 
         ctx.phases_completed.append("manufacturing")
         _emit(ctx, "phase_complete", "Phase 4 done", {"phase": 4})
@@ -474,19 +561,54 @@ Describe the 3D shape in terms of CadQuery operations."""
         }
 
     def _print_summary(self, ctx: JobContext) -> None:
-        """Print job summary."""
+        """Print job summary with all output artifacts."""
         print(f"\n{'=' * 64}")
         print(f"  COORDINATOR SUMMARY — Job {ctx.job_id}")
         print(f"{'=' * 64}")
         print(f"  Goal:       {ctx.goal}")
-        print(f"  Phases:     {' → '.join(ctx.phases_completed)}")
+        print(f"  Phases:     {' -> '.join(ctx.phases_completed)}")
         print(f"  Geometry:   {'PASS' if ctx.validation_passed else 'FAIL'}")
-        if ctx.geometry_path:
-            print(f"  STEP:       {ctx.geometry_path}")
-        if ctx.cam_result.get("script_path"):
-            print(f"  CAM:        {ctx.cam_result['script_path']}")
+
+        # List all output artifacts
+        artifacts = []
+        if ctx.geometry_path and Path(ctx.geometry_path).exists():
+            sz = Path(ctx.geometry_path).stat().st_size // 1024
+            artifacts.append(f"  STEP:       {ctx.geometry_path} ({sz}KB)")
+        if ctx.stl_path and Path(ctx.stl_path).exists():
+            sz = Path(ctx.stl_path).stat().st_size // 1024
+            artifacts.append(f"  STL:        {ctx.stl_path} ({sz}KB)")
+        if isinstance(ctx.cam_result, dict) and ctx.cam_result.get("script_path"):
+            artifacts.append(f"  CAM:        {ctx.cam_result['script_path']}")
+            ct = ctx.cam_result.get("cycle_time_min", 0)
+            if ct:
+                artifacts.append(f"              Cycle time: {ct:.1f} min")
+        # Check scratchpad for drawing
+        drawing_path = ctx.scratchpad_dir / "drawing_path.txt"
+        if drawing_path.exists():
+            artifacts.append(f"  Drawing:    {drawing_path.read_text().strip()}")
+        # Check for fusion script
+        fusion_path = ctx.scratchpad_dir / "fusion_script_path.txt"
+        if fusion_path.exists():
+            artifacts.append(f"  Fusion 360: {fusion_path.read_text().strip()}")
+        # DFM report
+        dfm_path = ctx.scratchpad_dir / "dfm_report.json"
+        if dfm_path.exists():
+            import json as _json
+            dfm = _json.loads(dfm_path.read_text())
+            artifacts.append(f"  DFM:        Score {dfm.get('score', '?')}/100 — {dfm.get('process_recommendation', '?')}")
+        # Quote
+        quote_path = ctx.scratchpad_dir / "quote.json"
+        if quote_path.exists():
+            import json as _json2
+            q = _json2.loads(quote_path.read_text())
+            artifacts.append(f"  Quote:      ${q.get('unit_cost_usd', 0):.2f} ({q.get('process', '?')})")
+        # MillForge
         if ctx.millforge_job:
-            print(f"  MillForge:  Job {ctx.millforge_job.get('aria_job_id')}")
+            artifacts.append(f"  MillForge:  Job {ctx.millforge_job.get('aria_job_id')}")
+
+        for a in artifacts:
+            print(a)
+
         print(f"  Time:       {ctx.total_time_s:.1f}s")
         if ctx.errors:
             print(f"  Errors:")
