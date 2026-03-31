@@ -1,0 +1,22 @@
+{
+  "part_id": "iphone_13_pro_max_drop",
+  "goal": "iPhone 13 Pro Max drop-proof case, 160.8mm x 78.1mm x 12mm, 2.5mm TPU walls, 15ft drop rated",
+  "params": {
+    "part_type": "phone_case",
+    "width_mm": 160.8,
+    "height_mm": 78.1,
+    "depth_mm": 12.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_iphone_13_pro_max_drop.step",
+  "stl_path": "",
+  "bbox_mm": {
+    "x": 83.1,
+    "y": 165.8,
+    "z": 11.35
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T19:53:12.308901",
+  "git_sha": "36a4719"
+}

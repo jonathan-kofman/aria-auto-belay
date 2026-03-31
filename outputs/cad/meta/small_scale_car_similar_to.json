@@ -1,0 +1,17 @@
+{
+  "part_id": "small_scale_car_similar_to",
+  "goal": "small scale car similar to lego style and size",
+  "params": {},
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_small_scale_car_similar_to.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_small_scale_car_similar_to.stl",
+  "bbox_mm": {
+    "x": 104.0,
+    "y": 122.0,
+    "z": 35.8
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T21:57:17.777770",
+  "git_sha": "36a4719"
+}

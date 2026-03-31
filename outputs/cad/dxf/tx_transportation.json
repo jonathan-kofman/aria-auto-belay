@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "description": "road plan",
+  "state": "TX",
+  "discipline": "transportation",
+  "standards_applied": {
+    "name": "TxDOT \u2014 Texas DOT",
+    "source": "TxDOT Roadway Design Manual",
+    "state": "TX"
+  },
+  "units": "imperial",
+  "generated_at": "2026-03-29T14:34:09",
+  "output_dxf": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\dxf\\tx_transportation.dxf"
+}

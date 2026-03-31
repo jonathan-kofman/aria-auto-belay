@@ -1,0 +1,33 @@
+{
+  "part_id": "aria_cam_collar",
+  "goal": "ARIA cam collar, 80mm OD, 60mm bore, 45mm thick",
+  "params": {
+    "part_type": "cam_collar",
+    "od_mm": 80.0,
+    "bore_mm": 60.0,
+    "id_mm": 60.0,
+    "thickness_mm": 45.0,
+    "height_mm": 45.0,
+    "arrest_distance_mm": 66.35,
+    "peak_force_N": 2470.96,
+    "avg_force_N": 2284.18,
+    "trigger_fired": true,
+    "absorber_activated": false,
+    "ansi_peak_limit_N": 8000.0,
+    "ansi_avg_limit_N": 6000.0,
+    "ansi_distance_limit_mm": 813.0,
+    "passed": true
+  },
+  "cad_tool": "grasshopper",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_cam_collar.step",
+  "stl_path": "",
+  "bbox_mm": {
+    "x": 80.0,
+    "y": 80.0,
+    "z": 45.0
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T19:22:06.101753",
+  "git_sha": "36a4719"
+}

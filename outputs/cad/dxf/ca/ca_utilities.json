@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "description": "utilities plan",
+  "state": "CA",
+  "discipline": "utilities",
+  "standards_applied": {
+    "name": "Caltrans \u2014 California DOT",
+    "source": "Caltrans Highway Design Manual (HDM), 6th Ed.",
+    "state": "CA"
+  },
+  "units": "imperial",
+  "generated_at": "2026-03-29T14:34:01",
+  "output_dxf": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\dxf\\ca\\ca_utilities.dxf"
+}

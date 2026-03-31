@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "description": "grading plan",
+  "state": "CA",
+  "discipline": "grading",
+  "standards_applied": {
+    "max_cut_slope_hv": "2:1",
+    "max_fill_slope_hv": "3:1",
+    "max_fill_slope_embankment_hv": "2:1",
+    "min_finished_grade_pct": 0.5,
+    "max_finished_grade_pct": 10.0,
+    "retwall_max_height_unreinforced_ft": 4,
+    "bench_width_min_ft": 10,
+    "bench_required_height_ft": 20,
+    "min_freeboard_ft": 1.0
+  },
+  "units": "imperial",
+  "generated_at": "2026-03-29T14:34:01",
+  "output_dxf": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\dxf\\ca\\ca_grading.dxf"
+}

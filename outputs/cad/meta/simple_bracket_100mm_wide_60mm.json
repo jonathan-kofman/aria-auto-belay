@@ -1,0 +1,24 @@
+{
+  "part_id": "simple_bracket_100mm_wide_60mm",
+  "goal": "simple bracket, 100mm wide, 60mm tall, 8mm thick, 2x M6 holes",
+  "params": {
+    "part_type": "bracket",
+    "thickness_mm": 8.0,
+    "height_mm": 8.0,
+    "width_mm": 100.0,
+    "n_bolts": 2,
+    "bolt_dia_mm": 6.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_part.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_part.stl",
+  "bbox_mm": {
+    "x": 100.0,
+    "y": 8.0,
+    "z": 8.0
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T21:31:13.746787",
+  "git_sha": "36a4719"
+}

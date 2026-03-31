@@ -1,0 +1,22 @@
+{
+  "part_id": "airpods_pro_charging_case_54mm",
+  "goal": "AirPods Pro charging case, 54mm x 45mm x 21mm, polycarbonate shell with hinge cutout and lightning port",
+  "params": {
+    "material": "carbon_fibre",
+    "width_mm": 54.0,
+    "height_mm": 45.0,
+    "depth_mm": 21.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_part.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_part.stl",
+  "bbox_mm": {
+    "x": 54.0,
+    "y": 45.0,
+    "z": 21.0
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T22:13:11.351400",
+  "git_sha": "36a4719"
+}

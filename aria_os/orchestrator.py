@@ -93,7 +93,7 @@ def _prompt_gdnt_drawing() -> bool:
         return False
 
 
-def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, preview: bool = False, auto_draw: bool = False, agent_mode: bool | None = None, max_agent_iterations: int = 15):
+def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, preview: bool = False, auto_draw: bool = False, agent_mode: bool | None = None, max_agent_iterations: int = 5):
     """Run the ARIA-OS pipeline: plan → route → generate artifacts → validate → log.
 
     agent_mode: None = auto (use agents if Ollama available), True = force, False = disable.

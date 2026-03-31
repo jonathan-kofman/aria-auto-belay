@@ -1,0 +1,25 @@
+{
+  "part_id": "skateboard_truck_baseplate_80mm_wide",
+  "goal": "skateboard truck baseplate, 80mm wide, 120mm long, 6mm thick, 4x M5 mounting holes, kingpin pocket, aluminium",
+  "params": {
+    "material": "aluminium",
+    "thickness_mm": 6.0,
+    "height_mm": 6.0,
+    "width_mm": 80.0,
+    "length_mm": 120.0,
+    "n_bolts": 4,
+    "bolt_dia_mm": 5.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_skateboard_truck_baseplate_80mm_wide.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_skateboard_truck_baseplate_80mm_wide.stl",
+  "bbox_mm": {
+    "x": 80.0,
+    "y": 6.0,
+    "z": 6.0
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T22:51:10.486848",
+  "git_sha": "36a4719"
+}

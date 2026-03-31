@@ -1,23 +1,23 @@
 {
-  "goal": "cam collar helical ramp",
+  "goal": "ARIA cam collar, 80mm OD, 60mm bore, 45mm thick",
   "part_id": "aria_cam_collar",
-  "base_shape": {
-    "type": "cylinder",
-    "diameter": 55.0,
-    "height": 40.0
+  "params": {
+    "part_type": "cam_collar",
+    "od_mm": 80.0,
+    "bore_mm": 60.0,
+    "id_mm": 60.0,
+    "thickness_mm": 45.0,
+    "height_mm": 45.0,
+    "arrest_distance_mm": 66.35,
+    "peak_force_N": 2470.96,
+    "avg_force_N": 2284.18,
+    "trigger_fired": true,
+    "absorber_activated": false,
+    "ansi_peak_limit_N": 8000.0,
+    "ansi_avg_limit_N": 6000.0,
+    "ansi_distance_limit_mm": 813.0,
+    "passed": true
   },
-  "features": [
-    {
-      "type": "bore",
-      "face": ">Z",
-      "diameter": 25.0,
-      "through": true
-    },
-    {
-      "type": "ramp",
-      "description": "15\u00b0 helical ramp, 5mm rise over 90\u00b0"
-    }
-  ],
   "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_cam_collar.step",
   "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_cam_collar.stl"
 }

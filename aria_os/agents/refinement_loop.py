@@ -11,7 +11,7 @@ from .eval_agent import EvalAgent
 from .refiner_agent import RefinerAgent
 from .domains import make_tools, detect_domain
 
-STALL_LIMIT = 5  # stop after N iterations with no improvement
+STALL_LIMIT = 3  # stop after N iterations with no improvement
 
 
 def run_agent_loop(state: DesignState) -> DesignState:
@@ -108,6 +108,20 @@ def run_agent_loop(state: DesignState) -> DesignState:
         # Refine for next iteration
         print(f"  [iter {iteration}] RefinerAgent analyzing {len(state.failures)} failures...")
         refiner.refine(state)
+
+    # Record to memory system
+    try:
+        from .memory import record_generation
+        record_generation(
+            part_type=state.spec.get("part_type", "unknown"),
+            material=state.material or state.spec.get("material", ""),
+            params=state.spec,
+            passed=state.converged,
+            failures=list(state.failures),
+            bbox=state.bbox,
+        )
+    except Exception:
+        pass
 
     # Print summary
     _print_summary(state)

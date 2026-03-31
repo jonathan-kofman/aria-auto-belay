@@ -1,0 +1,28 @@
+{
+  "part_id": "aria_ratchet_ring",
+  "goal": "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick",
+  "params": {
+    "part_type": "ratchet_ring",
+    "od_mm": 213.0,
+    "thickness_mm": 21.0,
+    "height_mm": 21.0,
+    "n_teeth": 24,
+    "arrest_distance_mm": 66.35,
+    "peak_force_N": 2470.96,
+    "avg_force_N": 2284.18,
+    "trigger_fired": true,
+    "absorber_activated": false,
+    "ansi_peak_limit_N": 8000.0,
+    "ansi_avg_limit_N": 6000.0,
+    "ansi_distance_limit_mm": 813.0,
+    "passed": true
+  },
+  "cad_tool": "grasshopper",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_ratchet_ring.step",
+  "stl_path": "",
+  "bbox_mm": {},
+  "cem_sf": 8.866195150115473,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T15:58:12.829528",
+  "git_sha": "36a4719"
+}

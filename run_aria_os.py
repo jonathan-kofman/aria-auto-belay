@@ -1415,7 +1415,7 @@ def main():
     _no_agent = "--no-agent" in _args
     _agent_mode_flag = "--agent-mode" in _args
     _coordinator_mode = "--coordinator" in _args
-    _max_agent_iter = 15
+    _max_agent_iter = 5
     for i, a in enumerate(_args):
         if a == "--max-agent-iterations" and i + 1 < len(_args):
             try:

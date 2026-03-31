@@ -1,0 +1,30 @@
+{
+  "part_id": "aria_brake_drum",
+  "goal": "ARIA brake drum, 180mm OD, 40mm thick, 20mm bore, 6061 aluminium",
+  "params": {
+    "part_type": "brake_drum",
+    "material": "aluminium_6061",
+    "od_mm": 180.0,
+    "bore_mm": 20.0,
+    "id_mm": 20.0,
+    "thickness_mm": 40.0,
+    "height_mm": 40.0,
+    "arrest_distance_mm": 66.35,
+    "peak_force_N": 2470.96,
+    "avg_force_N": 2284.18,
+    "trigger_fired": true,
+    "absorber_activated": false,
+    "ansi_peak_limit_N": 8000.0,
+    "ansi_avg_limit_N": 6000.0,
+    "ansi_distance_limit_mm": 813.0,
+    "passed": true
+  },
+  "cad_tool": "grasshopper",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_brake_drum.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_brake_drum.stl",
+  "bbox_mm": {},
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T19:10:41.573958",
+  "git_sha": "36a4719"
+}

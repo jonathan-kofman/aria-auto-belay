@@ -1,0 +1,21 @@
+{
+  "part_id": "iphone_13_pro_max_uag",
+  "goal": "iPhone 13 Pro Max UAG rugged case, 160.8mm x 78.1mm x 12mm, 2.5mm TPU walls, 15ft drop rated",
+  "params": {
+    "width_mm": 160.8,
+    "height_mm": 78.1,
+    "depth_mm": 12.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_iphone_13_pro_max_uag.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_iphone_13_pro_max_uag.stl",
+  "bbox_mm": {
+    "x": 89.1,
+    "y": 171.8,
+    "z": 14.15
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T20:52:39.427266",
+  "git_sha": "36a4719"
+}

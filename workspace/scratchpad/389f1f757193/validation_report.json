@@ -1,0 +1,12 @@
+{
+  "converged": false,
+  "iterations": 6,
+  "failures": [
+    "bbox: no axis matches height=6.0mm (closest=10.0mm, tol=2.0)"
+  ],
+  "bbox": {
+    "x": 80.0,
+    "y": 120.0,
+    "z": 10.002
+  }
+}

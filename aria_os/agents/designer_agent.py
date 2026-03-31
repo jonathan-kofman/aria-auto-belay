@@ -103,7 +103,8 @@ class DesignerAgent(BaseAgent):
         code = _extract_code(response)
         if not code:
             state.generation_error = f"No code block found in DesignerAgent response"
-            state.code = response  # store raw for debugging
+            # Do NOT store raw response as state.code — it poisons the RefinerAgent
+            # which tries to "fix" a non-code string as if it were Python
             return
 
         state.code = code
@@ -114,19 +115,28 @@ class DesignerAgent(BaseAgent):
             self._execute_cad(state, code)
 
     def _call_llm(self, prompt: str) -> str | None:
-        """Override: for CAD code generation, try cloud LLM first (Claude/Gemini).
+        """Override: for CAD code generation, try cloud LLMs first.
         Local 7b models can't write complex CadQuery geometry reliably.
+        Priority: Anthropic → Gemini → Ollama.
         Ollama handles non-code tasks (spec, refinement, routing) fine."""
         if self._prefer_cloud and self.domain == "cad":
-            # Cloud first for geometry code
+            # Try Anthropic first (best code quality)
             try:
-                from ..llm_client import call_llm
-                response = call_llm(prompt, system=self.system_prompt)
+                from ..llm_client import _try_anthropic
+                response = _try_anthropic(prompt, self.system_prompt)
                 if response:
                     return response
             except Exception:
                 pass
-            # Fall back to Ollama if cloud unavailable
+            # Try Gemini (fast, good code gen, rarely overloaded)
+            try:
+                from ..llm_client import _try_gemini
+                response = _try_gemini(prompt, self.system_prompt)
+                if response:
+                    return response
+            except Exception:
+                pass
+            # Last resort: Ollama (7b — will produce simple geometry)
             from .base_agent import _call_ollama
             return _call_ollama(prompt, self.system_prompt, self.model)
         # Non-CAD domains: use Ollama (standard path)

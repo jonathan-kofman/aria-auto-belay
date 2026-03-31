@@ -1,0 +1,24 @@
+{
+  "part_id": "simple_flange_120mm_od_40mm",
+  "goal": "simple flange, 120mm OD, 40mm bore, 12mm thick",
+  "params": {
+    "part_type": "flange",
+    "od_mm": 120.0,
+    "bore_mm": 40.0,
+    "id_mm": 40.0,
+    "thickness_mm": 12.0,
+    "height_mm": 12.0
+  },
+  "cad_tool": "cadquery",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_part.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_part.stl",
+  "bbox_mm": {
+    "x": 120.0,
+    "y": 120.0,
+    "z": 12.0
+  },
+  "cem_sf": null,
+  "cem_passed": true,
+  "generated_at": "2026-03-29T21:44:04.516082",
+  "git_sha": "36a4719"
+}
