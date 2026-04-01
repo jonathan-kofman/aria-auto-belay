@@ -1058,19 +1058,32 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 
 
 def _cq_flange(params: dict[str, Any]) -> str:
-    od      = float(params.get("od_mm",    120.0))
     bore    = float(params.get("bore_mm",   40.0))
-    thick   = float(params.get("thickness_mm", 12.0))
     n_bolts = int(params.get("n_bolts", 4))
     bolt_d  = float(params.get("bolt_dia_mm", 8.0))
-    # Ensure OD is at least bore + 10mm wall (sanity check)
-    if od <= bore + 4:
-        od = bore * 2 + 10
-    # Default bolt circle between bore and OD; clamp inside OD
-    bolt_r_default = (bore / 2 + od / 2) / 2  # midpoint between bore and OD
-    bolt_r  = float(params.get("bolt_circle_r_mm", bolt_r_default))
+    bolt_r  = float(params.get("bolt_circle_r_mm", 0))
+    thick   = float(params.get("thickness_mm", params.get("height_mm", 12.0)))
+
+    # Compute minimum viable OD from bolt circle + clearance
+    # Bolt holes must be inside the disc with at least bolt_d margin from edge
+    if bolt_r > 0:
+        min_od = (bolt_r + bolt_d + 3) * 2  # bolt circle + hole radius + 3mm wall
+    else:
+        min_od = bore + 20  # default: bore + 10mm wall each side
+
+    # Default OD: enough room for bolt circle + wall, but not absurdly large
+    default_od = max(min_od, bore + 20) if bolt_r > 0 else 120.0
+    od = float(params.get("od_mm", default_od))
+    # Enforce minimum OD so bolt holes don't split the disc
+    if od < min_od:
+        od = min_od
+
+    # Default bolt circle: midpoint between bore edge and OD edge
+    if bolt_r <= 0:
+        bolt_r = (bore / 2 + od / 2) / 2
+    # Clamp bolt circle inside OD with margin
     if bolt_r >= od / 2 - bolt_d:
-        bolt_r = (bore / 2 + od / 2) / 2  # clamp to midpoint
+        bolt_r = (bore / 2 + od / 2) / 2
     return f"""
 import cadquery as cq, math
 

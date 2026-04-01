@@ -341,6 +341,12 @@ def extract_spec(description: str) -> dict[str, Any]:
     if _bc_rad:
         spec.setdefault("bolt_circle_r_mm", float(_bc_rad.group(1)))
 
+    # "bolts at 16mm" / "holes at 16mm" — value IS a radius (distance from center)
+    if "bolt_circle_r_mm" not in spec:
+        _at_rad = re.search(r"(?:bolt|hole)s?\s+at\s+(\d+(?:\.\d+)?)\s*mm", text, re.I)
+        if _at_rad:
+            spec["bolt_circle_r_mm"] = float(_at_rad.group(1))
+
     if "bolt_circle_r_mm" not in spec:
         bolt_pcd = _find([
             r"pcd\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",

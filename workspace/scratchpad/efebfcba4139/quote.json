@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "carbon_fibre",
+  "quantity": 1,
+  "unit_cost_usd": 128.1,
+  "breakdown": {
+    "material_usd": 0.44,
+    "machining_usd": 30.99,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.32,
+    "margin_usd": 21.35
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      50.0,
+      5.0
+    ],
+    "volume_cm3": 7.1289,
+    "stock_volume_cm3": 12.5,
+    "material_removal_pct": 43.0,
+    "surface_area_cm2": 64.4352,
+    "face_count": 26
+  },
+  "optimizations": [
+    "Optimize the part design for easier machining by reducing the number of sharp corners and edges ($5 savings).",
+    "Consider using a more efficient machining strategy, such as using a ball end mill instead of a flat end mill ($10 savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Material removal is high (43%), which may indicate a complex geometry or inefficient machining process.",
+    "Carbon fibre material can be challenging to machine, potentially leading to tool wear and reduced productivity."
+  ]
+}

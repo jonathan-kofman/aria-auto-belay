@@ -261,12 +261,13 @@ class EvalAgent:
                 return
 
         # Bracket with holes: needs more than a plain plate
-        # A through-hole adds ~1 cylindrical face. Minimum faces for N holes:
-        # 2 (top/bottom) + 1 (outer wall) + N (hole walls) = N + 3
-        # Add a small margin: N + 5 minimum
+        # A through-hole in a cylinder adds 1 face (the cylindrical wall).
+        # Minimum: top + bottom + outer_wall + bore_wall + N_holes = N + 4
+        # For a plain box: top + bottom + 4_sides + N_holes = N + 6
+        # Use N + 4 as minimum (cylindrical parts have fewer base faces)
         if "hole" in goal_lower or "bolt" in goal_lower:
             n_bolts = state.spec.get("n_bolts", 0)
-            min_faces = max(6, n_bolts + 5) if n_bolts else 6
+            min_faces = max(6, n_bolts + 4) if n_bolts else 6
             if n_bolts and face_count < min_faces:
                 state.failures.append(
                     f"feature_complexity: goal specifies {n_bolts} holes but geometry has only "

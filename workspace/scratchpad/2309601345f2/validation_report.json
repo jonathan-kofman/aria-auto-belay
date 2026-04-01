@@ -1,0 +1,12 @@
+{
+  "converged": false,
+  "iterations": 4,
+  "failures": [
+    "feature_complexity: goal specifies 4 holes but geometry has only 4 faces \u2014 holes may not be cut. Need 9+ faces."
+  ],
+  "bbox": {
+    "x": 40.012,
+    "y": 40.0,
+    "z": 5.012
+  }
+}
