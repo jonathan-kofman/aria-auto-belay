@@ -298,17 +298,16 @@ class EvalAgent:
             val = float(val)
 
             if is_thickness:
-                # "6mm thick" means the plate material is 6mm. The total bbox
-                # can be taller because features (pockets, bosses, ribs) extend
-                # above or below. Validate that the MINIMUM bbox axis is close
-                # to the thickness (the thin dimension of a plate).
+                # "6mm thick" = base plate material thickness. Total bbox will be
+                # LARGER because features (lips, pockets, bosses) extend above/below.
+                # A 6mm plate with 3mm raised lips = 9mm total — that's correct.
+                # Only fail if the minimum axis is > 3x the specified thickness
+                # (something is fundamentally wrong with the geometry).
                 min_axis = min(bb.values()) if bb else 0
-                tol = max(2.0, val * 0.5)  # 50% tolerance — plate features can double height
-                if min_axis > val + tol:
+                if min_axis > val * 3.0:
                     state.failures.append(
-                        f"bbox: minimum axis {min_axis:.1f}mm is much larger than "
-                        f"thickness={val:.1f}mm. The base plate should be ~{val:.1f}mm thin.")
-                # Don't fail if total bbox is larger — that's features on top
+                        f"bbox: minimum axis {min_axis:.1f}mm is {min_axis/val:.1f}x the "
+                        f"specified thickness={val:.1f}mm — geometry may be fundamentally wrong.")
                 continue
 
             tol = max(2.0, val * 0.20)

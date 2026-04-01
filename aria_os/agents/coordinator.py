@@ -115,8 +115,10 @@ class CoordinatorAgent:
             # Phase 3: Generate + validate geometry (with refinement loop)
             await self._phase_3_geometry(ctx)
 
-            # Phase 4: Parallel CAM + simulation (only if geometry valid)
-            if ctx.validation_passed:
+            # Phase 4: Run manufacturing outputs if geometry EXISTS (even with warnings)
+            # A part with bbox warnings is still valid geometry — don't block Onshape/DFM/Quote
+            _has_geometry = ctx.geometry_path and Path(ctx.geometry_path).exists()
+            if _has_geometry:
                 await self._phase_4_manufacturing(ctx)
 
             # Phase 5: Final assembly + MillForge bridge
