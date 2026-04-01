@@ -91,18 +91,22 @@ class OnshapeClient:
         self.auth = auth or OnshapeAuth()
 
     def _request(self, method: str, path: str, data: dict | None = None,
-                 query: str = "") -> dict:
+                 query: str = "", content_type: str = "application/json",
+                 raw_body: bytes | None = None) -> dict:
         """Make an authenticated API request."""
         url = f"{_BASE_URL}{path}"
         if query:
             url += f"?{query}"
 
-        headers = self.auth.make_headers(method, path, query)
-        body = json.dumps(data).encode() if data else None
+        headers = self.auth.make_headers(method, path, query, content_type=content_type)
+        if raw_body is not None:
+            body = raw_body
+        else:
+            body = json.dumps(data).encode() if data else None
 
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode("utf-8", errors="replace")[:500]
@@ -116,6 +120,49 @@ class OnshapeClient:
 
     def delete(self, path: str, **kw) -> dict:
         return self._request("DELETE", path, **kw)
+
+    def upload_blob(self, did: str, wid: str, file_path: str,
+                    filename: str = "") -> dict:
+        """Upload a file (STEP, etc.) as a blob element to an Onshape document.
+        Uses multipart/form-data upload endpoint.
+        Returns the translation status / element info."""
+        from pathlib import Path as _P
+        fp = _P(file_path)
+        filename = filename or fp.name
+
+        # Build multipart/form-data body
+        boundary = f"----OnshapeBoundary{uuid.uuid4().hex[:16]}"
+        body_parts = []
+
+        # File part
+        body_parts.append(f"--{boundary}".encode())
+        body_parts.append(
+            f'Content-Disposition: form-data; name="file"; filename="{filename}"'.encode()
+        )
+        body_parts.append(b"Content-Type: application/octet-stream")
+        body_parts.append(b"")
+        body_parts.append(fp.read_bytes())
+
+        # Flatten flag
+        body_parts.append(f"--{boundary}".encode())
+        body_parts.append(b'Content-Disposition: form-data; name="flattenAssemblies"')
+        body_parts.append(b"")
+        body_parts.append(b"false")
+
+        # Allow faulty parts
+        body_parts.append(f"--{boundary}".encode())
+        body_parts.append(b'Content-Disposition: form-data; name="allowFaultyParts"')
+        body_parts.append(b"")
+        body_parts.append(b"true")
+
+        body_parts.append(f"--{boundary}--".encode())
+
+        raw_body = b"\r\n".join(body_parts)
+        content_type = f"multipart/form-data; boundary={boundary}"
+
+        path = f"/blobelements/d/{did}/w/{wid}"
+        return self._request("POST", path, content_type=content_type,
+                             raw_body=raw_body)
 
 
 # ---------------------------------------------------------------------------
@@ -303,15 +350,43 @@ class OnshapeBridge:
         except Exception as exc:
             return {"error": str(exc)}
 
+    def upload_step(self, name: str, step_path: str) -> dict[str, Any]:
+        """Upload a STEP file to a NEW Onshape document.
+        Returns dict with url, documentId, translationId."""
+        result = self.client.post("/documents", data={
+            "name": name,
+            "isPublic": False,
+        })
+        did = result["id"]
+        wid = result["defaultWorkspace"]["id"]
+
+        # Upload STEP as blob element
+        upload_result = self.client.upload_blob(did, wid, step_path)
+        eid = upload_result.get("id", "")
+        tid = upload_result.get("translationId", "")
+
+        url = f"https://cad.onshape.com/documents/{did}/w/{wid}/e/{eid}"
+        return {
+            "status": "ok",
+            "url": url,
+            "documentId": did,
+            "workspaceId": wid,
+            "elementId": eid,
+            "translationId": tid,
+        }
+
     def add_feature(self, did: str, wid: str, eid: str, feature: dict) -> dict:
         """Add a feature to a part studio."""
         path = f"/partstudios/d/{did}/w/{wid}/e/{eid}/features"
         return self.client.post(path, data=feature)
 
     def create_part(self, name: str, spec: dict[str, Any],
-                    goal: str = "") -> dict[str, Any]:
+                    goal: str = "", step_path: str = "") -> dict[str, Any]:
         """
-        Create a complete parametric part in Onshape from ARIA spec.
+        Create a part in Onshape.
+
+        Primary path: upload STEP file (100% geometry fidelity).
+        Fallback: build parametric features from spec.
 
         Returns dict with: url, documentId, features_added, errors
         """
@@ -330,15 +405,29 @@ class OnshapeBridge:
             "errors": [],
         }
 
+        # PRIMARY: Upload STEP file (exact geometry, no approximation)
+        if step_path and Path(step_path).exists():
+            try:
+                print(f"  [Onshape] Uploading STEP: {Path(step_path).name}")
+                upload = self.upload_step(name, step_path)
+                result["url"] = upload["url"]
+                result["documentId"] = upload["documentId"]
+                result["features_added"] = 1
+                result["method"] = "step_upload"
+                print(f"  [Onshape] STEP uploaded: {upload['url']}")
+                return result
+            except Exception as exc:
+                print(f"  [Onshape] STEP upload failed ({exc}), falling back to features")
+                result["errors"].append(f"STEP upload: {exc}")
+
+        # FALLBACK: Build parametric features from spec
         try:
-            # Create document
             print(f"  [Onshape] Creating document: {name}")
             doc = self.create_document(name)
             did, wid, eid = doc["documentId"], doc["workspaceId"], doc["elementId"]
             result["url"] = doc["url"]
             result["documentId"] = did
 
-            # Build features from spec
             features = self._spec_to_features(spec, goal)
             print(f"  [Onshape] Adding {len(features)} features...")
 
@@ -350,6 +439,7 @@ class OnshapeBridge:
                     result["errors"].append(f"Feature {i}: {exc}")
                     print(f"  [Onshape] Feature {i} failed: {exc}")
 
+            result["method"] = "parametric_features"
             print(f"  [Onshape] Part created: {doc['url']}")
             print(f"  [Onshape] {result['features_added']}/{len(features)} features added")
 
@@ -438,10 +528,12 @@ class OnshapeBridge:
 # Public API
 # ---------------------------------------------------------------------------
 
-def create_onshape_part(name: str, spec: dict[str, Any], goal: str = "") -> dict[str, Any]:
-    """Create a part in Onshape. Returns dict with url and status."""
+def create_onshape_part(name: str, spec: dict[str, Any], goal: str = "",
+                        step_path: str = "") -> dict[str, Any]:
+    """Create a part in Onshape. Returns dict with url and status.
+    If step_path is provided, uploads the STEP file directly (full fidelity)."""
     bridge = OnshapeBridge()
-    return bridge.create_part(name, spec, goal)
+    return bridge.create_part(name, spec, goal, step_path=step_path)
 
 
 def is_onshape_available() -> bool:

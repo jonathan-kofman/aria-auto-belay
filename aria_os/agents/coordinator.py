@@ -540,8 +540,9 @@ Describe the 3D shape in terms of CadQuery operations."""
                 if not is_onshape_available():
                     return {"status": "skipped", "reason": "ONSHAPE_ACCESS_KEY not set"}
                 part_name = f"ARIA-OS: {ctx.goal[:50]}"
+                _step = str(ctx.geometry_path) if ctx.geometry_path else ""
                 result = await loop.run_in_executor(
-                    None, create_onshape_part, part_name, spec, ctx.goal)
+                    None, create_onshape_part, part_name, spec, ctx.goal, _step)
                 return result or {"status": "no_result"}
             except Exception as e:
                 return {"status": "error", "error": str(e)}
