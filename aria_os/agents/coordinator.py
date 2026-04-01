@@ -554,13 +554,29 @@ Describe the 3D shape in terms of CadQuery operations."""
             except asyncio.TimeoutError:
                 return {"status": "error", "error": f"{name} timed out after {secs}s"}
 
-        fea, drawing, dfm, fusion, quote, onshape = await asyncio.gather(
+        # ── Visual verification: Claude vision checks rendered geometry ───
+        async def _run_visual_verify():
+            if not step_exists:
+                return {"status": "skipped"}
+            try:
+                from ..visual_verifier import verify_visual
+                stl = str(ctx.geometry_path).replace(".step", ".stl").replace("step/", "stl/")
+                result = await loop.run_in_executor(
+                    None, verify_visual, str(ctx.geometry_path), stl, ctx.goal, spec)
+                return result or {"status": "no_result"}
+            except ImportError:
+                return {"status": "skipped", "reason": "visual_verifier not installed"}
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+
+        fea, drawing, dfm, fusion, quote, onshape, visual = await asyncio.gather(
             _with_timeout(_run_fea(), "FEA"),
             _with_timeout(_run_drawing(), "Drawing"),
             _with_timeout(_run_dfm(), "DFM"),
             _with_timeout(_run_fusion(), "Fusion"),
             _with_timeout(_run_quote(), "Quote"),
             _with_timeout(_run_onshape(), "Onshape"),
+            _with_timeout(_run_visual_verify(), "Visual", secs=120),
             return_exceptions=True,
         )
 
@@ -575,6 +591,12 @@ Describe the 3D shape in terms of CadQuery operations."""
             ("Fusion", fusion, lambda r: r.get("script_path", "")),
             ("Quote", quote, lambda r: f"${r.get('unit_cost_usd', 0):.2f}" if r.get("unit_cost_usd") else ""),
             ("Onshape", onshape, lambda r: r.get("url", "")),
+            ("Visual", visual, lambda r: (
+                f"{'PASS' if r.get('verified') else 'ISSUES'} "
+                f"({r.get('confidence', 0)*100:.0f}% confidence, "
+                f"{sum(1 for c in r.get('checks', []) if c.get('found'))}"
+                f"/{len(r.get('checks', []))} features)"
+            ) if r.get("verified") is not None else ""),
         ]
         for name, result, fmt in results:
             if isinstance(result, dict):
@@ -600,6 +622,8 @@ Describe the 3D shape in terms of CadQuery operations."""
             ctx.save_artifact("fusion_script_path.txt", fusion["script_path"])
         if isinstance(onshape, dict) and onshape.get("url"):
             ctx.save_artifact("onshape_url.txt", onshape["url"])
+        if isinstance(visual, dict) and visual.get("verified") is not None:
+            ctx.save_artifact("visual_verification.json", visual)
 
         ctx.phases_completed.append("manufacturing")
         _emit(ctx, "phase_complete", "Phase 4 done", {"phase": 4})
