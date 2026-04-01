@@ -1,0 +1,36 @@
+{
+  "process": "cnc_5axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 248.45,
+  "breakdown": {
+    "material_usd": 0.01,
+    "machining_usd": 7.0,
+    "setup_usd": 200.0,
+    "finishing_usd": 0.03,
+    "margin_usd": 41.41
+  },
+  "lead_time_days": 13,
+  "geometry": {
+    "bbox_mm": [
+      8.0,
+      8.0,
+      15.0
+    ],
+    "volume_cm3": 0.6184,
+    "stock_volume_cm3": 0.96,
+    "material_removal_pct": 35.6,
+    "surface_area_cm2": 6.6455,
+    "face_count": 64
+  },
+  "optimizations": [
+    "Simplify part geometry to reduce complexity (estimated $10 savings)",
+    "Use a more efficient machining strategy (e.g., 3+2 axis instead of 5-axis) (estimated $20 savings)",
+    "Optimize stock volume by adjusting the bounding box dimensions (estimated $0.50 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High material removal percentage may indicate complex machining operations, increasing risk of tool breakage or reduced tool life.",
+    "High face count and complexity may require specialized tooling or longer setup times."
+  ]
+}

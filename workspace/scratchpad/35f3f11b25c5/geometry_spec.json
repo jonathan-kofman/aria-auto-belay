@@ -1,0 +1,14 @@
+{
+  "spec": {
+    "part_type": "spacer",
+    "od_mm": 8.0,
+    "bore_mm": 3.0,
+    "id_mm": 3.0,
+    "thickness_mm": 15.0,
+    "height_mm": 15.0
+  },
+  "cem_params": {},
+  "material": "",
+  "research_context": "\n## Shape & Geometry\n- M3 Board Spacers, Standoffs | Electronic Components Distributor DigiKey: M3 Board Spacers, Standoffs Board spacers and standoffs provide precise positioning and fastening of two objects designed to be a specific distance apart for insulation, connection or structural purposes.\n- standoff - Recent models | 3D CAD Model Collection - GrabCAD: The GrabCAD Library offers millions of free CAD designs, CAD files, and 3D models. Join the GrabCAD Community today to gain access and download!\n- Standoffs: 3D models - SOLIDWORKS, Inventor, CATIA V5 ... - TraceParts: Discover all CAD files of the \"Standoffs\" category from Supplier-Certified Catalogs SOLIDWORKS, Inventor, Creo, CATIA, Solid Edge, autoCAD, Revit and many more CAD software but also as STEP, STL, IGES, STL, DWG, DXF and more neutral CAD formats.\n- Standoffs M3 Standoffs &amp; Spacers - Mouser: Applied Filters: Electromechanical Hardware Standoffs & Spacers Product = Standoffs Thread Size = M3 ... Reset All Please modify your search so that it will return results. To use the less than or greater than function, please select a value first.\n- PCB (Printed Circuit Board) Standoffs | McMaster-Carr: Choose from our selection of PCB (printed circuit board) standoffs, including dual locking snap-in supports, adhesive-back snap-in supports, and more. Same and Next Day Delivery.\n\n## Dimensions\n- 8mm standoff - Amazon\u00ae Official Site - Shop 8mm standoff: Browse & discover thousands of brands. Read customer reviews & find best sellers. Free shipping on qualified orders. Free, easy returns on millions of items.\n- M3 Board Spacers, Standoffs - Digi-Key Electronics: M3 Board Spacers, Standoffs Board spacers and standoffs provide precise positioning and fastening of two objects designed to be a specific distance apart for insulation, connection or structural purposes.\n- Standoffs M3 Standoffs &amp; Spacers - Mouser: Applied Filters: Electromechanical Hardware Standoffs & Spacers Product = Standoffs Thread Size",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(80, 80, 15)\n\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(3).cutThruAll()\n\nSTEP 3: Add raised feature \u2014 .workplane(offset=15).rect(60, 60).extrude(1.5)"
+}

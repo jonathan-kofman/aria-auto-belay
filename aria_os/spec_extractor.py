@@ -73,6 +73,8 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("action camera mount", "gopro_mount"),
     ("arm link",      "hollow_rect"),  # structural arm link → hollow rectangular tube
     ("ratchet ring",  "ratchet_ring"),
+    ("gear carrier",  "flange"),     # planetary carrier = disc with pin holes
+    ("planet carrier","flange"),
     ("gear wheel",    "gear"),
     ("gear train",    "gear"),
     ("spur gear",     "gear"),
@@ -341,6 +343,8 @@ def extract_spec(description: str) -> dict[str, Any]:
         r"(\d+)-bolt",
         r"bolt[s]?\s*[=:]\s*(\d+)",
         r"(\d+)\s+holes?\b",                        # "4 holes"
+        r"(\d+)\s*[xX]\s+\w+\s+\w*\s*holes?\b",   # "3x planet pin holes"
+        r"(\d+)\s*[xX]\s+\w+\s+holes?\b",          # "3x mounting holes"
     ])
     if n_bolts and "n_bolts" not in spec:
         spec["n_bolts"] = n_bolts

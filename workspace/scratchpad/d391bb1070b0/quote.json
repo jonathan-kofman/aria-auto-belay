@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 175.71,
+  "breakdown": {
+    "material_usd": 0.06,
+    "machining_usd": 21.06,
+    "setup_usd": 125.0,
+    "finishing_usd": 0.3,
+    "margin_usd": 29.28
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      60.0,
+      40.0,
+      3.0
+    ],
+    "volume_cm3": 4.32,
+    "stock_volume_cm3": 7.2,
+    "material_removal_pct": 40.0,
+    "surface_area_cm2": 60.96,
+    "face_count": 38
+  },
+  "optimizations": [
+    "Simplify part design to reduce face count, potentially reducing machining time ($5-$10 savings)",
+    "Consider using a more efficient 4-axis machining strategy or tooling ($8-$12 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining time due to complex geometry (38 faces)",
+    "Potential for tool wear or breakage with 4-axis machining"
+  ]
+}

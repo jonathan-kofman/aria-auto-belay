@@ -323,8 +323,14 @@ class EvalAgent:
         # For brackets, L-brackets, heat sinks — the smallest WxHxD dim is thickness
         goal_lower = state.goal.lower()
         part_type = user_spec.get("part_type", "")
-        _thickness_parts = ("bracket", "l_bracket", "heat_sink", "phone_stand",
+        _thickness_parts = ("bracket", "l_bracket", "phone_stand",
                             "flat_plate", "base_plate", "catch_pawl")
+
+        # Heat sinks: thickness_mm is fin thickness, NOT part thickness.
+        # The part is base_t + fin_height tall. Skip thickness bbox check entirely.
+        if part_type == "heat_sink" or "heat sink" in goal_lower or "fin" in goal_lower:
+            for k in ("thickness_mm", "height_mm", "depth_mm"):
+                user_spec.pop(k, None)  # don't check these against bbox
         _is_thickness_part = part_type in _thickness_parts or any(
             kw in goal_lower for kw in ("thick", "plate", "sheet", "bracket", "heat sink"))
 
