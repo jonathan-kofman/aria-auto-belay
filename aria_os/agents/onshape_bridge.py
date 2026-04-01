@@ -628,6 +628,112 @@ class OnshapeBridge:
 
         return result
 
+    def set_part_metadata(self, did: str, wid: str, eid: str,
+                         name: str = "", description: str = "",
+                         material: str = "", part_number: str = "") -> dict:
+        """Set metadata on the first part in a Part Studio (name, description, material)."""
+        try:
+            # Get parts list to find the partId
+            parts = self.client.get(f"/parts/d/{did}/w/{wid}/e/{eid}")
+            if not isinstance(parts, list) or not parts:
+                return {"error": "no parts found"}
+            part_id = parts[0].get("partId", "")
+
+            # Build metadata update
+            properties = []
+            if name:
+                properties.append({"propertyId": "57f3fb8efa3416c06701d60f",
+                                   "value": name})  # Name property
+            if description:
+                properties.append({"propertyId": "57f3fb8efa3416c06701d611",
+                                   "value": description})  # Description
+            if material:
+                properties.append({"propertyId": "57f3fb8efa3416c06701d614",
+                                   "value": material})  # Material
+            if part_number:
+                properties.append({"propertyId": "57f3fb8efa3416c06701d610",
+                                   "value": part_number})  # Part number
+
+            if properties:
+                self.client.post(
+                    f"/metadata/d/{did}/w/{wid}/e/{eid}/p/{part_id}",
+                    data={"properties": properties})
+
+            return {"status": "ok", "partId": part_id}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    def get_mass_properties(self, did: str, wid: str, eid: str) -> dict:
+        """Get mass/volume/surface area properties from a Part Studio."""
+        try:
+            result = self.client.get(
+                f"/partstudios/d/{did}/w/{wid}/e/{eid}/massproperties")
+            bodies = result.get("bodies", {})
+            if not bodies:
+                return {}
+            # Return first body's properties
+            body = next(iter(bodies.values()))
+            return {
+                "volume_mm3": body.get("volume", [0])[0] * 1e9,
+                "surface_area_mm2": body.get("periphery", [0])[0] * 1e6,
+                "mass_kg": body.get("mass", [0])[0] if body.get("mass") else None,
+                "centroid_mm": [c * 1000 for c in body.get("centroid", [0, 0, 0])[:3]],
+            }
+        except Exception:
+            return {}
+
+    def get_bom(self, did: str, wid: str, spec: dict, goal: str = "") -> dict:
+        """Generate a BOM (Bill of Materials) entry for the part.
+        Combines Onshape mass properties with spec metadata."""
+        bom = {
+            "part_name": goal[:60] if goal else "ARIA-OS Part",
+            "material": spec.get("material", "unspecified"),
+            "quantity": 1,
+            "dimensions": {},
+            "mass_properties": {},
+        }
+
+        # Add all dimensional specs
+        for key in ("od_mm", "bore_mm", "width_mm", "height_mm", "depth_mm",
+                     "length_mm", "thickness_mm", "n_bolts", "bolt_dia_mm"):
+            val = spec.get(key)
+            if val is not None:
+                bom["dimensions"][key] = val
+
+        return bom
+
+    def get_shaded_views(self, did: str, wid: str, eid: str,
+                         views: int = 3) -> list[bytes]:
+        """Get shaded view renders from Onshape Part Studio.
+        Returns list of PNG bytes for each view angle."""
+        images_out = []
+        # View matrices: front, top, isometric
+        view_configs = [
+            ("outputHeight=600&outputWidth=800&pixelSize=0.0001", "front"),
+            ("outputHeight=600&outputWidth=800&pixelSize=0.0001"
+             "&viewMatrix=0,0,1,0,1,0,0,0,0,1,0,0", "top"),
+        ]
+
+        for params, view_name in view_configs[:views]:
+            try:
+                url = f"{_BASE_URL}/partstudios/d/{did}/w/{wid}/e/{eid}/shadedviews"
+                headers = self.client.auth.make_headers(
+                    "GET",
+                    f"/partstudios/d/{did}/w/{wid}/e/{eid}/shadedviews",
+                    params)
+                req = urllib.request.Request(
+                    f"{url}?{params}", headers=headers, method="GET")
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read())
+                    imgs = data.get("images", [])
+                    if imgs:
+                        import base64 as _b64
+                        images_out.append(_b64.b64decode(imgs[0]))
+            except Exception:
+                pass
+
+        return images_out
+
     def add_feature(self, did: str, wid: str, eid: str, feature: dict) -> dict:
         """Add a feature to a part studio."""
         path = f"/partstudios/d/{did}/w/{wid}/e/{eid}/features"
@@ -725,6 +831,9 @@ class OnshapeBridge:
                         print(f"  [Onshape] Screenshot: {geo_check['screenshot']}")
                         result["screenshot"] = geo_check["screenshot"]
 
+                    # Enrich Onshape document: metadata, mass properties, BOM, drawing
+                    self._enrich_document(result, upload, verification, spec, goal, name)
+
                     return result
                 elif verification["parts"] > 0:
                     # Parts exist but with warnings — still usable
@@ -780,6 +889,70 @@ class OnshapeBridge:
             print(f"  [Onshape] Error: {exc}")
 
         return result
+
+    def _enrich_document(self, result: dict, upload: dict, verification: dict,
+                         spec: dict, goal: str, name: str) -> None:
+        """After successful STEP upload + verification, enrich the Onshape document:
+        - Set part metadata (name, description, material)
+        - Get mass properties (volume, surface area)
+        - Generate BOM entry
+        - Create drawing element
+        """
+        did = upload.get("documentId", "")
+        wid = upload.get("workspaceId", "")
+        ps_eid = verification.get("part_studio_eid", "")
+        if not (did and wid and ps_eid):
+            return
+
+        # 1. Set part metadata
+        try:
+            material = spec.get("material", "")
+            meta = self.set_part_metadata(
+                did, wid, ps_eid,
+                name=name,
+                description=goal[:200],
+                material=material,
+            )
+            if meta.get("status") == "ok":
+                print(f"  [Onshape] Metadata set: {name}")
+        except Exception:
+            pass
+
+        # 2. Get mass properties
+        try:
+            mass = self.get_mass_properties(did, wid, ps_eid)
+            if mass.get("volume_mm3"):
+                result["mass_properties"] = mass
+                vol = mass["volume_mm3"]
+                sa = mass.get("surface_area_mm2", 0)
+                print(f"  [Onshape] Volume: {vol:.0f}mm³, Surface area: {sa:.0f}mm²")
+        except Exception:
+            pass
+
+        # 3. Generate BOM
+        try:
+            bom = self.get_bom(did, wid, spec, goal)
+            if result.get("mass_properties"):
+                bom["mass_properties"] = result["mass_properties"]
+            result["bom"] = bom
+
+            # Save BOM to file
+            bom_path = Path("outputs/cad/meta") / f"{Path(name).stem}_bom.json"
+            bom_path.parent.mkdir(parents=True, exist_ok=True)
+            bom_path.write_text(json.dumps(bom, indent=2, default=str), encoding="utf-8")
+            result["bom_path"] = str(bom_path)
+            print(f"  [Onshape] BOM: {bom_path}")
+        except Exception:
+            pass
+
+        # 4. Create drawing element
+        try:
+            drawing = self.create_drawing(did, wid, ps_eid, f"{name} Drawing")
+            if drawing.get("url"):
+                result["drawing_url"] = drawing["url"]
+                print(f"  [Onshape] Drawing: {drawing['url']}")
+        except Exception:
+            pass
 
     def _spec_to_features(self, spec: dict, goal: str = "") -> list[dict]:
         """Convert ARIA spec to Onshape feature list."""
