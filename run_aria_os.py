@@ -905,7 +905,7 @@ def main():
         if len(sys.argv) < 3:
             print("Usage: python run_aria_os.py --cam-validate <step_file> [--retries 2]")
             sys.exit(1)
-        from aria_os.cam_validator import check_machinability
+        # from aria_os.cam_validator import check_machinability
         _cv_step = sys.argv[2]
         _cv_retries = 2
         if "--retries" in sys.argv:

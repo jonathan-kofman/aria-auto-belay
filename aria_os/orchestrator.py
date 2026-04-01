@@ -299,19 +299,7 @@ def run(goal: str, repo_root: Path | None = None, max_attempts: int = 3, *, prev
                     except Exception as _de:
                         print(f'  [GD&T] skipped: {_de}')
 
-                # Auto-run CAM (no prompt in agent mode)
-                if _step_exists:
-                    try:
-                        from .agents.cam_agent import run_cam_agent
-                        _mat = _plan_params.get('material', 'aluminium_6061')
-                        _cam_result = run_cam_agent(str(step_path), material=_mat)
-                        if _cam_result:
-                            session['cam'] = _cam_result
-                            print(f'  [CAM] Script: {_cam_result.get("script_path", "?")}')
-                    except KeyboardInterrupt:
-                        print(f'  [CAM] interrupted by user')
-                    except Exception as _ce:
-                        print(f'  [CAM] skipped: {_ce}')
+
 
             # ── Final summary ────────────────────────────────────────────────
             _all_cp = session.get('checkpoints', {})

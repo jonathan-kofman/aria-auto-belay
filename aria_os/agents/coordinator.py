@@ -55,7 +55,6 @@ class JobContext:
     validation_passed: bool = False
 
     # Phase 4 outputs (CAM + simulation)
-    cam_result: dict[str, Any] = field(default_factory=dict)
     simulation_result: dict[str, Any] = field(default_factory=dict)
 
     # Phase 5 output (final)
@@ -362,17 +361,7 @@ Describe the 3D shape in terms of CadQuery operations."""
         material = ctx.geometry_spec.get("material", "aluminium_6061")
         part_id = spec.get("part_type", "agent_part")
 
-        # ── CAM: toolpath generation ─────────────────────────────────────
-        async def _run_cam():
-            if not step_exists:
-                return {"status": "skipped", "reason": "no geometry"}
-            try:
-                from .cam_agent import run_cam_agent
-                result = await loop.run_in_executor(
-                    None, run_cam_agent, ctx.geometry_path, material)
-                return result or {"status": "no_result"}
-            except Exception as e:
-                return {"status": "error", "error": str(e)}
+
 
         # ── FEA: structural analysis ─────────────────────────────────────
         async def _run_fea():
@@ -452,8 +441,7 @@ Describe the 3D shape in terms of CadQuery operations."""
                 return {"status": "error", "error": str(e)}
 
         # Execute ALL 7 outputs in parallel
-        cam, fea, drawing, dfm, fusion, quote, onshape = await asyncio.gather(
-            _run_cam(),
+        fea, drawing, dfm, fusion, quote, onshape = await asyncio.gather(
             _run_fea(),
             _run_drawing(),
             _run_dfm(),
@@ -464,12 +452,10 @@ Describe the 3D shape in terms of CadQuery operations."""
         )
 
         # Store results
-        ctx.cam_result = cam if isinstance(cam, dict) else {"error": str(cam)}
         ctx.simulation_result = fea if isinstance(fea, dict) else {"error": str(fea)}
 
         # Print results
         results = [
-            ("CAM", cam, lambda r: r.get("script_path", "")),
             ("FEA", fea, lambda r: f"{'PASS' if r.get('passed') else 'FAIL'} SF={r.get('safety_factor', '?')}" if r.get("passed") is not None else ""),
             ("Drawing", drawing, lambda r: r.get("path", "")),
             ("DFM", dfm, lambda r: f"Score: {r.get('score', '?')}/100 — {r.get('process_recommendation', '')}" if r.get("score") else ""),
@@ -594,11 +580,7 @@ Describe the 3D shape in terms of CadQuery operations."""
         if ctx.stl_path and Path(ctx.stl_path).exists():
             sz = Path(ctx.stl_path).stat().st_size // 1024
             artifacts.append(f"  STL:        {ctx.stl_path} ({sz}KB)")
-        if isinstance(ctx.cam_result, dict) and ctx.cam_result.get("script_path"):
-            artifacts.append(f"  CAM:        {ctx.cam_result['script_path']}")
-            ct = ctx.cam_result.get("cycle_time_min", 0)
-            if ct:
-                artifacts.append(f"              Cycle time: {ct:.1f} min")
+
         # Check scratchpad for drawing
         drawing_path = ctx.scratchpad_dir / "drawing_path.txt"
         if drawing_path.exists():

@@ -1,0 +1,10 @@
+{
+  "goal": "simple bracket, 100mm wide, 60mm tall, 8mm thick, 4x M6 holes",
+  "part_id": "",
+  "fusion_mode": "parametric",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_simple_bracket_tall_4x_m6.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_simple_bracket_tall_4x_m6.stl",
+  "features": [],
+  "base_shape": {},
+  "params": {}
+}
