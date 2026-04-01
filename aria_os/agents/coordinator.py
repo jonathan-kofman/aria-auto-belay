@@ -371,8 +371,14 @@ Describe the 3D shape in terms of CadQuery operations."""
             from ..ecad.ecad_generator import generate_ecad
             loop = asyncio.get_event_loop()
             out_dir = ctx.repo_root / "outputs" / "ecad"
-            result = await loop.run_in_executor(
+            raw = await loop.run_in_executor(
                 None, generate_ecad, ctx.goal, str(out_dir))
+
+            # generate_ecad returns (script_path, bom_path) tuple
+            if isinstance(raw, tuple):
+                result = {"script_path": str(raw[0]), "bom_path": str(raw[1]) if len(raw) > 1 else ""}
+            else:
+                result = raw or {}
 
             if result and result.get("script_path"):
                 ctx.geometry_path = result["script_path"]
@@ -540,14 +546,20 @@ Describe the 3D shape in terms of CadQuery operations."""
             except Exception as e:
                 return {"status": "error", "error": str(e)}
 
-        # Execute ALL 7 outputs in parallel
+        # Execute ALL 6 outputs in parallel with 90s timeout per task
+        async def _with_timeout(coro, name, secs=90):
+            try:
+                return await asyncio.wait_for(coro, timeout=secs)
+            except asyncio.TimeoutError:
+                return {"status": "error", "error": f"{name} timed out after {secs}s"}
+
         fea, drawing, dfm, fusion, quote, onshape = await asyncio.gather(
-            _run_fea(),
-            _run_drawing(),
-            _run_dfm(),
-            _run_fusion(),
-            _run_quote(),
-            _run_onshape(),
+            _with_timeout(_run_fea(), "FEA"),
+            _with_timeout(_run_drawing(), "Drawing"),
+            _with_timeout(_run_dfm(), "DFM"),
+            _with_timeout(_run_fusion(), "Fusion"),
+            _with_timeout(_run_quote(), "Quote"),
+            _with_timeout(_run_onshape(), "Onshape"),
             return_exceptions=True,
         )
 

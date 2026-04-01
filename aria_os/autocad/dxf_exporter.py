@@ -1796,6 +1796,11 @@ def generate_civil_dxf(
         _OUT_DIR.mkdir(parents=True, exist_ok=True)
         output_path = _OUT_DIR / f"{slug}.dxf"
     output_path = Path(output_path)
+    # If output_path is a directory (no .dxf suffix), generate filename inside it
+    if output_path.suffix.lower() != ".dxf":
+        slug = re.sub(r"[^a-z0-9_]+", "_",
+                      f"{state}_{discipline}".lower()).strip("_")
+        output_path = output_path / f"{slug}.dxf"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create DXF document
