@@ -3,7 +3,7 @@
 import adsk.core, adsk.fusion, traceback
 
 OD_MM=100.0; HEIGHT_MM=50.0; BORE_MM=30.0
-PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_simple_bracket_tall_4x_m6.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_simple_bracket_tall_4x_m6.step'
+PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_skateboard_truck_baseplate_4x_m5.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_skateboard_truck_baseplate_4x_m5.step'
 
 def run(context):
     ui = None

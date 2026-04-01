@@ -1044,7 +1044,7 @@ def _generate_drainage_plan(msp: Any, std: dict, description: str) -> None:  # n
     notes = [
         f"1. DESIGN STORM: {design_storm}-YR (MINOR) / 100-YR (MAJOR) PER TxDOT HYD. MANUAL.",
         f"2. MIN PIPE COVER: {min_cover:.1f} FT OVER CROWN, PER STATE DOT STANDARD.",
-        "3. ALL PROPOSED PIPE: 24\" RCP CL. III (ASTM C76) UNLESS NOTED. MIN SLOPE 0.20%.",
+        f"3. ALL PROPOSED PIPE: {trunk_pipe_in}\" RCP CL. III (ASTM C76) UNLESS NOTED. MIN SLOPE 0.20%.",
         "4. ALL MANHOLES: 4-FT DIA. PRECAST CONC. (ASTM C478) W/ WATERTIGHT JOINTS.",
         "5. CURB INLETS: TYPE C-MODIFIED, 5-FT OPENING. GRATE & FRAME PER TXDOT STD.",
         "6. CONTRACTOR SHALL FIELD-VERIFY ALL EXISTING UTILITY LOCATIONS PRIOR TO WORK.",
@@ -1289,34 +1289,34 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
         "insert": (5, water_y + 2),
     })
 
-    # Gate valves every 500 LF (one at sta 0 and one at 500)
+    # Gate valves every 500 LF (one at sta 0 and one at end)
     for gv_x in (0, run_len):
         msp.add_circle((gv_x, water_y), 2.5,
                         dxfattribs={"layer": "UTIL-WATER"})
         msp.add_text("GV", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (gv_x - 2, water_y + 3),
         })
 
-    # Fire hydrant at STA 2+50
-    fh_x = 250.0
+    # Fire hydrant at midpoint
+    fh_x = run_len / 2.0
     msp.add_circle((fh_x, water_y + 5), 3.0,
                     dxfattribs={"layer": "UTIL-WATER"})
     msp.add_line((fh_x, water_y), (fh_x, water_y + 5),
                  dxfattribs={"layer": "UTIL-WATER"})
     msp.add_text("FH-1", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (fh_x + 3, water_y + 6),
     })
     msp.add_text("FH ASSEMBLY W/ 6\" GATE VALVE, BREAK-AWAY FLANGE", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.08,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (fh_x + 5, water_y + 3),
     })
 
-    # Hydrants every 250 LF
+    # Hydrant at start
     msp.add_circle((0, water_y + 5), 3.0, dxfattribs={"layer": "UTIL-WATER"})
     msp.add_text("FH-2", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (3, water_y + 6),
     })
 
@@ -1324,25 +1324,26 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
     msp.add_line((0, sewer_y), (run_len, sewer_y),
                  dxfattribs={"layer": "UTIL-SEWER"})
     msp.add_text("8\" SDR-35 PVC GRAVITY SEWER @ 0.40% MIN", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (5, sewer_y + 2),
     })
 
-    # Sewer manholes at 0, 300 LF
+    # Sewer manholes — spaced along corridor
+    smh_spacing = run_len / 2.0
     smh_data = [
-        (0,   "SMH-1", 103.50, 99.00),
-        (300, "SMH-2", 103.20, 97.80),
-        (run_len, "SMH-3", 103.00, 97.20),
+        (0,          "SMH-1", 103.50, 99.00),
+        (smh_spacing, "SMH-2", 103.20, 97.80),
+        (run_len,    "SMH-3", 103.00, 97.20),
     ]
     for smh_x, smh_lbl, smh_rim, smh_inv in smh_data:
         msp.add_circle((smh_x, sewer_y), 3.0,
                         dxfattribs={"layer": "UTIL-SEWER"})
         msp.add_text(smh_lbl, dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.12,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (smh_x - 4, sewer_y - 6),
         })
         msp.add_text(f"RIM={smh_rim:.2f} / INV={smh_inv:.2f}", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (smh_x - 12, sewer_y - 9),
         })
 
@@ -1355,7 +1356,7 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
             msp.add_line((lat_x, sewer_y), (lat_x, sewer_y - 12),
                          dxfattribs={"layer": "UTIL-SEWER"})
         msp.add_text("4\"", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.08,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (lat_x + 0.5, sewer_y - 6),
         })
 
@@ -1363,28 +1364,28 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
     msp.add_line((0, gas_y), (run_len, gas_y),
                  dxfattribs={"layer": "UTIL-GAS"})
     msp.add_text("4\" STEEL GAS MAIN", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (5, gas_y - 2),
     })
     msp.add_text(f"HORIZ. SEP.: {abs(sewer_y - gas_y):.0f}' MIN (GAS TO SEWER)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.08,
-        "insert": (200, gas_y - 3),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
+        "insert": (run_len * 0.4, gas_y - 3),
     })
 
     # ── Electric conduit (2") — 5' min from gas ──────────────────────────────
     msp.add_line((0, elec_y), (run_len, elec_y),
                  dxfattribs={"layer": "UTIL-ELECTRIC"})
     msp.add_text("2\" ELEC. CONDUIT", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (5, elec_y - 2),
     })
     msp.add_text(f"HORIZ. SEP.: {abs(gas_y - elec_y):.0f}' MIN (ELEC. TO GAS)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.08,
-        "insert": (200, elec_y - 3),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
+        "insert": (run_len * 0.4, elec_y - 3),
     })
 
-    # ── Crossing conflict STA 2+50: sewer over water ──────────────────────────
-    cross_x = 250.0
+    # ── Crossing conflict at midpoint: sewer over water ───────────────────────
+    cross_x = run_len / 2.0
     # Crossing marker (X symbol)
     d = 4.0
     msp.add_line((cross_x - d, sewer_y - d), (cross_x + d, water_y + d),
@@ -1392,16 +1393,16 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
     msp.add_line((cross_x - d, water_y + d), (cross_x + d, sewer_y - d),
                  dxfattribs={"layer": "UTIL-CROSSING"})
     msp.add_text("CROSSING", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (cross_x + 5, (sewer_y + water_y) / 2 + 2),
     })
     msp.add_text("WATER MAIN DEFLECTS DOWN 18\" MIN VERTICAL CLEARANCE AT CROSSING", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.08,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (cross_x + 5, (sewer_y + water_y) / 2 - 2),
     })
 
     # ── Meter vault MV-1 near end ─────────────────────────────────────────────
-    mv_x = 460.0
+    mv_x = run_len * 0.92
     msp.add_lwpolyline(
         [(mv_x - 4, water_y - 4), (mv_x + 4, water_y - 4),
          (mv_x + 4, water_y + 4), (mv_x - 4, water_y + 4),
@@ -1409,14 +1410,14 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
         dxfattribs={"layer": "UTIL-WATER"},
     )
     msp.add_text("MV-1", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (mv_x - 2, water_y + 5),
     })
 
     # ── General notes ─────────────────────────────────────────────────────────
     notes_x, notes_y = 0.0, elec_y - 20.0
     msp.add_text("UTILITY NOTES:", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (notes_x, notes_y),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_LG, "insert": (notes_x, notes_y),
     })
     notes = [
         "1. MIN HORIZONTAL SEPARATION WATER/SEWER: 10'-0\" (AWWA C600).",
@@ -1426,49 +1427,56 @@ def _generate_utilities_plan(msp: Any, std: dict, description: str) -> None:
     ]
     for i, note in enumerate(notes):
         msp.add_text(note, dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (notes_x, notes_y - 3 - i * 2.2),
         })
 
     # ── Title ─────────────────────────────────────────────────────────────────
     msp.add_text("UTILITY PLAN", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.30,
-        "insert": (200, elec_y - 60),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_XL,
+        "insert": (run_len * 0.4, elec_y - 60),
     })
     msp.add_text("SCALE: 1\"=50'", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
-        "insert": (200, elec_y - 66),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE,
+        "insert": (run_len * 0.4, elec_y - 66),
     })
     # North arrow
     na_x, na_y = run_len + 20, 30
     msp.add_line((na_x, na_y - 10), (na_x, na_y + 10),
                  dxfattribs={"layer": "ANNO-TEXT"})
     msp.add_text("N", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (na_x - 1, na_y + 11),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_LG, "insert": (na_x - 1, na_y + 11),
     })
 
 
 def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
     """
-    Commercial site plan for a 1-acre lot (200' x 218').
-    Property boundary with bearings, setbacks, 80'x120' building, parking field
-    (32 standard + 2 ADA), ADA route, loading zone, dumpster enclosure,
-    bike parking, site lighting, storm inlet, zoning compliance notes.
+    Site plan.  Parameters are extracted from *description* via LLM
+    when available; otherwise sensible defaults are used.
     """
-    lot_w, lot_d = 200.0, 218.0   # feet
+    params = _interpret_plan_description(description, "site", std)
+
+    lot_w = float(params.get("lot_width_ft", 200.0))
+    lot_d = float(params.get("lot_depth_ft", 218.0))
+    n_buildings = int(params.get("n_buildings", 1))
+    bldg_w = float(params.get("building_width_ft", 80.0))
+    bldg_d = float(params.get("building_depth_ft", 120.0))
+    n_parking = int(params.get("n_parking_stalls", 32))
+    has_loading = params.get("has_loading_zone", True)
+    has_bike_parking = params.get("has_bike_parking", True)
 
     # ── Property boundary with bearings ───────────────────────────────────────
     corners = [(0, 0), (lot_w, 0), (lot_w, lot_d), (0, lot_d), (0, 0)]
     msp.add_lwpolyline(corners, dxfattribs={"layer": "PROP-BOUNDARY"})
     bearings = [
-        (lot_w / 2, -4, "N 89°14'32\" E  200.00'"),
-        (lot_w + 2, lot_d / 2, "N 00°45'28\" W  218.00'"),
-        (lot_w / 2, lot_d + 2, "S 89°14'32\" W  200.00'"),
-        (-45, lot_d / 2, "S 00°45'28\" E  218.00'"),
+        (lot_w / 2, -4, f"N 89\u00b014'32\" E  {lot_w:.2f}'"),
+        (lot_w + 2, lot_d / 2, f"N 00\u00b045'28\" W  {lot_d:.2f}'"),
+        (lot_w / 2, lot_d + 2, f"S 89\u00b014'32\" W  {lot_w:.2f}'"),
+        (-45, lot_d / 2, f"S 00\u00b045'28\" E  {lot_d:.2f}'"),
     ]
     for bx, by, bearing in bearings:
         msp.add_text(bearing, dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.12,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (bx, by),
         })
 
@@ -1485,7 +1493,7 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
         msp.add_line((0, 25), (lot_w, 25),
                      dxfattribs={"layer": "PROP-SETBACK"})
     msp.add_text("25' FRONT SETBACK", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12, "insert": (2, 27),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM, "insert": (2, 27),
     })
     # Rear setback
     try:
@@ -1495,7 +1503,7 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
         msp.add_line((0, lot_d - 10), (lot_w, lot_d - 10),
                      dxfattribs={"layer": "PROP-SETBACK"})
     msp.add_text("10' REAR SETBACK", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12, "insert": (2, lot_d - 8),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM, "insert": (2, lot_d - 8),
     })
     # Side setbacks (5' each side)
     for sx, label in [(5, "5' SIDE SETBACK"), (lot_w - 5, "5' SIDE SETBACK")]:
@@ -1506,11 +1514,10 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
             msp.add_line((sx, 0), (sx, lot_d),
                          dxfattribs={"layer": "PROP-SETBACK"})
     msp.add_text("5' SIDE SETBACK (TYP.)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10, "insert": (6, lot_d / 2),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM, "insert": (6, lot_d / 2),
     })
 
-    # ── Building footprint (80' x 120' centered on pad) ───────────────────────
-    bldg_w, bldg_d = 80.0, 120.0
+    # ── Building footprint (centered on pad) ────────────────────────────────
     bldg_x0 = (lot_w - bldg_w) / 2
     bldg_y0 = (lot_d - bldg_d) / 2 + 15   # slightly south of center
     msp.add_lwpolyline(
@@ -1519,22 +1526,25 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
          (bldg_x0, bldg_y0)],
         dxfattribs={"layer": "BLDG-FOOTPRINT"},
     )
+    bldg_sf = int(bldg_w * bldg_d)
     msp.add_text("PROPOSED BUILDING", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE,
         "insert": (bldg_x0 + 10, bldg_y0 + bldg_d / 2 + 3),
     })
-    msp.add_text(u"\u00b19,600 SF", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
+    msp.add_text(f"\u00b1{bldg_sf:,} SF", dxfattribs={
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE,
         "insert": (bldg_x0 + 18, bldg_y0 + bldg_d / 2 - 3),
     })
 
     # ── Parking field ─────────────────────────────────────────────────────────
-    # 32 standard stalls (9'x18') in two rows along south portion
     stall_w, stall_d = 9.0, 18.0
-    row1_y = 30.0   # first row, face of stall at y=30, backs at y=48
-    row2_y = 30.0 + stall_d + 24.0   # drive aisle 24', then second row
-    for row_y in (row1_y, row2_y):
-        for col in range(16):
+    stalls_per_row = max(1, int((lot_w - 10) / stall_w))
+    n_rows = max(1, math.ceil(n_parking / stalls_per_row))
+    row1_y = 30.0   # first row, face of stall at y=30
+    for row_idx in range(min(n_rows, 4)):  # cap at 4 rows
+        row_y = row1_y + row_idx * (stall_d + 24.0)
+        stalls_this_row = min(stalls_per_row, n_parking - row_idx * stalls_per_row)
+        for col in range(max(0, stalls_this_row)):
             sx = 5.0 + col * stall_w
             if sx + stall_w > lot_w - 5:
                 break
@@ -1544,16 +1554,19 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
                  (sx, row_y)],
                 dxfattribs={"layer": "SITE-PARKING"},
             )
+    row2_y = row1_y + stall_d + 24.0  # for ADA/notes positioning
 
-    msp.add_text("32 STANDARD + 2 ADA = 34 PROVIDED (32 REQUIRED)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+    n_ada = max(2, n_parking // 16)
+    total_provided = n_parking + n_ada
+    msp.add_text(f"{n_parking} STANDARD + {n_ada} ADA = {total_provided} PROVIDED ({n_parking} REQUIRED)", dxfattribs={
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (5, row2_y + stall_d + 2),
     })
 
-    # ADA stalls (2 van-accessible, 8'+5' access aisle) at west end
+    # ADA stalls (van-accessible, 8'+5' access aisle) at west end
     ada_x = 5.0
     ada_y = row1_y
-    for i in range(2):
+    for i in range(n_ada):
         msp.add_lwpolyline(
             [(ada_x, ada_y), (ada_x + 8, ada_y),
              (ada_x + 8, ada_y + stall_d), (ada_x, ada_y + stall_d),
@@ -1568,7 +1581,7 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
             dxfattribs={"layer": "SITE-ADA"},
         )
         msp.add_text("ADA VAN", dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (ada_x + 0.5, ada_y + stall_d / 2),
         })
         ada_x += 13 + 9   # shift for next ADA stall
@@ -1582,30 +1595,31 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
     ]
     msp.add_lwpolyline(ada_route, dxfattribs={"layer": "SITE-ADA"})
     msp.add_text("ACCESSIBLE ROUTE", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (5 + 8, row1_y + stall_d + 10),
     })
 
     # ── Loading zone (12'x35' at rear) ───────────────────────────────────────
-    lz_x0 = lot_w - 40.0
-    lz_y0 = lot_d - 10 - 35
-    msp.add_lwpolyline(
-        [(lz_x0, lz_y0), (lz_x0 + 35, lz_y0),
-         (lz_x0 + 35, lz_y0 + 12), (lz_x0, lz_y0 + 12),
-         (lz_x0, lz_y0)],
-        dxfattribs={"layer": "SITE-LOADING"},
-    )
-    msp.add_text("LOADING ZONE", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.12,
-        "insert": (lz_x0 + 3, lz_y0 + 7),
-    })
-    msp.add_text("NO PARKING", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
-        "insert": (lz_x0 + 5, lz_y0 + 3),
-    })
+    if has_loading:
+        lz_x0 = lot_w - 40.0
+        lz_y0 = lot_d - 10 - 35
+        msp.add_lwpolyline(
+            [(lz_x0, lz_y0), (lz_x0 + 35, lz_y0),
+             (lz_x0 + 35, lz_y0 + 12), (lz_x0, lz_y0 + 12),
+             (lz_x0, lz_y0)],
+            dxfattribs={"layer": "SITE-LOADING"},
+        )
+        msp.add_text("LOADING ZONE", dxfattribs={
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
+            "insert": (lz_x0 + 3, lz_y0 + 7),
+        })
+        msp.add_text("NO PARKING", dxfattribs={
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
+            "insert": (lz_x0 + 5, lz_y0 + 3),
+        })
 
     # ── Dumpster enclosure (12'x20') ─────────────────────────────────────────
-    de_x0, de_y0 = lot_w - 30.0, lot_d - 40.0
+    de_x0, de_y0 = lot_w - 30.0, lot_d - 40.0  # always draw dumpster
     msp.add_lwpolyline(
         [(de_x0, de_y0), (de_x0 + 20, de_y0),
          (de_x0 + 20, de_y0 + 12), (de_x0, de_y0 + 12),
@@ -1613,21 +1627,22 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
         dxfattribs={"layer": "SITE-MISC"},
     )
     msp.add_text("DUMPSTER\nENCL.", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (de_x0 + 2, de_y0 + 5),
     })
 
-    # ── Bicycle parking (6-space rack near entrance) ─────────────────────────
-    bp_x, bp_y = bldg_x0 + bldg_w + 5, bldg_y0 + 5
-    msp.add_lwpolyline(
-        [(bp_x, bp_y), (bp_x + 10, bp_y),
-         (bp_x + 10, bp_y + 5), (bp_x, bp_y + 5), (bp_x, bp_y)],
-        dxfattribs={"layer": "SITE-MISC"},
-    )
-    msp.add_text("BIKE PARKING\n(6 SPACES)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
-        "insert": (bp_x + 1, bp_y + 6),
-    })
+    # ── Bicycle parking (rack near entrance) ────────────────────────────────
+    if has_bike_parking:
+        bp_x, bp_y = bldg_x0 + bldg_w + 5, bldg_y0 + 5
+        msp.add_lwpolyline(
+            [(bp_x, bp_y), (bp_x + 10, bp_y),
+             (bp_x + 10, bp_y + 5), (bp_x, bp_y + 5), (bp_x, bp_y)],
+            dxfattribs={"layer": "SITE-MISC"},
+        )
+        msp.add_text("BIKE PARKING\n(6 SPACES)", dxfattribs={
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
+            "insert": (bp_x + 1, bp_y + 6),
+        })
 
     # ── Site lighting (4 pole lights in parking lot) ──────────────────────────
     light_positions = [
@@ -1644,7 +1659,7 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
                      dxfattribs={"layer": "SITE-LIGHT"})
 
     msp.add_text("25' LIGHT POLE W/ 400W LED (TYP.)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (light_positions[0][0] + 3, light_positions[0][1] + 3),
     })
 
@@ -1657,34 +1672,38 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
         dxfattribs={"layer": "UTIL-STORM"},
     )
     msp.add_text("STORM INLET\n(LOW PT.)", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.10,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
         "insert": (si_x + 3, si_y),
     })
 
     # ── General notes ─────────────────────────────────────────────────────────
+    lot_sf = int(lot_w * lot_d)
+    lot_ac = lot_sf / 43560.0
+    impervious_sf = int(bldg_w * bldg_d + n_parking * stall_w * stall_d)
+    impervious_pct = impervious_sf / lot_sf * 100 if lot_sf > 0 else 0
     notes_x, notes_y = 0.0, -20.0
     msp.add_text("SITE NOTES:", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (notes_x, notes_y),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_LG, "insert": (notes_x, notes_y),
     })
     notes = [
         "1. ZONING: C-2 COMMERCIAL.",
-        "2. LOT AREA: 43,560 SF (1.00 AC).",
-        "3. IMPERVIOUS COVER: 28,400 SF (65.2% — MAX ALLOWED 75%).",
-        "4. REQUIRED PARKING: 1 SPACE PER 300 SF GFA = 32 SPACES.",
+        f"2. LOT AREA: {lot_sf:,} SF ({lot_ac:.2f} AC).",
+        f"3. IMPERVIOUS COVER: {impervious_sf:,} SF ({impervious_pct:.1f}% -- MAX ALLOWED 75%).",
+        f"4. REQUIRED PARKING: 1 SPACE PER 300 SF GFA = {n_parking} SPACES.",
     ]
     for i, note in enumerate(notes):
         msp.add_text(note, dxfattribs={
-            "layer": "ANNO-TEXT", "height": 0.10,
+            "layer": "ANNO-TEXT", "height": TEXT_SCALE_SM,
             "insert": (notes_x, notes_y - 3 - i * 2.2),
         })
 
     # ── Title ─────────────────────────────────────────────────────────────────
     msp.add_text("SITE PLAN", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.30,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_XL,
         "insert": (lot_w / 2 - 15, -50),
     })
     msp.add_text("SCALE: 1\"=30'", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.15,
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE,
         "insert": (lot_w / 2 - 12, -56),
     })
     # North arrow
@@ -1692,7 +1711,7 @@ def _generate_site_plan(msp: Any, std: dict, description: str) -> None:
     msp.add_line((na_x, na_y - 10), (na_x, na_y + 10),
                  dxfattribs={"layer": "ANNO-TEXT"})
     msp.add_text("N", dxfattribs={
-        "layer": "ANNO-TEXT", "height": 0.20, "insert": (na_x - 1, na_y + 11),
+        "layer": "ANNO-TEXT", "height": TEXT_SCALE_LG, "insert": (na_x - 1, na_y + 11),
     })
 
 
@@ -1865,7 +1884,7 @@ def _add_standards_note(msp: Any, std: dict, state: str) -> None:
             line,
             dxfattribs={
                 "layer": "ANNO-TEXT",
-                "height": 0.12,
+                "height": TEXT_SCALE_SM,
                 "insert": (-20, -5 - i * 1.5),
             }
         )
