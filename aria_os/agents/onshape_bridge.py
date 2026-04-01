@@ -38,38 +38,45 @@ import urllib.error
 # Authentication
 # ---------------------------------------------------------------------------
 
-_BASE_URL = "https://cad.onshape.com/api/v9"
+_BASE_URL = "https://cad.onshape.com/api/v6"
+
+
+def _load_env_key(key: str) -> str:
+    """Read a key from env vars, falling back to .env file."""
+    val = os.environ.get(key, "")
+    if val:
+        return val
+    # Try .env file
+    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith(f"{key}="):
+                return line.split("=", 1)[1].strip().strip("'\"")
+    return ""
 
 
 class OnshapeAuth:
     """Onshape API key authentication."""
 
     def __init__(self):
-        self.access_key = os.environ.get("ONSHAPE_ACCESS_KEY", "")
-        self.secret_key = os.environ.get("ONSHAPE_SECRET_KEY", "")
+        self.access_key = _load_env_key("ONSHAPE_ACCESS_KEY")
+        self.secret_key = _load_env_key("ONSHAPE_SECRET_KEY")
 
     @property
     def is_configured(self) -> bool:
         return bool(self.access_key and self.secret_key)
 
-    def make_headers(self, method: str, path: str, query: str = "",
+    def make_headers(self, method: str = "", path: str = "", query: str = "",
                      content_type: str = "application/json") -> dict[str, str]:
-        """Build authenticated headers for Onshape API request."""
-        date = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
-        nonce = uuid.uuid4().hex[:25]
-
-        # Build signature string
-        sig_str = f"{method.lower()}\n{nonce}\n{date}\n{content_type}\n{path}\n{query}\n"
-        signature = base64.b64encode(
-            hmac.new(self.secret_key.encode(), sig_str.encode(), hashlib.sha256).digest()
-        ).decode()
-
+        """Build authenticated headers using Basic auth (simpler, reliable)."""
+        basic = base64.b64encode(
+            f"{self.access_key}:{self.secret_key}".encode("utf-8")
+        ).decode("utf-8")
         return {
             "Content-Type": content_type,
             "Accept": "application/json",
-            "Date": date,
-            "On-Nonce": nonce,
-            "Authorization": f"On {self.access_key}:HmacSHA256:{signature}",
+            "Authorization": f"Basic {basic}",
         }
 
 
@@ -174,7 +181,8 @@ def _make_sketch_feature(name: str, plane: str, entities: list[dict]) -> dict:
                     "btType": "BTMParameterQueryList-148",
                     "parameterId": "sketchPlane",
                     "queries": [{
-                        "btType": "BTMParameterQueryWithOccurrenceList-67",
+                        "btType": "BTMIndividualQuery-138",
+                        "queryStatement": None,
                         "queryString": plane_queries.get(plane, plane_queries["top"]),
                     }],
                 },
@@ -264,7 +272,7 @@ class OnshapeBridge:
         elements = self.client.get(f"/documents/d/{did}/w/{wid}/elements")
         eid = None
         for el in elements:
-            if el.get("type") == "PARTSTUDIO":
+            if "part" in el.get("type", "").lower() and "studio" in el.get("type", "").lower():
                 eid = el["id"]
                 break
         if not eid:
