@@ -285,6 +285,24 @@ class OnshapeBridge:
             "url": f"https://cad.onshape.com/documents/{did}/w/{wid}/e/{eid}",
         }
 
+    def create_drawing(self, did: str, wid: str, eid: str, name: str = "Drawing") -> dict:
+        """Create an Onshape Drawing element linked to the part studio.
+        Returns the drawing element ID and URL."""
+        try:
+            # Create a new drawing element in the document
+            result = self.client.post(
+                f"/documents/d/{did}/w/{wid}/elements",
+                data={
+                    "name": name,
+                    "elementType": "DRAWING",
+                },
+            )
+            drawing_eid = result.get("id", "")
+            url = f"https://cad.onshape.com/documents/{did}/w/{wid}/e/{drawing_eid}"
+            return {"elementId": drawing_eid, "url": url}
+        except Exception as exc:
+            return {"error": str(exc)}
+
     def add_feature(self, did: str, wid: str, eid: str, feature: dict) -> dict:
         """Add a feature to a part studio."""
         path = f"/partstudios/d/{did}/w/{wid}/e/{eid}/features"
@@ -334,6 +352,15 @@ class OnshapeBridge:
 
             print(f"  [Onshape] Part created: {doc['url']}")
             print(f"  [Onshape] {result['features_added']}/{len(features)} features added")
+
+            # Create an Onshape Drawing linked to this part
+            try:
+                drawing = self.create_drawing(did, wid, eid, f"{name} Drawing")
+                if drawing.get("url"):
+                    result["drawing_url"] = drawing["url"]
+                    print(f"  [Onshape] Drawing: {drawing['url']}")
+            except Exception:
+                pass  # drawing creation is optional
 
         except Exception as exc:
             result["status"] = "error"
