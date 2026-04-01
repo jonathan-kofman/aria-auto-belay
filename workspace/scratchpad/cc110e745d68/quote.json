@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "carbon_fibre",
+  "quantity": 1,
+  "unit_cost_usd": 147.14,
+  "breakdown": {
+    "material_usd": 0.53,
+    "machining_usd": 46.82,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.27,
+    "margin_usd": 24.52
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      50.0,
+      6.0
+    ],
+    "volume_cm3": 6.8827,
+    "stock_volume_cm3": 15.0,
+    "material_removal_pct": 54.1,
+    "surface_area_cm2": 54.4763,
+    "face_count": 13
+  },
+  "optimizations": [
+    "Simplify the design by reducing the number of features or using more efficient machining strategies (e.g., using a 4-axis CNC machine instead of 3-axis) ($10-$20 savings)",
+    "Optimize the stock volume to reduce material waste and lower the unit cost ($5-$10 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Material removal percentage is high (54%), which may indicate a complex part with many features, potentially leading to increased machining costs.",
+    "Carbon fibre material can be challenging to machine due to its properties, such as low thermal conductivity and high strength-to-weight ratio."
+  ]
+}

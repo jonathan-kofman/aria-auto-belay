@@ -261,12 +261,16 @@ class EvalAgent:
                 return
 
         # Bracket with holes: needs more than a plain plate
+        # A through-hole adds ~1 cylindrical face. Minimum faces for N holes:
+        # 2 (top/bottom) + 1 (outer wall) + N (hole walls) = N + 3
+        # Add a small margin: N + 5 minimum
         if "hole" in goal_lower or "bolt" in goal_lower:
             n_bolts = state.spec.get("n_bolts", 0)
-            if n_bolts and face_count < 6 + n_bolts * 2:
+            min_faces = max(6, n_bolts + 5) if n_bolts else 6
+            if n_bolts and face_count < min_faces:
                 state.failures.append(
                     f"feature_complexity: goal specifies {n_bolts} holes but geometry has only "
-                    f"{face_count} faces — holes may not be cut. Need {6 + n_bolts * 2}+ faces."
+                    f"{face_count} faces — holes may not be cut. Need {min_faces}+ faces."
                 )
 
     def _check_bbox_vs_spec(self, state: DesignState) -> None:

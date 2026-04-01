@@ -1,0 +1,657 @@
+{
+  "schema_version": "1.0",
+  "components": [
+    {
+      "ref": "U1",
+      "value": "ESP32-S3-WROOM-1",
+      "footprint": "RF_Module:ESP32-S3-WROOM-1",
+      "description": "ESP32-S3 WiFi/BLE module",
+      "qty": 1,
+      "x_mm": 31.0,
+      "y_mm": 14.5,
+      "pad_count": 37,
+      "nets": [
+        "EN",
+        "GND",
+        "GPIO5",
+        "GPIO34",
+        "GPIO19",
+        "GPIO18",
+        "GPIO27",
+        "UART_RX",
+        "UART_TX",
+        "GPIO23",
+        "GPIO21",
+        "HX711_SCK",
+        "GPIO25",
+        "+3V3",
+        "GPIO22",
+        "HX711_DOUT",
+        "GPIO2"
+      ]
+    },
+    {
+      "ref": "J1",
+      "value": "Barrel-Jack-2.1mm",
+      "footprint": "Connector_BarrelJack:BarrelJack_Horizontal",
+      "description": "DC barrel jack (12-24 V input)",
+      "qty": 1,
+      "x_mm": 66.0,
+      "y_mm": 5.0,
+      "pad_count": 3,
+      "nets": [
+        "VIN",
+        "GND"
+      ]
+    },
+    {
+      "ref": "U2",
+      "value": "AMS1117-3.3",
+      "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+      "description": "3.3 V LDO regulator",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 5.0,
+      "pad_count": 4,
+      "nets": [
+        "+3V3",
+        "GND",
+        "VIN"
+      ]
+    },
+    {
+      "ref": "J2",
+      "value": "JST-XH-4P-UART",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "UART header (TX/RX/3V3/GND)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 5.0,
+      "pad_count": 4,
+      "nets": [
+        "UART_RX",
+        "+3V3",
+        "UART_TX",
+        "GND"
+      ]
+    },
+    {
+      "ref": "ANT1",
+      "value": "BLE-Antenna-Keepout",
+      "footprint": "RF_Antenna:Antenna_Chip_TDK_ANT1608AI_0603",
+      "description": "BLE antenna keepout zone marker",
+      "qty": 1,
+      "x_mm": 0.0,
+      "y_mm": 0.0,
+      "pad_count": 2,
+      "nets": [
+        "RF_ANT",
+        "GND"
+      ]
+    },
+    {
+      "ref": "U3",
+      "value": "HX711",
+      "footprint": "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm",
+      "description": "HX711 24-bit load cell ADC",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 13.5,
+      "pad_count": 16,
+      "nets": [
+        "HX711_BASE",
+        "HX711_AVDD",
+        "HX711_INB-",
+        "GND",
+        "HX711_DOUT",
+        "HX711_RATE",
+        "HX711_INA+",
+        "+3V3",
+        "HX711_VSUP",
+        "HX711_XO",
+        "HX711_SCK",
+        "HX711_INA-",
+        "HX711_INB+"
+      ]
+    },
+    {
+      "ref": "J3",
+      "value": "JST-XH-4P-LoadCell",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "Load cell connector (E+/E-/A+/A-)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 14.5,
+      "pad_count": 4,
+      "nets": [
+        "HX711_INA-",
+        "GND",
+        "HX711_AVDD",
+        "HX711_INA+"
+      ]
+    },
+    {
+      "ref": "C1",
+      "value": "100nF",
+      "footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "description": "100 nF decoupling capacitor",
+      "qty": 4,
+      "x_mm": 5.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "+3V3",
+        "GND"
+      ]
+    },
+    {
+      "ref": "C2",
+      "value": "10uF",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "description": "10 uF bulk decoupling capacitor",
+      "qty": 2,
+      "x_mm": 8.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "+3V3",
+        "GND"
+      ]
+    },
+    {
+      "ref": "D1",
+      "value": "LED-Green",
+      "footprint": "LED_SMD:LED_0402_1005Metric",
+      "description": "Power indicator LED",
+      "qty": 1,
+      "x_mm": 12.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "LED_ANODE",
+        "LED_CATHODE"
+      ]
+    },
+    {
+      "ref": "R1",
+      "value": "330R",
+      "footprint": "Resistor_SMD:R_0402_1005Metric",
+      "description": "LED current-limiting resistor",
+      "qty": 1,
+      "x_mm": 15.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "LED_ANODE",
+        "+3V3"
+      ]
+    }
+  ],
+  "firmware_pins": {
+    "PIN_AS5048_CS": "PA4",
+    "PIN_HX711_DOUT": "PB0",
+    "PIN_HX711_SCK": "PB1",
+    "PIN_UH": "PA8",
+    "PIN_VH": "PA9",
+    "PIN_WH": "PA10",
+    "PIN_EN": "PB10",
+    "PIN_LED": "PC13",
+    "PIN_ESTOP": "PB12",
+    "PIN_BRAKE": "PB13",
+    "XCLK_GPIO_NUM": "10",
+    "SIOD_GPIO_NUM": "40",
+    "SIOC_GPIO_NUM": "39",
+    "Y9_GPIO_NUM": "48",
+    "Y8_GPIO_NUM": "11",
+    "Y7_GPIO_NUM": "12",
+    "Y6_GPIO_NUM": "14",
+    "Y5_GPIO_NUM": "16",
+    "Y4_GPIO_NUM": "18",
+    "Y3_GPIO_NUM": "17",
+    "Y2_GPIO_NUM": "15",
+    "VSYNC_GPIO_NUM": "38",
+    "HREF_GPIO_NUM": "47",
+    "PCLK_GPIO_NUM": "13"
+  },
+  "nets": {
+    "GND": [
+      {
+        "ref": "U1",
+        "pad": "1"
+      },
+      {
+        "ref": "U1",
+        "pad": "39"
+      },
+      {
+        "ref": "J1",
+        "pad": "2"
+      },
+      {
+        "ref": "J1",
+        "pad": "3"
+      },
+      {
+        "ref": "U2",
+        "pad": "1"
+      },
+      {
+        "ref": "J2",
+        "pad": "4"
+      },
+      {
+        "ref": "ANT1",
+        "pad": "2"
+      },
+      {
+        "ref": "U3",
+        "pad": "8"
+      },
+      {
+        "ref": "U3",
+        "pad": "9"
+      },
+      {
+        "ref": "J3",
+        "pad": "4"
+      },
+      {
+        "ref": "C1",
+        "pad": "2"
+      },
+      {
+        "ref": "C2",
+        "pad": "2"
+      }
+    ],
+    "+3V3": [
+      {
+        "ref": "U1",
+        "pad": "2"
+      },
+      {
+        "ref": "U2",
+        "pad": "2"
+      },
+      {
+        "ref": "U2",
+        "pad": "4"
+      },
+      {
+        "ref": "J2",
+        "pad": "3"
+      },
+      {
+        "ref": "U3",
+        "pad": "13"
+      },
+      {
+        "ref": "U3",
+        "pad": "15"
+      },
+      {
+        "ref": "U3",
+        "pad": "16"
+      },
+      {
+        "ref": "C1",
+        "pad": "1"
+      },
+      {
+        "ref": "C2",
+        "pad": "1"
+      },
+      {
+        "ref": "R1",
+        "pad": "2"
+      }
+    ],
+    "EN": [
+      {
+        "ref": "U1",
+        "pad": "3"
+      }
+    ],
+    "UART_TX": [
+      {
+        "ref": "U1",
+        "pad": "24"
+      },
+      {
+        "ref": "J2",
+        "pad": "1"
+      }
+    ],
+    "UART_RX": [
+      {
+        "ref": "U1",
+        "pad": "25"
+      },
+      {
+        "ref": "J2",
+        "pad": "2"
+      }
+    ],
+    "GPIO23": [
+      {
+        "ref": "U1",
+        "pad": "37"
+      }
+    ],
+    "GPIO19": [
+      {
+        "ref": "U1",
+        "pad": "31"
+      }
+    ],
+    "GPIO18": [
+      {
+        "ref": "U1",
+        "pad": "30"
+      }
+    ],
+    "GPIO5": [
+      {
+        "ref": "U1",
+        "pad": "29"
+      }
+    ],
+    "GPIO21": [
+      {
+        "ref": "U1",
+        "pad": "33"
+      }
+    ],
+    "GPIO22": [
+      {
+        "ref": "U1",
+        "pad": "36"
+      }
+    ],
+    "HX711_DOUT": [
+      {
+        "ref": "U1",
+        "pad": "26"
+      },
+      {
+        "ref": "U3",
+        "pad": "11"
+      }
+    ],
+    "HX711_SCK": [
+      {
+        "ref": "U1",
+        "pad": "27"
+      },
+      {
+        "ref": "U3",
+        "pad": "12"
+      }
+    ],
+    "GPIO25": [
+      {
+        "ref": "U1",
+        "pad": "10"
+      }
+    ],
+    "GPIO34": [
+      {
+        "ref": "U1",
+        "pad": "6"
+      }
+    ],
+    "GPIO27": [
+      {
+        "ref": "U1",
+        "pad": "12"
+      }
+    ],
+    "GPIO2": [
+      {
+        "ref": "U1",
+        "pad": "22"
+      }
+    ],
+    "VIN": [
+      {
+        "ref": "J1",
+        "pad": "1"
+      },
+      {
+        "ref": "U2",
+        "pad": "3"
+      }
+    ],
+    "RF_ANT": [
+      {
+        "ref": "ANT1",
+        "pad": "1"
+      }
+    ],
+    "HX711_VSUP": [
+      {
+        "ref": "U3",
+        "pad": "1"
+      }
+    ],
+    "HX711_BASE": [
+      {
+        "ref": "U3",
+        "pad": "2"
+      }
+    ],
+    "HX711_AVDD": [
+      {
+        "ref": "U3",
+        "pad": "3"
+      },
+      {
+        "ref": "J3",
+        "pad": "3"
+      }
+    ],
+    "HX711_INA-": [
+      {
+        "ref": "U3",
+        "pad": "4"
+      },
+      {
+        "ref": "J3",
+        "pad": "2"
+      }
+    ],
+    "HX711_INA+": [
+      {
+        "ref": "U3",
+        "pad": "5"
+      },
+      {
+        "ref": "J3",
+        "pad": "1"
+      }
+    ],
+    "HX711_INB-": [
+      {
+        "ref": "U3",
+        "pad": "6"
+      }
+    ],
+    "HX711_INB+": [
+      {
+        "ref": "U3",
+        "pad": "7"
+      }
+    ],
+    "HX711_XO": [
+      {
+        "ref": "U3",
+        "pad": "10"
+      }
+    ],
+    "HX711_RATE": [
+      {
+        "ref": "U3",
+        "pad": "14"
+      }
+    ],
+    "LED_ANODE": [
+      {
+        "ref": "D1",
+        "pad": "1"
+      },
+      {
+        "ref": "R1",
+        "pad": "1"
+      }
+    ],
+    "LED_CATHODE": [
+      {
+        "ref": "D1",
+        "pad": "2"
+      }
+    ]
+  },
+  "net_count": 30,
+  "trace_count": 29,
+  "validation": {
+    "erc": {
+      "passed": false,
+      "erc_pass": false,
+      "drc_pass": false,
+      "errors": [
+        "ERC: GPIO conflict \u2014 net '1' driven by multiple outputs: U1, U2, U3",
+        "ERC: GPIO conflict \u2014 net '2' driven by multiple outputs: U1, U2, U3",
+        "ERC: GPIO conflict \u2014 net '3' driven by multiple outputs: U1, U2, U3",
+        "ERC: GPIO conflict \u2014 net '4' driven by multiple outputs: U1, U2, U3",
+        "ERC: GPIO conflict \u2014 net '5' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '6' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '7' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '8' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '9' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '10' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '11' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '12' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '13' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '14' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '15' driven by multiple outputs: U1, U3",
+        "ERC: GPIO conflict \u2014 net '16' driven by multiple outputs: U1, U3",
+        "DRC: ANT1 violates 5 mm edge keepout \u2014 left edge (x=0.0 mm)",
+        "DRC: ANT1 violates 5 mm edge keepout \u2014 top edge (y=0.0 mm)"
+      ],
+      "warnings": [
+        "ERC: R1 (330R) pull-up/down < 1 k\u03a9 \u2014 10.0 mA static draw (3.3 V / R)"
+      ],
+      "erc": {
+        "passed": false,
+        "errors": [
+          "ERC: GPIO conflict \u2014 net '1' driven by multiple outputs: U1, U2, U3",
+          "ERC: GPIO conflict \u2014 net '2' driven by multiple outputs: U1, U2, U3",
+          "ERC: GPIO conflict \u2014 net '3' driven by multiple outputs: U1, U2, U3",
+          "ERC: GPIO conflict \u2014 net '4' driven by multiple outputs: U1, U2, U3",
+          "ERC: GPIO conflict \u2014 net '5' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '6' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '7' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '8' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '9' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '10' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '11' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '12' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '13' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '14' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '15' driven by multiple outputs: U1, U3",
+          "ERC: GPIO conflict \u2014 net '16' driven by multiple outputs: U1, U3"
+        ],
+        "warnings": [
+          "ERC: R1 (330R) pull-up/down < 1 k\u03a9 \u2014 10.0 mA static draw (3.3 V / R)"
+        ],
+        "trace_violations": [
+          {
+            "net": "3V3",
+            "current_a": 0.51,
+            "required_mm": 0.4,
+            "actual_mm": 0.5,
+            "verdict": "OK"
+          },
+          {
+            "net": "12V",
+            "current_a": 1.0,
+            "required_mm": 0.4,
+            "actual_mm": 0.5,
+            "verdict": "OK"
+          }
+        ]
+      },
+      "drc": {
+        "passed": false,
+        "violations": [
+          "DRC: ANT1 violates 5 mm edge keepout \u2014 left edge (x=0.0 mm)",
+          "DRC: ANT1 violates 5 mm edge keepout \u2014 top edge (y=0.0 mm)"
+        ]
+      }
+    },
+    "simulation": {
+      "passed": true,
+      "netlist": "* ARIA auto-generated SPICE netlist\n* Generated by aria_os/ecad_simulator.py\n\nVVCC_3V3 N_3V3 GND DC 3.3\nV3V3 3V3 GND DC 3.3\nVVCC N_VCC GND DC 3.3\n\nI1_U1 N_VCC_3V3 GND DC 0.250000\nI2_U2 N_VCC_3V3 GND DC 0.005000\nI3_U3 N_VCC_3V3 GND DC 0.001500\nC1_C1 N_VCC_3V3 GND 100n IC=0\nC2_C2 N_VCC_3V3 GND 10u IC=0\nVD_D1_vf N_LED_D1_a GND DC 2.0\nRD_D1_series N_VCC_3V3 N_LED_D1_a 330\nR2_R1 N_VCC N_R2 330.0\n\n.OP\n.END\n",
+      "dc": {
+        "passed": true,
+        "rail_voltages": {
+          "VVCC_3V3": 3.3,
+          "V3V3": 3.3,
+          "VVCC": 3.3,
+          "VD_D1_VF": 2.0
+        },
+        "current_violations": [],
+        "warnings": [
+          "DC: RD_D1_series \u2014 pull-up R=330 \u03a9 on 3.3 V rail may exceed GPIO source current",
+          "DC: R2_R1 \u2014 pull-up R=330 \u03a9 on 3.3 V rail may exceed GPIO source current"
+        ]
+      },
+      "power_on": {
+        "passed": true,
+        "sequence_ok": true,
+        "warnings": []
+      },
+      "warnings": [
+        "DC: RD_D1_series \u2014 pull-up R=330 \u03a9 on 3.3 V rail may exceed GPIO source current",
+        "DC: R2_R1 \u2014 pull-up R=330 \u03a9 on 3.3 V rail may exceed GPIO source current"
+      ]
+    },
+    "pin_conflicts": {
+      "passed": false,
+      "conflicts": [
+        "PIN_CHECK: J2 is SERIAL but firmware defines SPI pins on the same MCU port \u2014 UART TX/RX and SPI MOSI/MISO share AF on STM32 USART1"
+      ],
+      "warnings": [
+        "PIN_CHECK: firmware pin '10' referenced by multiple components: C1, C2 \u2014 verify intent",
+        "PIN_CHECK: firmware pin '11' referenced by multiple components: U2, U3 \u2014 verify intent"
+      ],
+      "firmware_pins": {
+        "PIN_AS5048_CS": "PA4",
+        "PIN_HX711_DOUT": "PB0",
+        "PIN_HX711_SCK": "PB1",
+        "PIN_UH": "PA8",
+        "PIN_VH": "PA9",
+        "PIN_WH": "PA10",
+        "PIN_EN": "PB10",
+        "PIN_LED": "PC13",
+        "PIN_ESTOP": "PB12",
+        "PIN_BRAKE": "PB13",
+        "XCLK_GPIO_NUM": "10",
+        "SIOD_GPIO_NUM": "40",
+        "SIOC_GPIO_NUM": "39",
+        "Y9_GPIO_NUM": "48",
+        "Y8_GPIO_NUM": "11",
+        "Y7_GPIO_NUM": "12",
+        "Y6_GPIO_NUM": "14",
+        "Y5_GPIO_NUM": "16",
+        "Y4_GPIO_NUM": "18",
+        "Y3_GPIO_NUM": "17",
+        "Y2_GPIO_NUM": "15",
+        "VSYNC_GPIO_NUM": "38",
+        "HREF_GPIO_NUM": "47",
+        "PCLK_GPIO_NUM": "13"
+      }
+    },
+    "passed": false
+  }
+}

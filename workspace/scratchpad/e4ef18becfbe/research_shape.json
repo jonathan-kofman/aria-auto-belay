@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "title": "ESP32 with Load Cell and HX711 Amplifier (Digital Scale)",
+      "snippet": "Create a scale with the ESP32 using a load cell and the HX711 amplifier. First, you'll learn how to wire the load cell and the HX711 amplifier to the ESP32 to build a scale.",
+      "url": "randomnerdtutorials.com/esp32-load-cell-hx711/"
+    },
+    {
+      "title": "Building a Smart Weight Scale with ESP32 and Bluetooth BLE: A ... - Medium",
+      "snippet": "Step 1: Connect the Hardware: Follow the wiring diagram above to connect the ESP32 with the load cell and HX711 amplifier. Key connections are as follow: HX711 CLK pin to ESP32 GPIO 23 HX711 DOUT ...",
+      "url": "medium.com/@sdranju/building-a-smart-weight-scale-with-esp32-and-bluetooth-ble-a-diy-guide-19a649bf9880"
+    },
+    {
+      "title": "Measure weight with HX711 sensor and ESP32 board",
+      "snippet": "How to send weight measured by HX711 to Samrtphone using ESP32 board ? This project involves creating a system to measure weight using the HX711 load cell, transmit the data wirelessly via Bluetooth using an ESP32 microcontroller running MicroPython, and display the measured weight on a smartphone a",
+      "url": "www.robotique.site/tutorial/measure-weight-with-hx711-sensor-and-esp32-board/"
+    },
+    {
+      "title": "How to design a weighing scale using ESP32 - Engineers Garage",
+      "snippet": "The main controller used for this weighing scale project is ESP32. It's a small but powerful chip that acts as the brain of the system. It connects with two key components: The load cell sensor, which detects weight through a small module called the HX711 An OLED display, which shows the measured va",
+      "url": "www.engineersgarage.com/how-to-design-a-weighing-scale-using-esp32/"
+    },
+    {
+      "title": "ESP32-Based Smart Scale and Environmental Sensor System",
+      "snippet": "Explore comprehensive documentation for the ESP32-Based Smart Scale and Environmental Sensor System project, including components, wiring, and code. This project is a smart monitoring system that integrates a load cell with an HX711 bridge sensor interface to measure weight, and an ENS160+AHT21 sens",
+      "url": "docs.cirkitdesigner.com/project/published/87a42f90-8ff1-4d03-9765-716918af603b/esp32-based-smart-scale-and-environmental-sensor-system"
+    },
+    {
+      "title": "GitHub - sdranju/WeightScale-ESP32-BLE",
+      "snippet": "Step 1: Connect the Hardware: Follow the wiring diagram above to connect the ESP32 with the load cell and HX711 amplifier. Key connections are as follow: HX711 CLK pin to ESP32 GPIO 23 HX711 DOUT pin to ESP32 GPIO 22 Use color coded wire for connection between Load cell and HX711 We'll use ...",
+      "url": "github.com/sdranju/WeightScale-ESP32-BLE"
+    },
+    {
+      "title": "Digital Scale With HX711 and ESP8266 / ESP32 in Micropython",
+      "snippet": "Digital Scale With HX711 and ESP8266 / ESP32 in Micropython: A scale without moving parts - impossible, you say? Not according to the result of my current project, which boasts incredible resolution and accuracy. From the, to the eye imperceptible, bending of an aluminium cuboid, a 24-bit ADC (analo",
+      "url": "www.instructables.com/Digital-Scale-With-HX711-and-ESP8266-ESP32-in-Micr/"
+    },
+    {
+      "title": "Weighing scale using HX711 and ESP32 for remote weight monitoring (by ...",
+      "snippet": "An ESP32 microcontroller can be used to build a weighing scale by interfacing with a load cell sensor and using its built-in analog-to-digital converter (ADC) to convert the sensor's output into a weight measurement.",
+      "url": "www.robotique.tech/robotics/weighing-scale-using-hx711-and-esp32-for-remote-weight-monitoring-by-bluetooth/"
+    },
+    {
+      "title": "All Sensors Compatible with ESP32 - Environment and More",
+      "snippet": "Find all sensors compatible with ESP32 development boards, including environmental, electrical, and motion sensors for seamless integration.",
+      "url": "www.espboards.dev/sensors/"
+    },
+    {
+      "title": "ESPHome Docs - ESPHome - Smart Home Made Simple",
+      "snippet": "Browse all ESPHome components - sensors, switches, lights, displays, climate controllers, and more for ESP32, ESP8266, and RP2040.",
+      "url": "esphome.io/components/"
+    }
+  ]
+}

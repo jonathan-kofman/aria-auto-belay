@@ -1,0 +1,75 @@
+{
+  "passed": false,
+  "erc_pass": false,
+  "drc_pass": false,
+  "errors": [
+    "ERC: GPIO conflict \u2014 net '1' driven by multiple outputs: U1, U2, U3",
+    "ERC: GPIO conflict \u2014 net '2' driven by multiple outputs: U1, U2, U3",
+    "ERC: GPIO conflict \u2014 net '3' driven by multiple outputs: U1, U2, U3",
+    "ERC: GPIO conflict \u2014 net '4' driven by multiple outputs: U1, U2, U3",
+    "ERC: GPIO conflict \u2014 net '5' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '6' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '7' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '8' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '9' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '10' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '11' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '12' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '13' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '14' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '15' driven by multiple outputs: U1, U3",
+    "ERC: GPIO conflict \u2014 net '16' driven by multiple outputs: U1, U3",
+    "DRC: ANT1 violates 5 mm edge keepout \u2014 left edge (x=0.0 mm)",
+    "DRC: ANT1 violates 5 mm edge keepout \u2014 top edge (y=0.0 mm)"
+  ],
+  "warnings": [
+    "ERC: R1 (330R) pull-up/down < 1 k\u03a9 \u2014 10.0 mA static draw (3.3 V / R)"
+  ],
+  "erc": {
+    "passed": false,
+    "errors": [
+      "ERC: GPIO conflict \u2014 net '1' driven by multiple outputs: U1, U2, U3",
+      "ERC: GPIO conflict \u2014 net '2' driven by multiple outputs: U1, U2, U3",
+      "ERC: GPIO conflict \u2014 net '3' driven by multiple outputs: U1, U2, U3",
+      "ERC: GPIO conflict \u2014 net '4' driven by multiple outputs: U1, U2, U3",
+      "ERC: GPIO conflict \u2014 net '5' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '6' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '7' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '8' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '9' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '10' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '11' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '12' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '13' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '14' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '15' driven by multiple outputs: U1, U3",
+      "ERC: GPIO conflict \u2014 net '16' driven by multiple outputs: U1, U3"
+    ],
+    "warnings": [
+      "ERC: R1 (330R) pull-up/down < 1 k\u03a9 \u2014 10.0 mA static draw (3.3 V / R)"
+    ],
+    "trace_violations": [
+      {
+        "net": "3V3",
+        "current_a": 0.51,
+        "required_mm": 0.4,
+        "actual_mm": 0.5,
+        "verdict": "OK"
+      },
+      {
+        "net": "12V",
+        "current_a": 1.0,
+        "required_mm": 0.4,
+        "actual_mm": 0.5,
+        "verdict": "OK"
+      }
+    ]
+  },
+  "drc": {
+    "passed": false,
+    "violations": [
+      "DRC: ANT1 violates 5 mm edge keepout \u2014 left edge (x=0.0 mm)",
+      "DRC: ANT1 violates 5 mm edge keepout \u2014 top edge (y=0.0 mm)"
+    ]
+  }
+}

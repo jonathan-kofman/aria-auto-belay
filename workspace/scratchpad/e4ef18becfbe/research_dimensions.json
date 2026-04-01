@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "title": "esp32 12v - Amazon.com Official Site",
+      "snippet": "Browse & discover thousands of brands. Read customer reviews & find best sellers. Free shipping on qualified orders. Free, easy returns on millions of items.",
+      "url": "amazon.com"
+    },
+    {
+      "title": "ESP32 with Load Cell and HX711 Amplifier (Digital Scale)",
+      "snippet": "Create a scale with the ESP32 using a load cell and the HX711 amplifier. First, you'll learn how to wire the load cell and the HX711 amplifier to the ESP32 to build a scale.",
+      "url": "randomnerdtutorials.com/esp32-load-cell-hx711/"
+    },
+    {
+      "title": "Building a Smart Weight Scale with ESP32 and Bluetooth BLE: A ... - Medium",
+      "snippet": "Step 1: Connect the Hardware: Follow the wiring diagram above to connect the ESP32 with the load cell and HX711 amplifier. Key connections are as follow: HX711 CLK pin to ESP32 GPIO 23 HX711 DOUT ...",
+      "url": "medium.com/@sdranju/building-a-smart-weight-scale-with-esp32-and-bluetooth-ble-a-diy-guide-19a649bf9880"
+    },
+    {
+      "title": "SparkFun OpenScale IoT - An ESP32 board with HX711 ADC ... - CNX Software",
+      "snippet": "SparkFun OpenScale - IoT Specifications: Wireless module - ESP32-PICO-MINI with 2.4GHz WiFi, Bluetooth/BLE with an on-chip PCB antenna Load Cell - HX711 24-bit ADC load cell amplifier with support for 4- or 5-wire load cell Sensors Onboard TMP102 digital temperature sensor (I\u00b2C) 3-pin screw terminal",
+      "url": "www.cnx-software.com/2026/03/16/sparkfun-openscale-iot-an-esp32-board-with-hx711-adc-for-smart-scales-with-wifi-and-bluetooth-connectivity/"
+    },
+    {
+      "title": "Measure weight with HX711 sensor and ESP32 board",
+      "snippet": "How to send weight measured by HX711 to Samrtphone using ESP32 board ? This project involves creating a system to measure weight using the HX711 load cell, transmit the data wirelessly via Bluetooth using an ESP32 microcontroller running MicroPython, and display the measured weight on a smartphone a",
+      "url": "www.robotique.site/tutorial/measure-weight-with-hx711-sensor-and-esp32-board/"
+    },
+    {
+      "title": "GitHub - sdranju/WeightScale-ESP32-BLE",
+      "snippet": "Step 1: Connect the Hardware: Follow the wiring diagram above to connect the ESP32 with the load cell and HX711 amplifier. Key connections are as follow: HX711 CLK pin to ESP32 GPIO 23 HX711 DOUT pin to ESP32 GPIO 22 Use color coded wire for connection between Load cell and HX711 We'll use ...",
+      "url": "github.com/sdranju/WeightScale-ESP32-BLE"
+    },
+    {
+      "title": "ESP32-DevKitC V4 - ESP32 - \u2014 esp-dev-kits latest documentation",
+      "snippet": "ESP32-DevKitC V4 [\u4e2d\u6587] The older version: ESP32-DevKitC V2 This guide shows how to start using the ESP32-DevKitC V4 development board. What You Need ESP32-DevKitC V4 board USB 2.0 cable (Standard-A to Micro-B) Computer running Windows, Linux, or macOS You can skip the introduction sections and go dir",
+      "url": "docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html"
+    },
+    {
+      "title": "How to measure weight with Load Cell and HX711 - Hackaday.io",
+      "snippet": "The purpose of this project is to develop a printed circuit board (PCB) that allows weight measurement using a load cell and the HX711 converter. The electronic design community will be able to use this PCB for learning, experimenting, and implementing load measurement systems.",
+      "url": "hackaday.io/project/202493-how-to-measure-weight-with-load-cell-and-hx711"
+    },
+    {
+      "title": "ESP32-Based Load Measurement and Distance Sensing System with LCD ...",
+      "snippet": "Explore comprehensive documentation for the ESP32-Based Load Measurement and Distance Sensing System with LCD Display project, including components, wiring, and code. This circuit utilizes an ESP32 microcontroller to interface with an HX711 bridge sensor and a load cell for weight measurement, as we",
+      "url": "docs.cirkitdesigner.com/project/published/20cdd91b-7a86-488b-8353-36ece280e379/esp32-based-load-measurement-and-distance-sensing-system-with-lcd-display"
+    },
+    {
+      "title": "Weighing scale using HX711 and ESP32 for remote weight monitoring (by ...",
+      "snippet": "An ESP32 microcontroller can be used to build a weighing scale by interfacing with a load cell sensor and using its built-in analog-to-digital converter (ADC) to convert the sensor's output into a weight measurement.",
+      "url": "www.robotique.tech/robotics/weighing-scale-using-hx711-and-esp32-for-remote-weight-monitoring-by-bluetooth/"
+    }
+  ]
+}

@@ -1061,9 +1061,16 @@ def _cq_flange(params: dict[str, Any]) -> str:
     od      = float(params.get("od_mm",    120.0))
     bore    = float(params.get("bore_mm",   40.0))
     thick   = float(params.get("thickness_mm", 12.0))
-    bolt_r  = float(params.get("bolt_circle_r_mm", 50.0))
     n_bolts = int(params.get("n_bolts", 4))
     bolt_d  = float(params.get("bolt_dia_mm", 8.0))
+    # Ensure OD is at least bore + 10mm wall (sanity check)
+    if od <= bore + 4:
+        od = bore * 2 + 10
+    # Default bolt circle between bore and OD; clamp inside OD
+    bolt_r_default = (bore / 2 + od / 2) / 2  # midpoint between bore and OD
+    bolt_r  = float(params.get("bolt_circle_r_mm", bolt_r_default))
+    if bolt_r >= od / 2 - bolt_d:
+        bolt_r = (bore / 2 + od / 2) / 2  # clamp to midpoint
     return f"""
 import cadquery as cq, math
 

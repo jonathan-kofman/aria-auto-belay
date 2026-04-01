@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "carbon_fibre",
+  "quantity": 1,
+  "unit_cost_usd": 107.36,
+  "breakdown": {
+    "material_usd": 0.16,
+    "machining_usd": 14.22,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.09,
+    "margin_usd": 17.89
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      30.0,
+      30.0,
+      5.0
+    ],
+    "volume_cm3": 2.0373,
+    "stock_volume_cm3": 4.5,
+    "material_removal_pct": 54.7,
+    "surface_area_cm2": 18.1091,
+    "face_count": 14
+  },
+  "optimizations": [
+    "Optimize part design for easier machining by increasing wall thickness and reducing complexity. ($3 savings)",
+    "Consider using a more cost-effective material or alternative manufacturing process (e.g., 3D printing) if the carbon fibre is not critical to the part's function. ($10 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Thin walls (5 mm) may require specialized tooling or machining techniques.",
+    "Carbon fibre material is prone to delamination, which could increase costs due to rework or scrap rates."
+  ]
+}
