@@ -1456,7 +1456,7 @@ def main():
             "step_path": ctx.geometry_path,
             "stl_path": ctx.stl_path,
             "validation_passed": ctx.validation_passed,
-            "cam": ctx.cam_result,
+            # cam removed
             "millforge_job": ctx.millforge_job,
             "total_time_s": ctx.total_time_s,
         }

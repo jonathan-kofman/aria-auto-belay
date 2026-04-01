@@ -492,7 +492,7 @@ Describe the 3D shape in terms of CadQuery operations."""
             try:
                 from .dfm_agent import run_dfm_analysis
                 result = await loop.run_in_executor(
-                    None, run_dfm_analysis, ctx.geometry_path, ctx.goal, False)
+                    None, run_dfm_analysis, ctx.geometry_path, ctx.goal)
                 return result or {"status": "no_result"}
             except Exception as e:
                 return {"status": "error", "error": str(e)}
