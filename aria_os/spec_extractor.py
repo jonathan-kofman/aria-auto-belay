@@ -49,6 +49,19 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("face plate",    "base_plate"),
     ("torch bracket", "base_plate"),   # welding torch mount is a flat plate with bore
     ("torch mount",   "base_plate"),
+    ("motor mount",   "flange"),       # circular plate + bolt holes + center bore
+    ("servo mount",   "flange"),
+    ("stepper mount", "flange"),
+    ("nema mount",    "flange"),
+    ("adapter plate", "flange"),
+    ("standoff",      "spacer"),
+    ("clamp",         "bracket"),
+    ("fixture",       "bracket"),
+    ("holder",        "bracket"),
+    ("manifold",      "housing"),
+    ("cover",         "flat_plate"),
+    ("lid",           "flat_plate"),
+    ("platform",      "flat_plate"),
     ("arm link",      "hollow_rect"),  # structural arm link → hollow rectangular tube
     ("ratchet ring",  "ratchet_ring"),
     ("gear wheel",    "gear"),

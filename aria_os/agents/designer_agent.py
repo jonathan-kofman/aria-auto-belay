@@ -59,8 +59,34 @@ class DesignerAgent(BaseAgent):
                 f"## BUILD RECIPE (follow these steps EXACTLY)\n"
                 f"The Coordinator Agent analyzed research and created this step-by-step recipe.\n"
                 f"Translate each step into CadQuery Python code:\n\n"
-                f"{build_recipe[:3000]}\n"
+                f"{build_recipe[:6000]}\n"
             )
+
+        # Inject closest template as reference (highest ROI for LLM quality)
+        ref_code = state.plan.get("_reference_template_code", "")
+        ref_name = state.plan.get("_reference_template_name", "")
+        if not ref_code:
+            # If not set by _try_template fuzzy match, find it now
+            try:
+                from ..generators.cadquery_generator import _get_closest_template_source
+                ref_name, ref_code = _get_closest_template_source(
+                    state.goal, state.part_id or "", state.spec)
+            except Exception:
+                pass
+        if ref_code:
+            prompt_parts.append(
+                f"## REFERENCE TEMPLATE (adapt this working code for your part)\n"
+                f"This is a TESTED CadQuery script for a similar part type ('{ref_name}').\n"
+                f"Use the SAME CadQuery patterns and structure — modify dimensions and features:\n\n"
+                f"```python\n{ref_code}\n```\n\n"
+                f"IMPORTANT: This reference code WORKS. Keep the same patterns:\n"
+                f"- All dimensions as named constants at the top\n"
+                f"- Build solid first, then cuts/holes\n"
+                f"- result = ... as the final variable\n"
+                f"- bb = result.val().BoundingBox() at the end\n"
+                f"- NEVER use .cylinder() — use .circle(r).extrude(h)\n"
+            )
+            print(f"  [{self.name}] Injecting reference template: {ref_name}")
 
         # Include web research context if available
         research = state.plan.get("research_context", "")
@@ -136,27 +162,42 @@ class DesignerAgent(BaseAgent):
                     return response
             except Exception:
                 pass
-            # Last resort: Ollama (7b — will produce simple geometry)
-            from .base_agent import _call_ollama
-            return _call_ollama(prompt, self.system_prompt, self.model)
+            # Do NOT use Ollama 7b for CadQuery — produces broken geometry
+            # (.cylinder() calls, missing features, syntax errors).
+            # Return None so caller falls back to deterministic template generation.
+            print(f"  [{self.name}] Cloud LLMs unavailable — falling back to template")
+            return None
         # Non-CAD domains: use Ollama (standard path)
         return super()._call_llm(prompt)
 
     def _try_template(self, state: DesignState) -> bool:
         """Try to generate using a CadQuery template with agent-extracted params.
-        Returns True if successful (state populated), False to fall back to LLM."""
+        Returns True if successful (state populated), False to fall back to LLM.
+        For fuzzy matches, stores closest template as LLM reference (not executed directly)."""
         try:
-            from ..generators.cadquery_generator import _find_template_fn
+            from ..generators.cadquery_generator import _find_template_fuzzy, _get_closest_template_source
 
-            # Check if a template matches the part type from spec
             part_type = state.spec.get("part_type", "")
             part_id = state.part_id or ""
 
             print(f"  [{self.name}] Template check: part_id='{part_id}', part_type='{part_type}'")
 
-            # Try part_type first (more specific), then part_id
-            template_fn = _find_template_fn(part_type) or _find_template_fn(part_id)
+            # Fuzzy matching: exact/keyword matches get direct execution,
+            # goal/fuzzy matches store reference for LLM prompt
+            template_fn, match_type = _find_template_fuzzy(
+                part_type or part_id, goal=state.goal, spec=state.spec)
+
             if not template_fn:
+                return False
+
+            # Fuzzy matches are unreliable for direct execution — use as LLM reference only
+            if match_type == "fuzzy":
+                ref_name, ref_code = _get_closest_template_source(
+                    state.goal, part_id, state.spec)
+                if ref_code:
+                    state.plan["_reference_template_name"] = ref_name
+                    state.plan["_reference_template_code"] = ref_code
+                    print(f"  [{self.name}] Fuzzy match → storing '{ref_name}' as LLM reference")
                 return False
 
             # Generate code using the template with agent-extracted params

@@ -2013,6 +2013,38 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "enclosure":                    _cq_housing,
     "box":                          _cq_housing,
     "gear":                         _cq_gear,
+    # Motor mounts → flange (circular bolt pattern around center bore)
+    "motor_mount":                  _cq_flange,
+    "nema_mount":                   _cq_flange,
+    "servo_mount":                  _cq_flange,
+    "stepper_mount":                _cq_flange,
+    # Adapters → flange
+    "adapter_plate":                _cq_flange,
+    "adapter":                      _cq_flange,
+    # Clamps/fixtures → bracket
+    "clamp":                        _cq_bracket,
+    "fixture":                      _cq_bracket,
+    "holder":                       _cq_bracket,
+    "clip":                         _cq_bracket,
+    # Covers/caps
+    "cover":                        _cq_flat_plate,
+    "lid":                          _cq_flat_plate,
+    "cap":                          _cq_spacer,
+    # Blocks/manifolds → housing
+    "manifold":                     _cq_housing,
+    "block":                        _cq_housing,
+    "junction_box":                 _cq_housing,
+    # Standoffs/posts → spacer
+    "standoff":                     _cq_spacer,
+    "post":                         _cq_spacer,
+    # Rollers/drums → spacer
+    "roller":                       _cq_spacer,
+    # Hinges → bracket
+    "hinge":                        _cq_bracket,
+    "knuckle":                      _cq_bracket,
+    # Platforms → flat_plate
+    "platform":                     _cq_flat_plate,
+    "baseplate":                    _cq_flat_plate,
 }
 
 # Keyword scan for slug-based part_ids not in the exact map.
@@ -2045,18 +2077,114 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["bearing"],                                              _cq_ball_bearing),
     (["coupling", "coupler"],                                  _cq_shaft_coupling),
     (["extrusion", "vslot", "tslot"],                          _cq_profile_extrusion),
+    # Expanded aliases (fuzzy matching catch-all)
+    (["motor_mount", "motor mount", "servo_mount", "stepper_mount"], _cq_flange),
+    (["adapter", "adapter_plate"],                             _cq_flange),
+    (["clamp", "clip", "fixture", "holder"],                   _cq_bracket),
+    (["cover", "lid"],                                         _cq_flat_plate),
+    (["manifold", "block", "junction"],                        _cq_housing),
+    (["standoff", "post"],                                     _cq_spacer),
+    (["hinge", "knuckle"],                                     _cq_bracket),
+    (["roller"],                                               _cq_spacer),
+    (["platform", "baseplate", "base plate"],                  _cq_flat_plate),
 ]
 
 
 def _find_template_fn(part_id: str):
     """Return the template function for part_id: exact map lookup, then keyword scan."""
+    fn, _ = _find_template_fuzzy(part_id)
+    return fn
+
+
+def _find_template_fuzzy(
+    part_id: str,
+    goal: str = "",
+    spec: dict | None = None,
+) -> tuple[Any, str]:
+    """Find a template function with progressively looser matching.
+
+    Returns (template_fn | None, match_type) where match_type is one of:
+      "exact"   — part_id is a key in _CQ_TEMPLATE_MAP
+      "keyword" — a keyword list entry matched part_id
+      "goal"    — a keyword list entry matched the full goal text
+      "fuzzy"   — best word-overlap score between goal tokens and keyword lists
+      None      — no match found
+    """
+    spec = spec or {}
+
+    # Step 1: Exact lookup
     fn = _CQ_TEMPLATE_MAP.get(part_id)
     if fn:
-        return fn
+        return fn, "exact"
+
+    # Step 2: Keyword scan of part_id (original behaviour)
     for keywords, template_fn in _KEYWORD_TO_TEMPLATE:
         if any(kw in part_id for kw in keywords):
-            return template_fn
-    return None
+            return template_fn, "keyword"
+
+    # Step 3: Keyword scan of spec["part_type"]
+    pt = spec.get("part_type", "")
+    if pt and pt != part_id:
+        fn = _CQ_TEMPLATE_MAP.get(pt)
+        if fn:
+            return fn, "exact"
+        for keywords, template_fn in _KEYWORD_TO_TEMPLATE:
+            if any(kw in pt for kw in keywords):
+                return template_fn, "keyword"
+
+    # Step 4: Keyword scan of FULL GOAL TEXT (catches "drone motor mount" etc.)
+    goal_lower = goal.lower().replace("-", "_")
+    if goal_lower:
+        for keywords, template_fn in _KEYWORD_TO_TEMPLATE:
+            if any(kw in goal_lower for kw in keywords):
+                return template_fn, "goal"
+
+    # Step 5: Word-overlap scoring — tokenize goal, score against keyword lists
+    if goal_lower:
+        goal_words = set(re.split(r"[\s,;:.\-_/]+", goal_lower)) - {"", "a", "the", "for", "with", "and", "mm", "of"}
+        best_score = 0
+        best_fn = None
+        for keywords, template_fn in _KEYWORD_TO_TEMPLATE:
+            kw_words = set()
+            for kw in keywords:
+                kw_words.update(kw.replace("_", " ").split())
+            overlap = len(goal_words & kw_words)
+            if overlap > best_score:
+                best_score = overlap
+                best_fn = template_fn
+        if best_fn and best_score >= 1:
+            return best_fn, "fuzzy"
+
+    return None, ""
+
+
+def _get_closest_template_source(
+    goal: str,
+    part_id: str = "",
+    spec: dict | None = None,
+) -> tuple[str, str]:
+    """Find the closest template and return its generated source code.
+
+    Returns (template_name, generated_code) or ("", "") if nothing found.
+    Used to inject as a reference example into the LLM prompt.
+    Always returns at least the bracket template as a generic CadQuery reference.
+    """
+    spec = spec or {}
+    fn, match_type = _find_template_fuzzy(part_id, goal, spec)
+
+    # If no match, use bracket as a generic "here's how CadQuery works" reference
+    if not fn:
+        fn = _cq_bracket
+
+    try:
+        code = fn(spec)
+        if code and len(code) > 50:
+            name = getattr(fn, "__name__", "unknown").lstrip("_")
+            return name, code
+    except Exception:
+        pass
+
+    return "", ""
 
 
 def _generate_from_description(plan: dict[str, Any], goal: str) -> str:
