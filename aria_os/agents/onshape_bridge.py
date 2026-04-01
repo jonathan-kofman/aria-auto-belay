@@ -534,31 +534,71 @@ class OnshapeBridge:
 
         radii = sorted(set(c["r"] for c in circles))
 
-        # Check bore
+        # Check bore — EXACT diameter verification
         bore_mm = spec.get("bore_mm")
         if bore_mm:
             bore_r = float(bore_mm) / 2
-            bore_found = any(abs(r - bore_r) < max(1.0, bore_r * 0.1) for r in radii)
-            _check("bore", f"{bore_mm}mm (r={bore_r}mm)",
-                   f"{'found' if bore_found else 'MISSING'} (radii: {radii})", bore_found)
+            # Find circles at/near center (dist < 1mm from origin)
+            center_circles = [c for c in circles if math.sqrt(c["cx"]**2 + c["cy"]**2) < 1.0]
+            center_radii = sorted(set(c["r"] for c in center_circles))
+            bore_match = [r for r in center_radii if abs(r - bore_r) < max(0.5, bore_r * 0.05)]
+            if bore_match:
+                actual_bore_dia = bore_match[0] * 2
+                error_pct = abs(actual_bore_dia - float(bore_mm)) / float(bore_mm) * 100
+                _check("bore_diameter", f"{bore_mm}mm",
+                       f"{actual_bore_dia:.2f}mm ({error_pct:.1f}% error)",
+                       error_pct < 5.0)
+            else:
+                _check("bore_diameter", f"{bore_mm}mm",
+                       f"MISSING (center radii: {center_radii})", False)
 
-        # Check bolt holes
+        # Check bolt holes — EXACT count, diameter, and position
         n_bolts = spec.get("n_bolts")
         bolt_dia = spec.get("bolt_dia_mm")
         if n_bolts and bolt_dia:
             bolt_r = float(bolt_dia) / 2
-            bolt_circles = [c for c in circles if abs(c["r"] - bolt_r) < max(0.5, bolt_r * 0.2)]
-            bolt_positions = set((c["cx"], c["cy"]) for c in bolt_circles)
-            _check("bolt_holes", f"{n_bolts}x M{bolt_dia} (r={bolt_r}mm)",
-                   f"{len(bolt_positions)} holes found", len(bolt_positions) >= int(n_bolts))
+            # Find circles matching bolt hole radius (within 10%)
+            bolt_circles = [c for c in circles if abs(c["r"] - bolt_r) < max(0.3, bolt_r * 0.1)]
+            # Unique positions (deduplicate top/bottom edges)
+            bolt_positions = set()
+            for c in bolt_circles:
+                # Round to 0.5mm to deduplicate top/bottom edges at same XY
+                bolt_positions.add((round(c["cx"] * 2) / 2, round(c["cy"] * 2) / 2))
+            n_found = len(bolt_positions)
 
-            # Check bolt circle radius
+            # Check diameter
+            if bolt_circles:
+                actual_dia = bolt_circles[0]["r"] * 2
+                dia_error = abs(actual_dia - float(bolt_dia)) / float(bolt_dia) * 100
+                _check("bolt_hole_diameter", f"M{bolt_dia} ({bolt_dia}mm)",
+                       f"{actual_dia:.2f}mm ({dia_error:.1f}% error)",
+                       dia_error < 10.0)
+
+            _check("bolt_hole_count", f"{n_bolts} holes",
+                   f"{n_found} holes found", n_found == int(n_bolts))
+
+            # Check bolt circle radius — EXACT
             bcr = spec.get("bolt_circle_r_mm")
             if bcr and bolt_positions:
                 dists = [math.sqrt(p[0]**2 + p[1]**2) for p in bolt_positions]
                 avg_dist = sum(dists) / len(dists)
-                _check("bolt_circle_r", f"~{bcr}mm", f"{avg_dist:.1f}mm",
-                       abs(avg_dist - float(bcr)) / float(bcr) < 0.25)
+                bcr_error = abs(avg_dist - float(bcr)) / float(bcr) * 100
+                _check("bolt_circle_radius", f"{bcr}mm",
+                       f"{avg_dist:.2f}mm ({bcr_error:.1f}% error)",
+                       bcr_error < 5.0)
+
+            # Check bolt spacing uniformity (should be equal angles)
+            if len(bolt_positions) >= 2:
+                angles = sorted(math.atan2(p[1], p[0]) for p in bolt_positions)
+                if len(angles) >= 2:
+                    spacings = [angles[i+1] - angles[i] for i in range(len(angles)-1)]
+                    spacings.append(2*math.pi + angles[0] - angles[-1])
+                    expected_spacing = 2 * math.pi / len(bolt_positions)
+                    max_deviation = max(abs(s - expected_spacing) for s in spacings)
+                    uniform = max_deviation < 0.15  # ~8 degrees tolerance
+                    _check("bolt_spacing", "uniform",
+                           f"{'uniform' if uniform else 'non-uniform'} (max dev: {math.degrees(max_deviation):.1f}deg)",
+                           uniform)
 
         # Fetch Onshape shaded view if we have document IDs
         if did and wid and ps_eid:

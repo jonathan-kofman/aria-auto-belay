@@ -62,11 +62,19 @@ class DesignerAgent(BaseAgent):
                 f"{build_recipe[:6000]}\n"
             )
 
+        # Inject CadQuery operations reference (goal-specific)
+        try:
+            from ..cad_operations_reference import get_operations_for_goal
+            ops_ref = get_operations_for_goal(state.goal)
+            if ops_ref:
+                prompt_parts.append(ops_ref)
+        except Exception:
+            pass
+
         # Inject closest template as reference (highest ROI for LLM quality)
         ref_code = state.plan.get("_reference_template_code", "")
         ref_name = state.plan.get("_reference_template_name", "")
         if not ref_code:
-            # If not set by _try_template fuzzy match, find it now
             try:
                 from ..generators.cadquery_generator import _get_closest_template_source
                 ref_name, ref_code = _get_closest_template_source(
