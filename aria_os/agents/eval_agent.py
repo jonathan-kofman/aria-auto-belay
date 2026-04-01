@@ -274,6 +274,39 @@ class EvalAgent:
                     f"{face_count} faces — holes may not be cut. Need {min_faces}+ faces."
                 )
 
+        # Advanced feature checks — if the goal asked for specific operations,
+        # verify the geometry actually used them (not just a plain extrude)
+        _advanced_checks = [
+            (["hollow", "shell", "thin wall", "enclosure", "case"],
+             lambda fc, vol, bbox: vol / (bbox["x"] * bbox["y"] * bbox["z"]) < 0.55,
+             "goal describes a hollow/shell part but geometry fill ratio > 55% — "
+             "use result.shell(WALL) or result.faces('>Z').shell(-WALL) to hollow it out"),
+            (["curved", "bend", "elbow", "sweep", "swept"],
+             lambda fc, vol, bbox: fc >= 3,  # swept parts have curved faces
+             "goal describes a curved/swept part but geometry looks like a simple extrusion — "
+             "use .sweep(path) to create a curved path"),
+            (["fillet", "rounded edge", "smooth"],
+             lambda fc, vol, bbox: fc > 8,  # fillets add faces
+             "goal asks for fillets but geometry has too few faces — "
+             "use result.edges('|Z').fillet(R) or result.edges('>Z').fillet(R)"),
+        ]
+
+        if face_count > 0:
+            try:
+                import cadquery as _cq
+                _shape = _cq.importers.importStep(step_path)
+                _bb = _shape.val().BoundingBox()
+                _vol = _shape.val().Volume()
+                _bbox = {"x": _bb.xlen, "y": _bb.ylen, "z": _bb.zlen}
+
+                for keywords, check_fn, fail_msg in _advanced_checks:
+                    if any(kw in goal_lower for kw in keywords):
+                        if not check_fn(face_count, _vol, _bbox):
+                            state.failures.append(f"feature_complexity: {fail_msg}")
+                            break  # one failure at a time
+            except Exception:
+                pass
+
     def _check_bbox_vs_spec(self, state: DesignState) -> None:
         """Check if generated bbox approximately matches USER-specified dimensions.
         Only checks dims from the original goal extraction, not CEM-injected values."""

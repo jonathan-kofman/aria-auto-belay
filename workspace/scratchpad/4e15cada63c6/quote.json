@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 26631.18,
+  "breakdown": {
+    "material_usd": 116.63,
+    "machining_usd": 21995.38,
+    "setup_usd": 75.0,
+    "finishing_usd": 5.63,
+    "margin_usd": 4438.53
+  },
+  "lead_time_days": 4,
+  "geometry": {
+    "bbox_mm": [
+      241.49,
+      80.0,
+      241.49
+    ],
+    "volume_cm3": 90.355,
+    "stock_volume_cm3": 4665.3936,
+    "material_removal_pct": 98.1,
+    "surface_area_cm2": 1125.8692,
+    "face_count": 6
+  },
+  "optimizations": [
+    "Review and optimize toolpath for efficient machining ($1500 savings)",
+    "Consider using a more efficient stock material or optimizing stock usage ($500 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining cost may indicate complex or inefficient toolpath, potentially due to the part's geometry.",
+    "Material removal percentage is high (98%), which could be a sign of inefficient nesting or stock material selection."
+  ]
+}

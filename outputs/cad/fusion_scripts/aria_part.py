@@ -3,7 +3,7 @@
 import adsk.core, adsk.fusion, traceback
 
 OD_MM=100.0; HEIGHT_MM=50.0; BORE_MM=30.0
-PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_hollow_electronics_enclosure_outside_wal.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_hollow_electronics_enclosure_outside_wal.step'
+PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_cable_strain_relief_clamp_cable.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_cable_strain_relief_clamp_cable.step'
 
 def run(context):
     ui = None

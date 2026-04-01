@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 108.14,
+  "breakdown": {
+    "material_usd": 0.79,
+    "machining_usd": 13.75,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.58,
+    "margin_usd": 18.02
+  },
+  "lead_time_days": 4,
+  "geometry": {
+    "bbox_mm": [
+      80.0,
+      6.0,
+      60.0
+    ],
+    "volume_cm3": 28.5989,
+    "stock_volume_cm3": 31.4588,
+    "material_removal_pct": 9.1,
+    "surface_area_cm2": 115.3133,
+    "face_count": 12
+  },
+  "optimizations": [
+    "Optimize part orientation to reduce machining time ($2 savings)",
+    "Use a more efficient cutting strategy, such as using a ball nose endmill instead of a flat endmill ($5 savings)",
+    "Consider using a different material with better machinability, such as steel 1018 or steel 4140 ($3 savings)"
+  ],
+  "confidence": "high",
+  "risks": [
+    "Thin walls (6mm) may require specialized tooling or machining strategies."
+  ]
+}

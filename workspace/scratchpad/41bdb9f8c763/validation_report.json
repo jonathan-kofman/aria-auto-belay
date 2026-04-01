@@ -1,0 +1,12 @@
+{
+  "converged": false,
+  "iterations": 5,
+  "failures": [
+    "bbox: no axis matches OD=30.0mm (closest=41.7mm, tol=6.0). Check the code \u2014 a value in .extrude() or .box() may be wrong."
+  ],
+  "bbox": {
+    "x": 41.742,
+    "y": 41.742,
+    "z": 51.942
+  }
+}

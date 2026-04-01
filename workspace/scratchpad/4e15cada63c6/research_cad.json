@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "title": "Interactive Nozzle Simulator - NASA",
+      "snippet": "A jet nozzle will have a larger throat area and a lower chamber total pressure than a rocket nozzle. If you select the Geometry input, you can use the choice button to choose either a pure convergent nozzle or a convergent-divergent (CD) geometry. You must specify the throat area (Ath) and the area ",
+      "url": "www.grc.nasa.gov/WWW/k-12/VirtualAero/BottleRocket/airplane/ienzl.html"
+    },
+    {
+      "title": "Performance analysis of CD nozzle - ScienceDirect",
+      "snippet": "But it requires the correct pressure difference between entry and exit to get the optimum performance. This paper covers the performance analysis of the chosen rocket nozzle (convergent-divergent nozzle) under various operating conditions. Initially, an already existing rocket nozzle was chosen and ",
+      "url": "www.sciencedirect.com/science/article/pii/S2214785322034277"
+    },
+    {
+      "title": "Design and Analysis of Convergent-divergent Rocket Nozzle",
+      "snippet": "The main focus of our project is to design and analyze a Convergent- Divergent rocket nozzle, to reduce the cost of testing of a nozzle, yet predict the same result as that of a supersonic wind ...",
+      "url": "www.researchgate.net/publication/332080629_DESIGN_AND_ANALYSIS_OF_CONVERGENT-DIVERGENT_ROCKET_NOZZLE"
+    },
+    {
+      "title": "CFD Analysis of Different Shape Rocket Nozzles - Springer",
+      "snippet": "The two different nozzles which were studied in the present work are (a) the convergent-divergent nozzle and (b) the bell-shaped nozzle. The CFD analysis is carried out using ANSYS 22.0 software to obtain velocity, pressure, temperature, and the flow pattern.",
+      "url": "link.springer.com/chapter/10.1007/978-981-99-6343-0_33"
+    },
+    {
+      "title": "PDF Rocket Nozzle Geometries - gatech.edu",
+      "snippet": "Major Nozzle Configurations Four major types (based on diverging section) Conical oldest, simplest design, easy to manufacture Bell/contoured complex shape, high efficiency Plug/aerospike altitude compensating, annular or linear Expansion-deflection altitude compensating, shorter than other enclosed",
+      "url": "www.seitzman.gatech.edu/classes/ae6450/nozzle_geometries.pdf"
+    },
+    {
+      "title": "Bell nozzle \u2014 Grokipedia",
+      "snippet": "A Bell nozzle is a convergent-divergent exhaust nozzle used in rocket engines, characterized by its contoured, bell-shaped divergent section that efficiently expands and accelerates high-temperature, high-pressure combustion gases from subsonic speeds at the throat to supersonic velocities at the ex",
+      "url": "grokipedia.com/page/bell_nozzle"
+    },
+    {
+      "title": "Design and Analysis of Hybrid Propellant Rocket Motor C-D Bell-Shaped ...",
+      "snippet": "Thus design and analysis of the rocket nozzle are critical and determine the success of a mission and capability of the rocket as a whole. Our research focuses on the design and analysis of a bell-shaped convergent-divergent (de Laval) nozzle.",
+      "url": "showspace.so/p/11469"
+    },
+    {
+      "title": "Design of Rocket Nozzles \u2014 Notes for Propulsion",
+      "snippet": "Design of Rocket Nozzles The nozzle is the most important component of the rocket engine. The nozzle converts high pressure, and ideally high temperature, gases into low pressure gases with much higher velocity by changing the cross-sectional area of the flow. This momentum transfer then provides th",
+      "url": "bryanwweber.com/propulsion-notes/liquid-rockets/2-rocket-nozzles.html"
+    },
+    {
+      "title": "PDF Modeling and simulation of Convergent-Divergent Nozzle Using ... - IRJET",
+      "snippet": "CFD analysis has been conducted to analyze flow pattern of supersonic rocket nozzle at various degree of divergent angle, mach numbers etc. This paper aims to study the behavior of flow in convergent divergent nozzle by analyzing various parameters like pressure, temperature and velocity using compu",
+      "url": "www.irjet.net/archives/V3/i8/IRJET-V3I866.pdf"
+    },
+    {
+      "title": "Convergent Divergent Nozzle Design and Analysis to Increase Working ...",
+      "snippet": "A convergent-divergent, or CD, nozzle is the name given to this arrangement of nozzles. The hot exhaust from the combustion chamber converges towards the nozzle's minimum area, or throat, in a CD rocket nozzle. The throat size is selected to restrict the flow and regulate the system's mass flow rate",
+      "url": "www.ijraset.com/research-paper/convergent-divergent-nozzle-design"
+    }
+  ]
+}

@@ -38,12 +38,34 @@ class DesignerAgent(BaseAgent):
         The agent is still agentic: SpecAgent extracts params, EvalAgent validates.
         """
         if self.domain == "cad" and state.iteration <= 1 and not state.refinement_instructions:
-            # Iteration 1: try template first (instant, reliable).
-            # Even with a build recipe — template geometry + agent params
-            # beats LLM-generated geometry every time.
-            template_used = self._try_template(state)
-            if template_used:
-                return
+            # Check if the goal requires operations that templates can't do.
+            # Templates only produce box/cylinder/extrude/cut — if the user
+            # needs sweep, loft, revolve, shell, fillet, etc., skip template
+            # and let the LLM generate with the full operations reference.
+            _goal_lower = state.goal.lower()
+            _NEEDS_LLM_FEATURES = [
+                "sweep", "swept", "curved pipe", "pipe elbow", "bend",
+                "loft", "lofted", "transition", "taper",
+                "fillet", "round edge", "rounded edge", "smooth edge",
+                "chamfer", "bevel",
+                "shell", "thin wall", "hollow",  # shell != housing template
+                "split", "hinge", "clamp", "snap fit", "living hinge",
+                "spline", "organic", "sculpted", "freeform",
+                "helical", "helix", "spiral", "thread",
+                "rib", "stiffener", "gusset",
+                "boss", "standoff",
+                "pocket", "recess", "counterbore", "countersink",
+                "mirror", "symmetric",
+                "text", "engrave", "emboss",
+            ]
+            _needs_llm = any(kw in _goal_lower for kw in _NEEDS_LLM_FEATURES)
+
+            if _needs_llm:
+                print(f"  [{self.name}] Goal needs advanced features — skipping template, using LLM")
+            else:
+                template_used = self._try_template(state)
+                if template_used:
+                    return
 
         # LLM-based generation
         # Build the user prompt from state

@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 219.83,
+  "breakdown": {
+    "material_usd": 0.47,
+    "machining_usd": 57.4,
+    "setup_usd": 125.0,
+    "finishing_usd": 0.32,
+    "margin_usd": 36.64
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      39.0,
+      30.0,
+      16.0
+    ],
+    "volume_cm3": 12.5982,
+    "stock_volume_cm3": 18.72,
+    "material_removal_pct": 32.7,
+    "surface_area_cm2": 63.7401,
+    "face_count": 33
+  },
+  "optimizations": [
+    "Optimize toolpath for 4-axis machining to reduce machining time and cost ($10 savings)",
+    "Consider using a more efficient material removal strategy, such as adaptive clearing, to minimize excess material removal ($5 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High material removal percentage may indicate a complex part, potentially leading to increased machining costs.",
+    "The use of steel mild with a moderate stock volume suggests the possibility of overstocking or inefficient material usage."
+  ]
+}

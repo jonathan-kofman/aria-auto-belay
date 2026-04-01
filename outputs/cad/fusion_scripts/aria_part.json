@@ -1,9 +1,9 @@
 {
-  "goal": "hollow electronics enclosure, 80x50x30mm outside, 2mm wall thickness, open top, 4x M3 mounting bosses in corners, cable slot 20x5mm on short side",
+  "goal": "cable strain relief clamp, 10mm cable diameter, 30mm long, 2x M4 mounting holes, split clamp design with hinge, chamfered edges",
   "part_id": "",
   "fusion_mode": "parametric",
-  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_hollow_electronics_enclosure_outside_wal.step",
-  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_hollow_electronics_enclosure_outside_wal.stl",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_cable_strain_relief_clamp_cable.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_cable_strain_relief_clamp_cable.stl",
   "features": [],
   "base_shape": {},
   "params": {}
