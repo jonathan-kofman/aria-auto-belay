@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1587" height="1123" viewBox="0 0 1587 1123" font-family="Arial, Helvetica, sans-serif" font-size="12">
+  <rect width="1587" height="1123" fill="white"/>
+  <rect x="20" y="20" width="1547" height="1083" fill="none" stroke="black" stroke-width="2"/>
+  <rect x="30" y="30" width="1527" height="1063" fill="none" stroke="black" stroke-width="1"/>
+  <rect x="20" y="20.0" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="28.0" y="159.375" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">A</text>
+  <rect x="1551" y="20.0" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1559.0" y="159.375" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">A</text>
+  <rect x="20" y="290.75" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="28.0" y="430.125" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">B</text>
+  <rect x="1551" y="290.75" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1559.0" y="430.125" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">B</text>
+  <rect x="20" y="561.5" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="28.0" y="700.875" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">C</text>
+  <rect x="1551" y="561.5" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1559.0" y="700.875" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">C</text>
+  <rect x="20" y="832.25" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="28.0" y="971.625" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">D</text>
+  <rect x="1551" y="832.25" width="16" height="270.75" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1559.0" y="971.625" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">D</text>
+  <rect x="20.0" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="116.6875" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">1</text>
+  <rect x="20.0" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="116.6875" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">1</text>
+  <rect x="213.375" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="310.0625" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">2</text>
+  <rect x="213.375" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="310.0625" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">2</text>
+  <rect x="406.75" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="503.4375" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">3</text>
+  <rect x="406.75" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="503.4375" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">3</text>
+  <rect x="600.125" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="696.8125" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">4</text>
+  <rect x="600.125" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="696.8125" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">4</text>
+  <rect x="793.5" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="890.1875" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">5</text>
+  <rect x="793.5" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="890.1875" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">5</text>
+  <rect x="986.875" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1083.5625" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">6</text>
+  <rect x="986.875" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1083.5625" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">6</text>
+  <rect x="1180.25" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1276.9375" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">7</text>
+  <rect x="1180.25" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1276.9375" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">7</text>
+  <rect x="1373.625" y="20" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1470.3125" y="32" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">8</text>
+  <rect x="1373.625" y="1087" width="193.375" height="16" fill="none" stroke="#888" stroke-width="0.4"/>
+  <text x="1470.3125" y="1099" text-anchor="middle" font-size="9" fill="#444" font-family="Arial, Helvetica, sans-serif">8</text>
+  <rect x="1475" y="32" width="80" height="20" fill="white" stroke="black" stroke-width="0.8"/>
+  <text x="1515.0" y="45" text-anchor="middle" font-size="9" fill="#000" font-family="Arial, Helvetica, sans-serif">REV: &#x2014;</text>
+  <line x1="30" y1="506" x2="1557" y2="506" stroke="#888" stroke-width="0.6"/>
+  <line x1="793" y1="30" x2="793" y2="983" stroke="#888" stroke-width="0.6"/>
+  <rect x="42" y="42" width="739" height="452" fill="#fafafa" stroke="#ccc" stroke-width="0.5"/>
+  <rect x="805" y="42" width="739" height="452" fill="#fafafa" stroke="#ccc" stroke-width="0.5"/>
+  <rect x="42" y="518" width="739" height="452" fill="#fafafa" stroke="#ccc" stroke-width="0.5"/>
+  <rect x="805" y="518" width="739" height="452" fill="#fafafa" stroke="#ccc" stroke-width="0.5"/>
+  <text x="46" y="54" font-size="9" font-weight="bold" fill="#444" font-family="Arial, Helvetica, sans-serif">FRONT VIEW</text>
+  <text x="809" y="54" font-size="9" font-weight="bold" fill="#444" font-family="Arial, Helvetica, sans-serif">TOP VIEW</text>
+  <text x="46" y="530" font-size="9" font-weight="bold" fill="#444" font-family="Arial, Helvetica, sans-serif">RIGHT SIDE VIEW</text>
+  <text x="809" y="530" font-size="9" font-weight="bold" fill="#444" font-family="Arial, Helvetica, sans-serif">SECTION A-A</text>
+  <text x="411.5" y="260.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">FRONT VIEW</text>
+  <text x="411.5" y="276.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">(no STEP)</text>
+  <text x="1174.5" y="260.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">TOP VIEW</text>
+  <text x="1174.5" y="276.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">(no STEP)</text>
+  <text x="411.5" y="736.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">RIGHT SIDE VIEW</text>
+  <text x="411.5" y="752.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">(no STEP)</text>
+  <text x="1174.5" y="736.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">SECTION A-A</text>
+  <text x="1174.5" y="752.0" text-anchor="middle" font-size="10" fill="#aaa" font-family="Arial, Helvetica, sans-serif">(no STEP)</text>
+  <line x1="34" y1="268.0" x2="789" y2="268.0" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <line x1="411.5" y1="34" x2="411.5" y2="502" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <line x1="797" y1="268.0" x2="1552" y2="268.0" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <line x1="1174.5" y1="34" x2="1174.5" y2="502" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <line x1="34" y1="744.0" x2="789" y2="744.0" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <line x1="411.5" y1="510" x2="411.5" y2="978" stroke="#0000ff" stroke-width="0.4" stroke-dasharray="12,3,2,3" fill="none"/>
+  <text x="627" y="76" font-size="8" font-weight="bold" fill="#333" font-family="Arial, Helvetica, sans-serif">GD&amp;T CALLOUTS</text>
+  <rect x="627" y="80" width="98" height="22" fill="#fffff8" stroke="#000000" stroke-width="1"/>
+  <line x1="655" y1="80" x2="655" y2="102" stroke="#000000" stroke-width="1"/>
+  <text x="641.0" y="97" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a8c" font-family="Arial, Helvetica, sans-serif">▭</text>
+  <text x="661" y="97" font-size="10" fill="#000" font-family="Arial, Helvetica, sans-serif">0.05</text>
+  <line x1="627" y1="91.0" x2="603.0" y2="192.7" stroke="#999" stroke-width="0.5" stroke-dasharray="4,3"/>
+  <rect x="627" y="108" width="123" height="22" fill="#fffff8" stroke="#000000" stroke-width="1"/>
+  <line x1="655" y1="108" x2="655" y2="130" stroke="#000000" stroke-width="1"/>
+  <line x1="725" y1="108" x2="725" y2="130" stroke="#000000" stroke-width="1"/>
+  <text x="641.0" y="125" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a1a8c" font-family="Arial, Helvetica, sans-serif">⊥</text>
+  <text x="661" y="125" font-size="10" fill="#000" font-family="Arial, Helvetica, sans-serif">0.05</text>
+  <text x="737.5" y="125" text-anchor="middle" font-size="10" font-weight="bold" fill="#000" font-family="Arial, Helvetica, sans-serif">A</text>
+  <line x1="627" y1="119.0" x2="411.5" y2="72.0" stroke="#999" stroke-width="0.5" stroke-dasharray="4,3"/>
+  <rect x="627" y="136" width="100" height="22" fill="#fffff8" stroke="#000000" stroke-width="0.8"/>
+  <text x="633" y="151" font-size="11" fill="#1a1a8c" font-family="Arial, Helvetica, sans-serif">∇∇ Ra 3.2</text>
+  <rect x="30" y="983" width="1527" height="110" fill="white" stroke="black" stroke-width="1.5"/>
+  <rect x="30" y="983" width="1527" height="22" fill="#1a1a8c"/>
+  <text x="793.5" y="998" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Arial, Helvetica, sans-serif">ARIA-OS ENGINEERING DRAWING</text>
+  <text x="34" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">PART ID</text>
+  <text x="34" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">empty_test</text>
+  <line x1="30" y1="1049.0" x2="335.40000000000003" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="34" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">MATERIAL</text>
+  <text x="34" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">—</text>
+  <line x1="335.40000000000003" y1="1005" x2="335.40000000000003" y2="1093" stroke="black" stroke-width="0.8"/>
+  <text x="339.40000000000003" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">SCALE</text>
+  <text x="339.40000000000003" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">1:1</text>
+  <line x1="335.40000000000003" y1="1049.0" x2="640.8000000000001" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="339.40000000000003" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">DATE</text>
+  <text x="339.40000000000003" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">2026-03-31</text>
+  <line x1="640.8000000000001" y1="1005" x2="640.8000000000001" y2="1093" stroke="black" stroke-width="0.8"/>
+  <text x="644.8000000000001" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">DRAWN BY</text>
+  <text x="644.8000000000001" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">ARIA-OS v2.0</text>
+  <line x1="640.8000000000001" y1="1049.0" x2="946.2" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="644.8000000000001" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">DWG NO.</text>
+  <text x="644.8000000000001" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">ARIA-20260331-001</text>
+  <line x1="946.2" y1="1005" x2="946.2" y2="1093" stroke="black" stroke-width="0.8"/>
+  <text x="950.2" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">TOLERANCE</text>
+  <text x="950.2" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">±0.1 GENERAL / ±0.05 MACH.</text>
+  <line x1="946.2" y1="1049.0" x2="1251.6000000000001" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="950.2" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">UNITS</text>
+  <text x="950.2" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">MILLIMETRES</text>
+  <line x1="1251.6000000000001" y1="1005" x2="1251.6000000000001" y2="1093" stroke="black" stroke-width="0.8"/>
+  <text x="1255.6000000000001" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">APPROVED</text>
+  <text x="1255.6000000000001" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif"></text>
+  <line x1="1251.6000000000001" y1="1049.0" x2="1404.3000000000002" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="1255.6000000000001" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif"></text>
+  <text x="1255.6000000000001" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif"></text>
+  <line x1="1404.3000000000002" y1="1005" x2="1404.3000000000002" y2="1093" stroke="black" stroke-width="0.8"/>
+  <text x="1408.3000000000002" y="1014.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif">REV</text>
+  <text x="1408.3000000000002" y="1045.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif">—</text>
+  <line x1="1404.3000000000002" y1="1049.0" x2="1557.0000000000002" y2="1049.0" stroke="#aaa" stroke-width="0.5"/>
+  <text x="1408.3000000000002" y="1058.0" font-size="7" fill="#666" font-family="Arial, Helvetica, sans-serif"></text>
+  <text x="1408.3000000000002" y="1089.0" font-size="10" fill="#000" font-weight="bold" font-family="Arial, Helvetica, sans-serif"></text>
+  <text x="793" y="248" text-anchor="middle" font-size="11" fill="#c00" font-family="Arial, Helvetica, sans-serif">CadQuery projections unavailable &#x2014; check STEP file</text>
+  <text x="793" y="268" text-anchor="middle" font-size="11" fill="#333" font-family="Arial, Helvetica, sans-serif">Part ID: empty_test</text>
+</svg>

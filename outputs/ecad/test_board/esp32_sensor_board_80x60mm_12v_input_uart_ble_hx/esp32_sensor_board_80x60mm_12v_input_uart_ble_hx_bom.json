@@ -1,0 +1,516 @@
+{
+  "schema_version": "1.0",
+  "components": [
+    {
+      "ref": "U1",
+      "value": "ESP32-S3-WROOM-1",
+      "footprint": "RF_Module:ESP32-S3-WROOM-1",
+      "description": "ESP32-S3 WiFi/BLE module",
+      "qty": 1,
+      "x_mm": 31.0,
+      "y_mm": 14.5,
+      "pad_count": 37,
+      "nets": [
+        "GPIO18",
+        "UART_RX",
+        "GPIO25",
+        "+3V3",
+        "GPIO5",
+        "GPIO19",
+        "HX711_DOUT",
+        "GND",
+        "GPIO34",
+        "GPIO2",
+        "EN",
+        "GPIO23",
+        "GPIO21",
+        "UART_TX",
+        "HX711_SCK",
+        "GPIO22",
+        "GPIO27"
+      ]
+    },
+    {
+      "ref": "J1",
+      "value": "Barrel-Jack-2.1mm",
+      "footprint": "Connector_BarrelJack:BarrelJack_Horizontal",
+      "description": "DC barrel jack (12-24 V input)",
+      "qty": 1,
+      "x_mm": 66.0,
+      "y_mm": 5.0,
+      "pad_count": 3,
+      "nets": [
+        "GND",
+        "VIN"
+      ]
+    },
+    {
+      "ref": "U2",
+      "value": "AMS1117-3.3",
+      "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+      "description": "3.3 V LDO regulator",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 5.0,
+      "pad_count": 4,
+      "nets": [
+        "GND",
+        "VIN",
+        "+3V3"
+      ]
+    },
+    {
+      "ref": "J2",
+      "value": "JST-XH-4P-UART",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "UART header (TX/RX/3V3/GND)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 5.0,
+      "pad_count": 4,
+      "nets": [
+        "GND",
+        "UART_RX",
+        "UART_TX",
+        "+3V3"
+      ]
+    },
+    {
+      "ref": "ANT1",
+      "value": "BLE-Antenna-Keepout",
+      "footprint": "RF_Antenna:Antenna_Chip_TDK_ANT1608AI_0603",
+      "description": "BLE antenna keepout zone marker",
+      "qty": 1,
+      "x_mm": 0.0,
+      "y_mm": 0.0,
+      "pad_count": 2,
+      "nets": [
+        "GND",
+        "RF_ANT"
+      ]
+    },
+    {
+      "ref": "U3",
+      "value": "HX711",
+      "footprint": "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm",
+      "description": "HX711 24-bit load cell ADC",
+      "qty": 1,
+      "x_mm": 52.0,
+      "y_mm": 13.5,
+      "pad_count": 16,
+      "nets": [
+        "+3V3",
+        "HX711_DOUT",
+        "GND",
+        "HX711_RATE",
+        "HX711_INA-",
+        "HX711_VSUP",
+        "HX711_XO",
+        "HX711_INB+",
+        "HX711_BASE",
+        "HX711_SCK",
+        "HX711_AVDD",
+        "HX711_INB-",
+        "HX711_INA+"
+      ]
+    },
+    {
+      "ref": "J3",
+      "value": "JST-XH-4P-LoadCell",
+      "footprint": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+      "description": "Load cell connector (E+/E-/A+/A-)",
+      "qty": 1,
+      "x_mm": 5.0,
+      "y_mm": 14.5,
+      "pad_count": 4,
+      "nets": [
+        "GND",
+        "HX711_AVDD",
+        "HX711_INA-",
+        "HX711_INA+"
+      ]
+    },
+    {
+      "ref": "C1",
+      "value": "100nF",
+      "footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "description": "100 nF decoupling capacitor",
+      "qty": 4,
+      "x_mm": 5.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "GND",
+        "+3V3"
+      ]
+    },
+    {
+      "ref": "C2",
+      "value": "10uF",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "description": "10 uF bulk decoupling capacitor",
+      "qty": 2,
+      "x_mm": 8.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "GND",
+        "+3V3"
+      ]
+    },
+    {
+      "ref": "D1",
+      "value": "LED-Green",
+      "footprint": "LED_SMD:LED_0402_1005Metric",
+      "description": "Power indicator LED",
+      "qty": 1,
+      "x_mm": 12.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "LED_ANODE",
+        "LED_CATHODE"
+      ]
+    },
+    {
+      "ref": "R1",
+      "value": "330R",
+      "footprint": "Resistor_SMD:R_0402_1005Metric",
+      "description": "LED current-limiting resistor",
+      "qty": 1,
+      "x_mm": 15.0,
+      "y_mm": 51.0,
+      "pad_count": 2,
+      "nets": [
+        "LED_ANODE",
+        "+3V3"
+      ]
+    }
+  ],
+  "firmware_pins": {
+    "PIN_AS5048_CS": "PA4",
+    "PIN_HX711_DOUT": "PB0",
+    "PIN_HX711_SCK": "PB1",
+    "PIN_UH": "PA8",
+    "PIN_VH": "PA9",
+    "PIN_WH": "PA10",
+    "PIN_EN": "PB10",
+    "PIN_LED": "PC13",
+    "PIN_ESTOP": "PB12",
+    "PIN_BRAKE": "PB13",
+    "XCLK_GPIO_NUM": "10",
+    "SIOD_GPIO_NUM": "40",
+    "SIOC_GPIO_NUM": "39",
+    "Y9_GPIO_NUM": "48",
+    "Y8_GPIO_NUM": "11",
+    "Y7_GPIO_NUM": "12",
+    "Y6_GPIO_NUM": "14",
+    "Y5_GPIO_NUM": "16",
+    "Y4_GPIO_NUM": "18",
+    "Y3_GPIO_NUM": "17",
+    "Y2_GPIO_NUM": "15",
+    "VSYNC_GPIO_NUM": "38",
+    "HREF_GPIO_NUM": "47",
+    "PCLK_GPIO_NUM": "13"
+  },
+  "nets": {
+    "GND": [
+      {
+        "ref": "U1",
+        "pad": "1"
+      },
+      {
+        "ref": "U1",
+        "pad": "39"
+      },
+      {
+        "ref": "J1",
+        "pad": "2"
+      },
+      {
+        "ref": "J1",
+        "pad": "3"
+      },
+      {
+        "ref": "U2",
+        "pad": "1"
+      },
+      {
+        "ref": "J2",
+        "pad": "4"
+      },
+      {
+        "ref": "ANT1",
+        "pad": "2"
+      },
+      {
+        "ref": "U3",
+        "pad": "8"
+      },
+      {
+        "ref": "U3",
+        "pad": "9"
+      },
+      {
+        "ref": "J3",
+        "pad": "4"
+      },
+      {
+        "ref": "C1",
+        "pad": "2"
+      },
+      {
+        "ref": "C2",
+        "pad": "2"
+      }
+    ],
+    "+3V3": [
+      {
+        "ref": "U1",
+        "pad": "2"
+      },
+      {
+        "ref": "U2",
+        "pad": "2"
+      },
+      {
+        "ref": "U2",
+        "pad": "4"
+      },
+      {
+        "ref": "J2",
+        "pad": "3"
+      },
+      {
+        "ref": "U3",
+        "pad": "13"
+      },
+      {
+        "ref": "U3",
+        "pad": "15"
+      },
+      {
+        "ref": "U3",
+        "pad": "16"
+      },
+      {
+        "ref": "C1",
+        "pad": "1"
+      },
+      {
+        "ref": "C2",
+        "pad": "1"
+      },
+      {
+        "ref": "R1",
+        "pad": "2"
+      }
+    ],
+    "EN": [
+      {
+        "ref": "U1",
+        "pad": "3"
+      }
+    ],
+    "UART_TX": [
+      {
+        "ref": "U1",
+        "pad": "24"
+      },
+      {
+        "ref": "J2",
+        "pad": "1"
+      }
+    ],
+    "UART_RX": [
+      {
+        "ref": "U1",
+        "pad": "25"
+      },
+      {
+        "ref": "J2",
+        "pad": "2"
+      }
+    ],
+    "GPIO23": [
+      {
+        "ref": "U1",
+        "pad": "37"
+      }
+    ],
+    "GPIO19": [
+      {
+        "ref": "U1",
+        "pad": "31"
+      }
+    ],
+    "GPIO18": [
+      {
+        "ref": "U1",
+        "pad": "30"
+      }
+    ],
+    "GPIO5": [
+      {
+        "ref": "U1",
+        "pad": "29"
+      }
+    ],
+    "GPIO21": [
+      {
+        "ref": "U1",
+        "pad": "33"
+      }
+    ],
+    "GPIO22": [
+      {
+        "ref": "U1",
+        "pad": "36"
+      }
+    ],
+    "HX711_DOUT": [
+      {
+        "ref": "U1",
+        "pad": "26"
+      },
+      {
+        "ref": "U3",
+        "pad": "11"
+      }
+    ],
+    "HX711_SCK": [
+      {
+        "ref": "U1",
+        "pad": "27"
+      },
+      {
+        "ref": "U3",
+        "pad": "12"
+      }
+    ],
+    "GPIO25": [
+      {
+        "ref": "U1",
+        "pad": "10"
+      }
+    ],
+    "GPIO34": [
+      {
+        "ref": "U1",
+        "pad": "6"
+      }
+    ],
+    "GPIO27": [
+      {
+        "ref": "U1",
+        "pad": "12"
+      }
+    ],
+    "GPIO2": [
+      {
+        "ref": "U1",
+        "pad": "22"
+      }
+    ],
+    "VIN": [
+      {
+        "ref": "J1",
+        "pad": "1"
+      },
+      {
+        "ref": "U2",
+        "pad": "3"
+      }
+    ],
+    "RF_ANT": [
+      {
+        "ref": "ANT1",
+        "pad": "1"
+      }
+    ],
+    "HX711_VSUP": [
+      {
+        "ref": "U3",
+        "pad": "1"
+      }
+    ],
+    "HX711_BASE": [
+      {
+        "ref": "U3",
+        "pad": "2"
+      }
+    ],
+    "HX711_AVDD": [
+      {
+        "ref": "U3",
+        "pad": "3"
+      },
+      {
+        "ref": "J3",
+        "pad": "3"
+      }
+    ],
+    "HX711_INA-": [
+      {
+        "ref": "U3",
+        "pad": "4"
+      },
+      {
+        "ref": "J3",
+        "pad": "2"
+      }
+    ],
+    "HX711_INA+": [
+      {
+        "ref": "U3",
+        "pad": "5"
+      },
+      {
+        "ref": "J3",
+        "pad": "1"
+      }
+    ],
+    "HX711_INB-": [
+      {
+        "ref": "U3",
+        "pad": "6"
+      }
+    ],
+    "HX711_INB+": [
+      {
+        "ref": "U3",
+        "pad": "7"
+      }
+    ],
+    "HX711_XO": [
+      {
+        "ref": "U3",
+        "pad": "10"
+      }
+    ],
+    "HX711_RATE": [
+      {
+        "ref": "U3",
+        "pad": "14"
+      }
+    ],
+    "LED_ANODE": [
+      {
+        "ref": "D1",
+        "pad": "1"
+      },
+      {
+        "ref": "R1",
+        "pad": "1"
+      }
+    ],
+    "LED_CATHODE": [
+      {
+        "ref": "D1",
+        "pad": "2"
+      }
+    ]
+  },
+  "net_count": 30,
+  "trace_count": 29
+}

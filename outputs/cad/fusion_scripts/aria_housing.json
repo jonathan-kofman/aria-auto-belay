@@ -2,8 +2,8 @@
   "goal": "ARIA motor housing shell, 260mm OD, 10mm wall, 180mm length",
   "part_id": "aria_housing",
   "fusion_mode": "parametric",
-  "step_path": "C:\\Users\\jonko\\AppData\\Local\\Temp\\pytest-of-jonko\\pytest-40\\test_fusion_script_references_0\\h.step",
-  "stl_path": "C:\\Users\\jonko\\AppData\\Local\\Temp\\pytest-of-jonko\\pytest-40\\test_fusion_script_references_0\\h.stl",
+  "step_path": "C:\\Users\\jonko\\AppData\\Local\\Temp\\pytest-of-jonko\\pytest-42\\test_fusion_script_references_0\\h.step",
+  "stl_path": "C:\\Users\\jonko\\AppData\\Local\\Temp\\pytest-of-jonko\\pytest-42\\test_fusion_script_references_0\\h.stl",
   "features": [],
   "base_shape": {},
   "params": {

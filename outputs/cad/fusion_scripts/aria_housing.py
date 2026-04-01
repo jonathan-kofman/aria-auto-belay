@@ -3,7 +3,7 @@
 import adsk.core, adsk.fusion, traceback
 
 OD_MM=260.0; HEIGHT_MM=180.0; BORE_MM=78.0
-PART_NAME='aria_housing'; STL_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-40/test_fusion_script_references_0/h.stl'; STEP_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-40/test_fusion_script_references_0/h.step'
+PART_NAME='aria_housing'; STL_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-42/test_fusion_script_references_0/h.stl'; STEP_PATH=r'C:/Users/jonko/AppData/Local/Temp/pytest-of-jonko/pytest-42/test_fusion_script_references_0/h.step'
 
 def run(context):
     ui = None
