@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 277.34,
+  "breakdown": {
+    "material_usd": 0.77,
+    "machining_usd": 154.65,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.7,
+    "margin_usd": 46.22
+  },
+  "lead_time_days": 4,
+  "geometry": {
+    "bbox_mm": [
+      62.0,
+      62.0,
+      25.0
+    ],
+    "volume_cm3": 54.8601,
+    "stock_volume_cm3": 96.1,
+    "material_removal_pct": 42.9,
+    "surface_area_cm2": 139.7066,
+    "face_count": 10
+  },
+  "optimizations": [
+    "Implement a nesting strategy to reduce material waste ($10 savings)",
+    "Optimize machining parameters (e.g., spindle speed, feed rate) to improve efficiency and reduce machining time ($20 savings)",
+    "Consider using a more cost-effective stock material or supplier ($5 savings)"
+  ],
+  "confidence": "high",
+  "risks": [
+    "Material removal is relatively high at 43%, which may indicate a need for more efficient machining strategies."
+  ]
+}

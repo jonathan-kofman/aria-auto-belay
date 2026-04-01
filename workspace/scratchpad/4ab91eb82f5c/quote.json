@@ -1,0 +1,36 @@
+{
+  "process": "cnc_5axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 363.9,
+  "breakdown": {
+    "material_usd": 0.17,
+    "machining_usd": 102.98,
+    "setup_usd": 200.0,
+    "finishing_usd": 0.09,
+    "margin_usd": 60.65
+  },
+  "lead_time_days": 13,
+  "geometry": {
+    "bbox_mm": [
+      15.0,
+      7.61,
+      60.0
+    ],
+    "volume_cm3": 1.1125,
+    "stock_volume_cm3": 6.849,
+    "material_removal_pct": 83.8,
+    "surface_area_cm2": 18.8335,
+    "face_count": 80
+  },
+  "optimizations": [
+    "Simplify part design to reduce complexity and machining time ($20-$30 savings)",
+    "Use a more efficient cutting strategy, such as using a ball nose endmill instead of a flat endmill ($15-$25 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining cost due to complex geometry (high face count, high surface area)",
+    "Potential for tool wear or breakage due to 5-axis machining of steel",
+    "Setup cost may be underestimated if additional fixtures or clamps are required"
+  ]
+}

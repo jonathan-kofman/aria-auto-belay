@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 188.19,
+  "breakdown": {
+    "material_usd": 1.16,
+    "machining_usd": 80.29,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.38,
+    "margin_usd": 31.37
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      25.0,
+      37.0
+    ],
+    "volume_cm3": 29.5509,
+    "stock_volume_cm3": 46.25,
+    "material_removal_pct": 36.1,
+    "surface_area_cm2": 76.4688,
+    "face_count": 23
+  },
+  "optimizations": [
+    "Optimize part design for reduced material usage ($0.50 savings per unit)",
+    "Simplify the part geometry to reduce face count and complexity ($10.00 savings per unit)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Thin walls (material removal of 36% may be challenging)",
+    "High surface area to volume ratio, potentially increasing machining time"
+  ]
+}

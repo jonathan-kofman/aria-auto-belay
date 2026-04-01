@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 202.21,
+  "breakdown": {
+    "material_usd": 0.2,
+    "machining_usd": 43.21,
+    "setup_usd": 125.0,
+    "finishing_usd": 0.1,
+    "margin_usd": 33.7
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      36.0,
+      20.0,
+      11.0
+    ],
+    "volume_cm3": 3.3108,
+    "stock_volume_cm3": 7.92,
+    "material_removal_pct": 58.2,
+    "surface_area_cm2": 19.9369,
+    "face_count": 32
+  },
+  "optimizations": [
+    "Simplify part design to reduce machining complexity (-$10 savings)",
+    "Use a more efficient cutting strategy or optimize toolpath (-$8 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining cost due to complex geometry (32 faces, moderate complexity)",
+    "Potential for tool wear or breakage with 4-axis machining"
+  ]
+}

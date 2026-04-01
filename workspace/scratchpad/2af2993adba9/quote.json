@@ -1,0 +1,35 @@
+{
+  "process": "cnc_5axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 1290.05,
+  "breakdown": {
+    "material_usd": 0.77,
+    "machining_usd": 873.46,
+    "setup_usd": 200.0,
+    "finishing_usd": 0.81,
+    "margin_usd": 215.01
+  },
+  "lead_time_days": 13,
+  "geometry": {
+    "bbox_mm": [
+      80.0,
+      80.0,
+      15.0
+    ],
+    "volume_cm3": 33.61,
+    "stock_volume_cm3": 96.0,
+    "material_removal_pct": 65.0,
+    "surface_area_cm2": 162.4026,
+    "face_count": 108
+  },
+  "optimizations": [
+    "Review the machining process to see if any operations can be combined or optimized. For example, if there are multiple small features on a single face, consider using a smaller end mill or a ball nose end mill to reduce machining time and cost ($50-$100 savings).",
+    "Consider using a more efficient machining strategy, such as using a 3+2 machining approach instead of traditional 5-axis machining. This could reduce the number of tool changes and improve overall efficiency ($150-$250 savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining cost may be due to complex geometry, but without more information on the specific features of the part (e.g., tight tolerances, thin walls), it's hard to say for sure.",
+    "The high complexity rating suggests that the part may require specialized tooling or setup procedures, which could add to the cost."
+  ]
+}

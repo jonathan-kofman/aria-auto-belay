@@ -1,9 +1,9 @@
 {
-  "goal": "cable strain relief clamp, 10mm cable diameter, 30mm long, 2x M4 mounting holes, split clamp design with hinge, chamfered edges",
+  "goal": "GoPro mount adapter, 3-prong clip top, 1/4-20 thread insert bottom, 25mm tall",
   "part_id": "",
   "fusion_mode": "parametric",
-  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_cable_strain_relief_clamp_cable.step",
-  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_cable_strain_relief_clamp_cable.stl",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_gopro_mount_adapter_prong_clip.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_gopro_mount_adapter_prong_clip.stl",
   "features": [],
   "base_shape": {},
   "params": {}

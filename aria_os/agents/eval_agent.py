@@ -319,15 +319,29 @@ class EvalAgent:
         except Exception:
             user_spec = state.spec
 
-        # Determine if height_mm came from "thick" (plate thickness ≠ total bbox)
+        # Determine which dims are "thickness" (plate material, not bbox)
+        # For brackets, L-brackets, heat sinks — the smallest WxHxD dim is thickness
         goal_lower = state.goal.lower()
-        _height_is_thickness = any(kw in goal_lower for kw in ("thick", "plate", "sheet"))
+        part_type = user_spec.get("part_type", "")
+        _thickness_parts = ("bracket", "l_bracket", "heat_sink", "phone_stand",
+                            "flat_plate", "base_plate", "catch_pawl")
+        _is_thickness_part = part_type in _thickness_parts or any(
+            kw in goal_lower for kw in ("thick", "plate", "sheet", "bracket", "heat sink"))
+
+        # If it's a thickness-type part, treat the smallest extracted dim as thickness
+        _dims = {}
+        for k in ("width_mm", "height_mm", "depth_mm"):
+            v = user_spec.get(k)
+            if v:
+                _dims[k] = float(v)
+        _min_dim_key = min(_dims, key=_dims.get) if _dims else ""
+        _thickness_key = _min_dim_key if _is_thickness_part and _dims else ""
 
         checks = [
             ("od_mm", "OD", False),
-            ("width_mm", "width", False),
-            ("height_mm", "height", _height_is_thickness),
-            ("depth_mm", "depth", False),
+            ("width_mm", "width", _thickness_key == "width_mm"),
+            ("height_mm", "height", _thickness_key == "height_mm"),
+            ("depth_mm", "depth", _thickness_key == "depth_mm"),
         ]
         for key, label, is_thickness in checks:
             val = user_spec.get(key)

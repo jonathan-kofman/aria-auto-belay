@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "title": "NACA 4412 (naca4412-il) - Airfoil Tools",
+      "snippet": "Details of airfoil (aerofoil) (naca4412-il) NACA 4412 NACA 4412 airfoil",
+      "url": "airfoiltools.com/airfoil/details?airfoil=naca4412-il"
+    },
+    {
+      "title": "Comparative Study of the Blade Number and Airfoil Profile Impacts on ...",
+      "snippet": "The blade number and airfoil profile effects on the blade shape of a small horizontal-axis wind turbine (SHWT) were investigated. For this purpose, the NACA4412, SG6042, and SG6043 airfoils, as wel...",
+      "url": "onlinelibrary.wiley.com/doi/10.1155/2023/8164273"
+    },
+    {
+      "title": "NACA 4412 Airfoil Design and Analysis",
+      "snippet": "This document discusses the design, fabrication, and experimental results of the NACA 4412 airfoil. CFD simulations were performed using ANSYS software to model the airfoil and aircraft wing geometry. Pressure and velocity values were measured at various points on the airfoil surface at different ve",
+      "url": "www.scribd.com/document/493888095/NACA-AIRFOIL-4412"
+    },
+    {
+      "title": "Aerodynamic performance and stall characteristics of the NACA4412 ...",
+      "snippet": "The aerodynamic performance of airfoil blades in various design and off-design situations plays a significant role in developing their designs. The current study aims to obtain and critically examine the performance of the NACA4412 airfoil at discrete Reynolds number (Re) and Angle of Attack (AOA) c",
+      "url": "link.springer.com/article/10.1007/s12046-023-02349-z"
+    },
+    {
+      "title": "(PDF) 2D ANALYSIS OF NACA 4412 AIRFOIL - ResearchGate",
+      "snippet": "This involves the selection of a suitable airfoil section for the proposed wind turbine blade. In this paper NACA 4412 airfoil profile is considered for analysis of wind turbine blade.",
+      "url": "www.researchgate.net/publication/280641554_2D_ANALYSIS_OF_NACA_4412_AIRFOIL"
+    },
+    {
+      "title": "Effect of blade profile on the external/internal geometry of a small ...",
+      "snippet": "Effect of blade profile (airfoil) on the distribution of the chord and twist of a small wind turbine blade was studied. NACA4412 and SG6043 were selected for the design of solid/hollow blades and the two optimization procedures were performed.",
+      "url": "www.sciencedirect.com/science/article/pii/S2213138821009322"
+    },
+    {
+      "title": "(PDF) 2D ANALYSIS OF NACA 4412 AIRFOIL - Academia.edu",
+      "snippet": "Our study focuses primarily on designing the blade for regions of low wind power density. The aerodynamic airfoils of wind turbine blades have crucial influence on aerodynamic efficiency of wind turbine. This involves the selection of a suitable airfoil section for the proposed wind turbine blade. I",
+      "url": "www.academia.edu/20615798/2D_ANALYSIS_OF_NACA_4412_AIRFOIL"
+    },
+    {
+      "title": "Aerodynamic Analysis of NACA 4412 Airfoil with CFD for Small Scale Wind ...",
+      "snippet": "The wind turbine obtains electricity from wind energy, which is a renewable energy source. One of the elements affecting the yield of wind turbines is aerodynamic properties of airfoils. In this study, CFD analysis of NACA 4412 Airfoil which can be used in small scale wind turbine design was perform",
+      "url": "journalgreentech.com/index.php/pub/article/view/9"
+    },
+    {
+      "title": "Wind turbine blade analysis for different airfoil configuration",
+      "snippet": "This paper presents the calculation and design of turbine blades while considering the different configuration of airfoil and thus obtained the different parameters such as tip ratio, twist angle, and chord length of the turbine blade, drag and lift coefficient of wind power and optimum ratio requir",
+      "url": "pubs.aip.org/aip/acp/article/2735/1/020011/2910622/Wind-turbine-blade-analysis-for-different-airfoil"
+    },
+    {
+      "title": "NACA 4412 Airfoil 2D Analysis: Lift &amp; Drag - studylib.net",
+      "snippet": "CFD analysis of NACA 4412 airfoil at varying angles of attack. Study of lift and drag coefficients for wind turbine blade design. Aerodynamics.",
+      "url": "studylib.net/doc/18373834/2d-analysis-of-naca-4412-airfoil"
+    }
+  ]
+}

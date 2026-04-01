@@ -121,6 +121,45 @@ result = result.faces(">Z").workplane().pushPoints(pts).circle(R).cutThruAll()""
 
     ("intersect", "Keep only the overlap of two solids",
      'result = body_a.intersect(body_b)'),
+
+    # ── Common part patterns ─────────────────────────────────────────
+    ("gopro_3prong", "GoPro-style 3-prong mount (2 outer prongs + 1 inner)",
+     """# GoPro mount: 2 outer tabs + 1 center tab with through-hole
+PRONG_W = 3.0   # width of each prong
+GAP = 3.5       # gap between prongs
+PRONG_H = 10.0  # height of prongs
+HOLE_D = 5.0    # bolt hole diameter
+
+base = cq.Workplane("XY").box(BASE_W, BASE_D, BASE_H)
+# Outer prongs (2)
+for offset in [-(GAP/2 + PRONG_W/2), (GAP/2 + PRONG_W/2)]:
+    prong = (cq.Workplane("XY").workplane(offset=BASE_H/2)
+        .center(0, offset).box(PRONG_W, PRONG_W, PRONG_H).translate((0, 0, PRONG_H/2)))
+    base = base.union(prong)
+# Center prong (1)
+center = (cq.Workplane("XY").workplane(offset=BASE_H/2)
+    .box(PRONG_W, PRONG_W, PRONG_H).translate((0, 0, PRONG_H/2)))
+base = base.union(center)
+# Through-hole for bolt
+result = base.faces(">Z").workplane().circle(HOLE_D/2).cutThruAll()"""),
+
+    ("heat_sink_fins", "Parallel fin array on a base plate",
+     """# Heat sink: base plate + N parallel fins
+base = cq.Workplane("XY").box(W, D, BASE_T)
+for i in range(N_FINS):
+    x = -W/2 + FIN_T/2 + i * SPACING
+    fin = (cq.Workplane("XY").workplane(offset=BASE_T/2)
+        .center(x, 0).box(FIN_T, D, FIN_H).translate((0, 0, FIN_H/2)))
+    base = base.union(fin)
+result = base"""),
+
+    ("l_bracket", "L-shaped bracket (two plates at 90 degrees)",
+     """# L-bracket: horizontal base + vertical leg
+base = cq.Workplane("XY").box(W, DEPTH, THICKNESS)
+vert = (cq.Workplane("XY").workplane(offset=THICKNESS/2)
+    .center(0, -DEPTH/2 + THICKNESS/2)
+    .box(W, THICKNESS, LEG_H).translate((0, 0, LEG_H/2)))
+result = base.union(vert)"""),
 ]
 
 

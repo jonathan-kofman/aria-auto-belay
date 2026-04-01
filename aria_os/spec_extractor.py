@@ -62,6 +62,15 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("cover",         "flat_plate"),
     ("lid",           "flat_plate"),
     ("platform",      "flat_plate"),
+    ("l-bracket",     "l_bracket"),
+    ("l bracket",     "l_bracket"),
+    ("angle bracket", "l_bracket"),
+    ("heat sink",     "heat_sink"),
+    ("heatsink",      "heat_sink"),
+    ("phone stand",   "phone_stand"),
+    ("tablet stand",  "phone_stand"),
+    ("gopro mount",   "gopro_mount"),
+    ("action camera mount", "gopro_mount"),
     ("arm link",      "hollow_rect"),  # structural arm link → hollow rectangular tube
     ("ratchet ring",  "ratchet_ring"),
     ("gear wheel",    "gear"),
@@ -386,6 +395,46 @@ def extract_spec(description: str) -> dict[str, Any]:
     ])
     if wall:
         spec["wall_mm"] = wall
+
+    # --- Fin / feature dimensions (heat sinks, etc.) ---
+    fin_h = _find([
+        r"fins?\s+(\d+(?:\.\d+)?)\s*mm\s+tall",
+        r"(\d+(?:\.\d+)?)\s*mm\s+tall\s+fins?",
+        r"fin\s+height\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
+    ])
+    if fin_h:
+        spec["fin_height_mm"] = fin_h
+
+    fin_t = _find([
+        r"fins?\s+(\d+(?:\.\d+)?)\s*mm\s+thick",
+        r"(\d+(?:\.\d+)?)\s*mm\s+thick\s+fins?",
+        r"fin\s+thickness\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
+    ])
+    if fin_t:
+        spec["fin_thickness_mm"] = fin_t
+
+    fin_spacing = _find([
+        r"(\d+(?:\.\d+)?)\s*mm\s+spacing",
+        r"spacing\s*[=:]\s*(\d+(?:\.\d+)?)\s*mm",
+    ])
+    if fin_spacing:
+        spec["fin_spacing_mm"] = fin_spacing
+
+    n_fins = _find([
+        r"(\d+)\s+(?:parallel\s+)?fins?",
+        r"(\d+)\s+(?:parallel\s+)?blades?",
+    ])
+    if n_fins:
+        spec["n_fins"] = int(n_fins)
+
+    # --- Angle ---
+    angle = _find([
+        r"angled?\s+(\d+(?:\.\d+)?)\s*(?:deg|degrees?|°)",
+        r"(\d+(?:\.\d+)?)\s*(?:deg|degrees?|°)\s+angle",
+        r"at\s+(\d+(?:\.\d+)?)\s*(?:deg|degrees?|°)",
+    ])
+    if angle:
+        spec["angle_deg"] = angle
 
     return spec
 

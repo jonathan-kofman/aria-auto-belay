@@ -1,0 +1,14 @@
+{
+  "spec": {
+    "part_type": "spacer",
+    "od_mm": 8.0,
+    "bore_mm": 3.0,
+    "id_mm": 3.0,
+    "thickness_mm": 15.0,
+    "height_mm": 15.0
+  },
+  "cem_params": {},
+  "material": "",
+  "research_context": "\n## Shape & Geometry\n- Shop pcb standoff - Amazon.com Official Site: Find deals and low prices on pcb standoff at Amazon.com. Browse & discover thousands of brands. Read customer reviews & find best sellers\n- M3 Board Spacers, Standoffs | Electronic Components Distributor DigiKey: M3 Board Spacers, Standoffs Board spacers and standoffs provide precise positioning and fastening of two objects designed to be a specific distance apart for insulation, connection or structural purposes.\n- standoff - Recent models | 3D CAD Model Collection - GrabCAD: The GrabCAD Library offers millions of free CAD designs, CAD files, and 3D models. Join the GrabCAD Community today to gain access and download!\n- Standoffs: 3D models - SOLIDWORKS, Inventor, CATIA V5 ... - TraceParts: Discover all CAD files of the \"Standoffs\" category from Supplier-Certified Catalogs SOLIDWORKS, Inventor, Creo, CATIA, Solid Edge, autoCAD, Revit and many more CAD software but also as STEP, STL, IGES, STL, DWG, DXF and more neutral CAD formats.\n- Standoffs M3 Standoffs &amp; Spacers - Mouser: Applied Filters: Electromechanical Hardware Standoffs & Spacers Product = Standoffs Thread Size = M3 ... Reset All Please modify your search so that it will return results. To use the less than or greater than function, please select a value first.\n\n## Dimensions\n- pcb standoff - Amazon.com Official Site - Shop pcb standoff: Find deals and low prices on pcb standoff at Amazon.com. Browse & discover thousands of brands. Read customer reviews & find best sellers\n- M3 Board Spacers, Standoffs - Digi-Key Electronics: M3 Board Spacers, Standoffs Board spacers and standoffs provide precise positioning and fastening of two objects designed to be a specific distance apart for insulation, connection or structural purposes.\n- M3 Standoffs | McMaster-Carr: Choose from our selection of M3 standoffs, including male-female threaded hex standoffs, female threaded hex standoffs, and more. Same and Next Day Delivery.\n- RS PRO M3 Standoff,",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(80, 80, 15)\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(3).cutThruAll()\nSTEP 3: Add raised feature \u2014 .workplane(offset=15).rect(60, 60).extrude(5)"
+}

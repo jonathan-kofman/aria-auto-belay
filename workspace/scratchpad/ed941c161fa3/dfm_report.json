@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "score": 96.0,
+  "process_recommendation": "cnc_3axis",
+  "issues": [
+    {
+      "severity": "info",
+      "category": "tight_radii",
+      "description": "High face density (12.5 faces/cm3) \u2014 may indicate tight internal radii",
+      "suggestion": "Verify minimum internal corner radius is >= 1mm for standard endmills"
+    },
+    {
+      "severity": "info",
+      "category": "Geometry",
+      "description": "High face density (12.5 faces/cm3) \u2014 may indicate tight internal radii.",
+      "suggestion": "Consider using a higher resolution 3D model to ensure accurate manufacturing."
+    }
+  ],
+  "geometry_summary": {
+    "bbox_mm": [
+      30.0,
+      12.0,
+      10.0
+    ],
+    "volume_mm3": 2160.0,
+    "surface_area_mm2": 1560.0,
+    "face_count": 27,
+    "estimated_wall_mm": 2.769,
+    "aspect_ratio": 3.0,
+    "undercut_count": 0
+  },
+  "cost_drivers": [
+    "material_fill"
+  ],
+  "llm_used": true,
+  "complexity": "moderate"
+}

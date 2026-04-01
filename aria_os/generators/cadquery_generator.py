@@ -1057,6 +1057,160 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
+def _cq_l_bracket(params: dict[str, Any]) -> str:
+    """L-bracket: two plates joined at 90 degrees."""
+    w = float(params.get("width_mm", 50.0))
+    h = float(params.get("height_mm", 30.0))
+    t = float(params.get("thickness_mm", 3.0))
+    hole = float(params.get("hole_dia_mm", params.get("bolt_dia_mm", 4.0)))
+    n = max(0, int(params.get("n_bolts", 4)))
+    leg_h = float(params.get("leg_height_mm", h))  # vertical leg height
+
+    # Hole positions: half on base, half on vertical leg
+    n_base = max(1, n // 2)
+    n_vert = max(1, n - n_base)
+    margin = min(w * 0.15, 10.0)
+
+    base_pts = [(round(-w/2 + margin + (w - 2*margin) * i / max(n_base-1, 1), 2), 0.0) for i in range(n_base)]
+    vert_pts = [(round(-w/2 + margin + (w - 2*margin) * i / max(n_vert-1, 1), 2), round(leg_h * 0.5, 2)) for i in range(n_vert)]
+
+    return f"""
+import cadquery as cq
+
+W = {w}
+H = {h}        # base depth (horizontal leg)
+T = {t}
+LEG_H = {leg_h} # vertical leg height
+HOLE_DIA = {hole}
+
+# Base plate (horizontal leg)
+base = cq.Workplane("XY").box(W, H, T)
+
+# Vertical leg — starts at the back edge of base, goes up
+vert = (cq.Workplane("XY")
+    .workplane(offset=T/2)
+    .center(0, -H/2 + T/2)
+    .box(W, T, LEG_H)
+    .translate((0, 0, LEG_H/2)))
+
+result = base.union(vert)
+
+# Holes in base plate
+base_holes = {repr(base_pts)}
+if base_holes:
+    hole_cutter = (cq.Workplane("XY").workplane(offset=-1)
+        .pushPoints(base_holes).circle(HOLE_DIA/2).extrude(T + 2))
+    result = result.cut(hole_cutter)
+
+# Holes in vertical leg
+vert_hole_pts = {repr(vert_pts)}
+if vert_hole_pts:
+    vert_cutter = (cq.Workplane("XZ")
+        .workplane(offset=H/2)
+        .pushPoints(vert_hole_pts).circle(HOLE_DIA/2).extrude(T + 2))
+    result = result.cut(vert_cutter)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_heat_sink(params: dict[str, Any]) -> str:
+    """Heat sink: base plate with parallel fins."""
+    w = float(params.get("width_mm", 60.0))
+    d = float(params.get("depth_mm", 40.0))
+    base_t = float(params.get("base_thickness_mm", params.get("thickness_mm", 3.0)))
+    fin_h = float(params.get("fin_height_mm", 20.0))
+    fin_t = float(params.get("fin_thickness_mm", 1.5))
+    n_fins = int(params.get("n_fins", 8))
+    spacing = float(params.get("fin_spacing_mm", 0))
+    if spacing <= 0 and n_fins > 1:
+        spacing = (w - fin_t) / (n_fins - 1)
+
+    return f"""
+import cadquery as cq
+
+W = {w}
+D = {d}
+BASE_T = {base_t}
+FIN_H = {fin_h}
+FIN_T = {fin_t}
+N_FINS = {n_fins}
+SPACING = {spacing}
+
+# Base plate
+result = cq.Workplane("XY").box(W, D, BASE_T)
+
+# Parallel fins on top
+for i in range(N_FINS):
+    x = -W/2 + FIN_T/2 + i * SPACING
+    fin = (cq.Workplane("XY")
+        .workplane(offset=BASE_T/2)
+        .center(x, 0)
+        .box(FIN_T, D, FIN_H)
+        .translate((0, 0, FIN_H/2)))
+    result = result.union(fin)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_phone_stand(params: dict[str, Any]) -> str:
+    """Phone/tablet stand: angled support with slot."""
+    w = float(params.get("width_mm", 60.0))
+    h = float(params.get("height_mm", 80.0))
+    base_d = float(params.get("depth_mm", params.get("base_depth_mm", 60.0)))
+    t = float(params.get("thickness_mm", 5.0))
+    angle = float(params.get("angle_deg", 65.0))
+    slot_w = float(params.get("slot_width_mm", 12.0))
+
+    import math
+    angle_rad = math.radians(angle)
+    lean_offset = h * math.cos(angle_rad)
+    lean_rise = h * math.sin(angle_rad)
+
+    return f"""
+import cadquery as cq, math
+
+W = {w}
+H = {h}
+BASE_D = {base_d}
+T = {t}
+ANGLE = {angle}
+SLOT_W = {slot_w}
+
+# Base plate
+base = cq.Workplane("XY").box(W, BASE_D, T)
+
+# Angled back support (tilted at ANGLE from vertical)
+angle_rad = math.radians(ANGLE)
+lean = H * math.cos(angle_rad)  # horizontal offset at top
+rise = H * math.sin(angle_rad)  # vertical height
+
+# Build angled support as a box rotated about X axis
+support = (cq.Workplane("XZ")
+    .center(0, T/2)
+    .polyline([(- W/2, 0), (W/2, 0), (W/2, rise), (-W/2, rise)])
+    .close().extrude(T))
+
+# Position: start at back of base, lean back
+support = support.translate((0, -BASE_D/2 + T, 0))
+
+result = base.union(support)
+
+# Phone slot (groove in front of support, on top of base)
+slot = (cq.Workplane("XY")
+    .workplane(offset=T/2)
+    .center(0, -BASE_D/2 + T*2 + SLOT_W/2)
+    .box(W * 0.8, SLOT_W, T * 0.7))
+result = result.cut(slot)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
 def _cq_flange(params: dict[str, Any]) -> str:
     bore    = float(params.get("bore_mm",   40.0))
     n_bolts = int(params.get("n_bolts", 4))
@@ -2065,6 +2219,18 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     # Platforms → flat_plate
     "platform":                     _cq_flat_plate,
     "baseplate":                    _cq_flat_plate,
+    # L-bracket / angle bracket
+    "l_bracket":                    _cq_l_bracket,
+    "angle_bracket":                _cq_l_bracket,
+    "l_shaped_bracket":             _cq_l_bracket,
+    # Heat sink
+    "heat_sink":                    _cq_heat_sink,
+    "heatsink":                     _cq_heat_sink,
+    "fin_array":                    _cq_heat_sink,
+    # Phone/tablet stand
+    "phone_stand":                  _cq_phone_stand,
+    "tablet_stand":                 _cq_phone_stand,
+    "device_stand":                 _cq_phone_stand,
 }
 
 # Keyword scan for slug-based part_ids not in the exact map.
@@ -2107,6 +2273,9 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["hinge", "knuckle"],                                     _cq_bracket),
     (["roller"],                                               _cq_spacer),
     (["platform", "baseplate", "base plate"],                  _cq_flat_plate),
+    (["l_bracket", "l-bracket", "l bracket", "angle bracket", "angle_bracket"], _cq_l_bracket),
+    (["heat_sink", "heatsink", "heat sink", "fin array", "fin_array", "fins"], _cq_heat_sink),
+    (["phone_stand", "phone stand", "tablet_stand", "tablet stand", "device stand"], _cq_phone_stand),
 ]
 
 

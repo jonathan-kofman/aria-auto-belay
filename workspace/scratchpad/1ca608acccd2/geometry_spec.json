@@ -1,0 +1,18 @@
+{
+  "spec": {
+    "part_type": "gear",
+    "material": "pla",
+    "od_mm": 50.0,
+    "bore_mm": 10.0,
+    "id_mm": 10.0,
+    "thickness_mm": 12.0,
+    "height_mm": 12.0,
+    "bolt_circle_r_mm": 18.0,
+    "wall_mm": 6.0,
+    "n_teeth": 30
+  },
+  "cem_params": {},
+  "material": "pla",
+  "research_context": "\n## Shape & Geometry\n- Planetary Gears | McMaster-Carr: Choose from our selection of planetary gears, including metal gears and gear racks, plastic gears and gear racks, and more. Same and Next Day Delivery.\n- Planetgear (PGSTK) Parts &amp; Kits - Rexnord: Planetgear (PGSTK) Parts & Kits Rexnord Planetgear Adapter Flanges\n- IMS Gear: Customizable Planetary Gears for Every Industry Need: A planetary gear (also: epicyclic gear) is a technical design that serves as a \"link\" for power transmission between a drive source (the motor) and an application to be moved (e.g. the movement of a wheel).\n- planetary gear - Recent models | 3D CAD Model Collection - GrabCAD: The GrabCAD Library offers millions of free CAD designs, CAD files, and 3D models. Join the GrabCAD Community today to gain access and download!\n- PDF Matex LGU planetary gear catalog: COMPANY PROFILE 47 FEATURES of Matex PLANETARY GEAR High Torque\u30fbHigh Efficiency\u30fbLow Noise High Torque, High Efficiency, and Low Noise are realized thanks to our unique structure. Wide Variety of Standard Products\u30fbSpeed Ratio Wide variety of size( Outer Diameter\u03c626mm\u301c\u03c6200mm) and speed ratio(3-7) are \n\n## Dimensions\n- IMS Gear: Customizable Planetary Gears for Every Industry Need: Our modular system makes your planetary gear come true - worldwide, quick, in large and small quantities, cost-efficient and with some extra personal service. Only available from IMS Gear.\n- Planetary Gears | McMaster-Carr: Choose from our selection of planetary gears, including metal gears and gear racks, plastic gears and gear racks, and more. Same and Next Day Delivery.\n- Planetgear (PGSTK) Parts &amp; Kits - Rexnord: Planetgear (PGSTK) Parts & Kits Rexnord Planetgear Adapter Flanges\n- planetary gear - Recent models | 3D CAD Model Collection - GrabCAD: The GrabCAD Library offers millions of free CAD designs, CAD files, and 3D models. Join the GrabCAD Community today to gain access and download!\n- Planetary Gear System Distributor | Matex Gears: Planetar",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(50, 50, 12)\n\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(5).cutThruAll()\n\nSTEP 3: Add raised feature \u2014 .workplane(offset=12).rect(40, 40).extrude(2)\n\nSTEP 4: Create planet pin holes \u2014 \n    - .workplane(centerAt=(18, 0)).circle(1.5).cutThruAll()\n    - .workplane(centerAt=(-18, 0)).circle(1.5).cutThruAll()\n    - .workplane(centerAt=(0, 18)).circle(1.5).cutThruAll()\n    - .workplane(centerAt=(0, -18)).circle(1.5).cutThruAll()\n\nSTEP 5: Add additional support structure \u2014 \n    - .workplane(offset=6).rect(20, 20).extrude(2)\n    - .workplane(offset=-6).rect(20, 20).extrude(2)\n\nThis recipe creates a planetary gear carrier with the specified dimensions and features. The base plate is created first, followed by a center bore, raised feature, and planet pin holes. Additional support structures are added to enhance stability."
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "goal": "simple L-bracket, 50x30x3mm, 4x M4 holes",
+    "status": "PASS",
+    "iters": 2,
+    "kb": 31,
+    "time": 84,
+    "onshape": false
+  },
+  {
+    "goal": "bearing housing, 62mm OD, 30mm bore, 25mm tall, 6x",
+    "status": "PASS",
+    "iters": 1,
+    "kb": 35,
+    "time": 58,
+    "onshape": true
+  },
+  {
+    "goal": "phone stand, 80mm tall, 60mm wide, angled 65 degre",
+    "status": "PASS",
+    "iters": 1,
+    "kb": 55,
+    "time": 101,
+    "onshape": true
+  },
+  {
+    "goal": "impeller, 80mm diameter, 6 curved vanes, 15mm hub ",
+    "status": "PASS",
+    "iters": 1,
+    "kb": 375,
+    "time": 96,
+    "onshape": true
+  },
+  {
+    "goal": "heat sink, 60x40mm base, 8 parallel fins 20mm tall",
+    "status": "PASS",
+    "iters": 2,
+    "kb": 109,
+    "time": 118,
+    "onshape": true
+  },
+  {
+    "goal": "spring loaded latch, 30mm long, pivot pin 4mm, cat",
+    "status": "PASS",
+    "iters": 2,
+    "kb": 105,
+    "time": 119,
+    "onshape": true
+  },
+  {
+    "goal": "planetary gear carrier, 50mm OD, 3x planet pin hol",
+    "status": "PASS",
+    "iters": 3,
+    "kb": 822,
+    "time": 138,
+    "onshape": true
+  },
+  {
+    "goal": "GoPro mount adapter, 3-prong clip top, 1/4-20 thre",
+    "status": "PASS",
+    "iters": 2,
+    "kb": 77,
+    "time": 148,
+    "onshape": true
+  },
+  {
+    "goal": "PCB standoff post, 8mm OD, 3mm bore, 15mm tall, M3",
+    "status": "PASS",
+    "iters": 1,
+    "kb": 208,
+    "time": 81,
+    "onshape": true
+  },
+  {
+    "goal": "turbine blade, 60mm span, NACA 4412 airfoil profil",
+    "status": "PASS",
+    "iters": 2,
+    "kb": 492,
+    "time": 195,
+    "onshape": true
+  }
+]

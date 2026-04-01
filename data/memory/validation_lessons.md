@@ -3,12 +3,14 @@
 Common failures encountered during generation.
 
 
-- **1x**: bbox: no axis matches height=6.0mm (closest=19.5mm, tol=2.0)
+- **2x**: bbox: minimum axis 10.0mm is much larger than thickness=6.0mm. The base plate should be ~6.0mm thin.
 
-- **1x**: bbox: no axis matches height=6.0mm (closest=10.0mm, tol=2.0)
+- **1x**: bbox: minimum axis 9.0mm is much larger than thickness=6.0mm. The base plate should be ~6.0mm thin.
 
-- **1x**: bbox: no axis matches height=6.0mm (closest=10.0mm, tol=2.0). Check the code — a value in .extrude()
+- **1x**: feature_complexity: goal specifies 4 holes but geometry has only 13 faces — holes may not be cut. Ne
 
-- **1x**: solid_count: part has 5 disconnected solids (80x120x9mm, 1x1x0mm, 0x0x0mm, 1x1x0mm). All features mu
+- **1x**: feature_complexity: goal specifies 4 holes but geometry has only 4 faces — holes may not be cut. Nee
 
-- **1x**: bbox: minimum axis 15.5mm is much larger than thickness=6.0mm. The base plate should be ~6.0mm thin.
+- **1x**: bbox: no axis matches OD=30.0mm (closest=41.7mm, tol=6.0). Check the code — a value in .extrude() or
+
+- **1x**: bbox: no axis matches depth=3.0mm (closest=6.0mm, tol=2.0). Check the code — a value in .extrude() o

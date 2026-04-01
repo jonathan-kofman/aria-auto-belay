@@ -1,0 +1,10 @@
+{
+  "converged": true,
+  "iterations": 2,
+  "failures": [],
+  "bbox": {
+    "x": 36.0,
+    "y": 20.0,
+    "z": 11.001
+  }
+}

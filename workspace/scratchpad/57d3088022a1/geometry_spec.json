@@ -1,0 +1,16 @@
+{
+  "spec": {
+    "part_type": "housing",
+    "od_mm": 62.0,
+    "bore_mm": 30.0,
+    "id_mm": 30.0,
+    "thickness_mm": 25.0,
+    "height_mm": 25.0,
+    "n_bolts": 6,
+    "bolt_dia_mm": 5.0
+  },
+  "cem_params": {},
+  "material": "",
+  "research_context": "\n## Shape & Geometry\n- 62mm Housing ID Bearings | McMaster-Carr: Choose from our selection of 62mm housing ID bearings, including ball bearings, roller bearings, and more. Same and Next Day Delivery.\n- MM25BS62 DUH - TIMKEN | Precision Ball Bearings | BDI USA: MM25BS62 DUH Weight / LBS 1.05 Long Description Precision Ball Bearing; 25MM Bore; 62MM Outside Diameter; 30MM Width; Open Enclosure; ABEC 7 | ISO P4 Precision; Steel Ball Material; 2 (1 Pair) Bearing; 60 Degree Contact Angle; Phenolic Cage Material Bore 0.984 Inch | 25 Millimeter Outside Diameter 2\n- PF 62 - Housings for insert bearings | SKF: PF 62 Round flanged pressed steel housing for insert bearings Round flanged pressed steel housings for insert bearings are lightweight and made from cold-rolled steel, and are zinc-coated for corrosion protection. The housings are cost-effective and designed for simple applications with light loads.\n- 62 Mm Bearing | MSC Industrial Supply Co.: 62 Mm Bearing | MSC Direct offers quality 62 Mm Bearing at a great value. Find premium products to last a lifetime!\n- Bearing Housings - theBigBearingStore.com: Get High Quality Bearing Housings at theBigBearingStore. Find all the bearings, bearing housings, v-belts, oil seals, collars you need and more.\n\n## Dimensions\n- bearing sizes chart - Amazon.com Official Site: Find deals and low prices on bearing sizes chart at Amazon.com. Browse & discover thousands of brands. Read customer reviews & find best sellers\n- We Quickly Locate Any Bearing - Cross Reference Timken Bearing: Millions of Surplus Timken Bearings in Stock at Low Prices! #1 US Supplier Of Commercial Bearings. Order Now & Get Same Day Shipping!\n- 62mm OD Bearings | McMaster-Carr: Choose from our selection of 62mm OD bearings, including over 120 products in a wide range of styles and sizes. Same and Next Day Delivery.\n- MM25BS62 DUH - TIMKEN | Precision Ball Bearings | BDI USA: MM25BS62 DUH Weight / LBS 1.05 Long Description Precision Ball Bearing; 25MM Bore; 62MM Outsi",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(62, 62, 25)\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(15).cutThruAll()\nSTEP 3: Add raised feature for bolt circle \u2014 .workplane(offset=25).rect(52, 52).extrude(5)"
+}
