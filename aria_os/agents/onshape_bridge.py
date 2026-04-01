@@ -375,6 +375,99 @@ class OnshapeBridge:
             "translationId": tid,
         }
 
+    def verify_upload(self, did: str, wid: str, expected_bbox: dict | None = None,
+                      max_wait: int = 30) -> dict[str, Any]:
+        """Verify a STEP upload translated correctly.
+
+        Polls until a *translated* Part Studio appears (name != "Part Studio 1"),
+        then checks it has ≥1 solid part. Returns the correct Part Studio URL.
+
+        Returns {verified, parts, bbox, issues, part_studio_eid, url}
+        """
+        import time as _time
+        result = {"verified": False, "parts": 0, "bbox": {},
+                  "issues": [], "part_studio_eid": "", "url": ""}
+
+        # Poll for the translated Part Studio (Onshape creates it asynchronously)
+        # The default doc has "Part Studio 1" (empty) — we want the translated one
+        ps_eid = None
+        for attempt in range(max_wait // 3):
+            try:
+                elements = self.client.get(f"/documents/d/{did}/w/{wid}/elements")
+                for el in elements:
+                    el_type = el.get("type", "")
+                    el_name = el.get("name", "")
+                    # Translated Part Studio has a real name (not "Part Studio 1")
+                    if "Part Studio" in el_type and el_name != "Part Studio 1":
+                        ps_eid = el["id"]
+                        break
+                if ps_eid:
+                    break
+            except Exception:
+                pass
+            _time.sleep(3)
+
+        if not ps_eid:
+            # Translation may still be running — check if any Part Studio exists
+            try:
+                elements = self.client.get(f"/documents/d/{did}/w/{wid}/elements")
+                for el in elements:
+                    if "Part Studio" in el.get("type", ""):
+                        ps_eid = el["id"]
+                        break
+            except Exception:
+                pass
+
+        if not ps_eid:
+            result["issues"].append("No Part Studio found after translation")
+            return result
+
+        # Update URL to point at the Part Studio (not the blob)
+        result["url"] = f"https://cad.onshape.com/documents/{did}/w/{wid}/e/{ps_eid}"
+        result["part_studio_eid"] = ps_eid
+
+        # Get parts list
+        try:
+            parts = self.client.get(f"/parts/d/{did}/w/{wid}/e/{ps_eid}")
+            if isinstance(parts, list):
+                result["parts"] = len(parts)
+            else:
+                result["parts"] = 1
+        except Exception as exc:
+            result["issues"].append(f"Parts query failed: {exc}")
+
+        if result["parts"] == 0:
+            result["issues"].append("Translation produced 0 parts")
+            return result
+
+        # Get bounding box (may not be available for all translations)
+        try:
+            bb_resp = self.client.get(
+                f"/partstudios/d/{did}/w/{wid}/e/{ps_eid}/boundingboxes")
+            low = bb_resp.get("lowPoint", {})
+            high = bb_resp.get("highPoint", {})
+            if low and high:
+                result["bbox"] = {
+                    "x_mm": round((high.get("x", 0) - low.get("x", 0)) * 1000, 1),
+                    "y_mm": round((high.get("y", 0) - low.get("y", 0)) * 1000, 1),
+                    "z_mm": round((high.get("z", 0) - low.get("z", 0)) * 1000, 1),
+                }
+        except Exception:
+            pass  # bbox query not always available — don't fail verification
+
+        # Compare bbox if both available
+        if expected_bbox and result["bbox"]:
+            eb_vals = sorted(expected_bbox.values())
+            ob_vals = sorted(result["bbox"].values())
+            if len(eb_vals) >= 3 and len(ob_vals) >= 3:
+                for ev, ov in zip(eb_vals, ob_vals):
+                    if ev > 0 and abs(ov - ev) / ev > 0.25:
+                        result["issues"].append(
+                            f"Bbox mismatch: expected ~{ev:.1f}mm, got {ov:.1f}mm")
+
+        result["verified"] = result["parts"] > 0 and len(result["issues"]) == 0
+        return result
+
     def add_feature(self, did: str, wid: str, eid: str, feature: dict) -> dict:
         """Add a feature to a part studio."""
         path = f"/partstudios/d/{did}/w/{wid}/e/{eid}/features"
@@ -415,7 +508,52 @@ class OnshapeBridge:
                 result["features_added"] = 1
                 result["method"] = "step_upload"
                 print(f"  [Onshape] STEP uploaded: {upload['url']}")
-                return result
+
+                # Verify: poll until translated, check parts + bbox
+                did = upload["documentId"]
+                wid = upload["workspaceId"]
+                # Get expected bbox from local STEP
+                expected_bbox = spec.get("_expected_bbox")
+                if not expected_bbox:
+                    try:
+                        import cadquery as _cq
+                        _shape = _cq.importers.importStep(step_path)
+                        _bb = _shape.val().BoundingBox()
+                        expected_bbox = {
+                            "x": round(_bb.xlen, 1),
+                            "y": round(_bb.ylen, 1),
+                            "z": round(_bb.zlen, 1),
+                        }
+                    except Exception:
+                        expected_bbox = None
+
+                print(f"  [Onshape] Verifying upload...")
+                verification = self.verify_upload(did, wid, expected_bbox)
+                result["verification"] = verification
+
+                # Use the Part Studio URL (not the blob URL)
+                if verification.get("url"):
+                    result["url"] = verification["url"]
+
+                if verification["verified"]:
+                    ob = verification.get("bbox", {})
+                    bbox_str = ""
+                    if ob:
+                        bbox_str = f", bbox {ob.get('x_mm', '?')}x{ob.get('y_mm', '?')}x{ob.get('z_mm', '?')}mm"
+                    print(f"  [Onshape] VERIFIED: {verification['parts']} part(s){bbox_str}")
+                    return result
+                elif verification["parts"] > 0:
+                    # Parts exist but with warnings — still usable
+                    for iss in verification["issues"]:
+                        print(f"  [Onshape] WARNING: {iss}")
+                    print(f"  [Onshape] {verification['parts']} part(s) created (with warnings)")
+                    return result
+                else:
+                    # Translation produced 0 parts — fall back to features
+                    for iss in verification["issues"]:
+                        print(f"  [Onshape] WARNING: {iss}")
+                    print(f"  [Onshape] Upload produced 0 parts — falling back to features")
+                    result["errors"].extend(verification["issues"])
             except Exception as exc:
                 print(f"  [Onshape] STEP upload failed ({exc}), falling back to features")
                 result["errors"].append(f"STEP upload: {exc}")
