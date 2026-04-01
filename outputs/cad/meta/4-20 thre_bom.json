@@ -1,0 +1,19 @@
+{
+  "part_name": "GoPro mount adapter, 3-prong clip top, 1/4-20 thread insert ",
+  "material": "unspecified",
+  "quantity": 1,
+  "dimensions": {
+    "height_mm": 25.0,
+    "thickness_mm": 25.0
+  },
+  "mass_properties": {
+    "volume_mm3": 36579.91694196341,
+    "surface_area_mm2": 9778.942203757837,
+    "mass_kg": 0.0,
+    "centroid_mm": [
+      0.0,
+      0.0,
+      12.750000000000002
+    ]
+  }
+}

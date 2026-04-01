@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "score": 96.0,
+  "process_recommendation": "cnc_5axis",
+  "issues": [
+    {
+      "severity": "info",
+      "category": "Material fill",
+      "description": "Material fill is 60%, which might be acceptable but could lead to inefficient use of material and potential cost savings by optimizing design or using a more efficient material.",
+      "suggestion": "Consider redesigning for higher material fill if possible."
+    },
+    {
+      "severity": "info",
+      "category": "Aspect ratio",
+      "description": "The aspect ratio is 6.7:1, which might be challenging to machine with standard 3-axis tools but can be managed with 5-axis machining.",
+      "suggestion": "No action needed if the current setup allows for 5-axis machining."
+    }
+  ],
+  "geometry_summary": {
+    "bbox_mm": [
+      80.0,
+      80.0,
+      12.0
+    ],
+    "volume_mm3": 46080.0,
+    "surface_area_mm2": 16640.0,
+    "face_count": 36,
+    "estimated_wall_mm": 5.538,
+    "aspect_ratio": 6.67,
+    "undercut_count": 0
+  },
+  "cost_drivers": [
+    "complexity",
+    "material fill"
+  ],
+  "llm_used": true,
+  "complexity": "moderate"
+}

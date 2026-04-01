@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 384.12,
+  "breakdown": {
+    "material_usd": 0.51,
+    "machining_usd": 194.11,
+    "setup_usd": 125.0,
+    "finishing_usd": 0.49,
+    "margin_usd": 64.02
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      25.0,
+      50.5
+    ],
+    "volume_cm3": 36.5799,
+    "stock_volume_cm3": 63.125,
+    "material_removal_pct": 42.1,
+    "surface_area_cm2": 97.7894,
+    "face_count": 37
+  },
+  "optimizations": [
+    "Consider using a more efficient 4-axis machining strategy or optimizing the toolpath to reduce machining time ($20 savings).",
+    "Review the material selection to ensure it is the most cost-effective option for this application. If not, consider alternative materials that meet the part's requirements ($10 savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High material removal percentage (42%) may indicate a complex part that could be difficult to machine, potentially leading to increased machining costs.",
+    "The part has a relatively high face count (37), which can increase machining time and cost."
+  ]
+}

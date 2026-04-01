@@ -1,9 +1,9 @@
 {
-  "goal": "GoPro mount adapter, 3-prong clip top, 1/4-20 thread insert bottom, 25mm tall",
+  "goal": "bearing housing, 62mm OD, 30mm bore, 25mm tall, 6x M5 bolt circle at 52mm",
   "part_id": "",
   "fusion_mode": "parametric",
-  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_gopro_mount_adapter_prong_clip.step",
-  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_gopro_mount_adapter_prong_clip.stl",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_housing.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_housing.stl",
   "features": [],
   "base_shape": {},
   "params": {}

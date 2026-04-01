@@ -105,8 +105,10 @@ _PART_TYPE_KEYWORDS: list[tuple[str, str]] = [
     ("heatsink",      "heat_sink"),
     ("phone stand",   "phone_stand"),
     ("tablet stand",  "phone_stand"),
+    ("gopro mount adapter", "gopro_mount"),
     ("gopro mount",   "gopro_mount"),
     ("action camera mount", "gopro_mount"),
+    ("camera mount adapter", "gopro_mount"),
     ("arm link",      "hollow_rect"),  # structural arm link → hollow rectangular tube
     ("ratchet ring",  "ratchet_ring"),
     ("gear carrier",  "flange"),     # planetary carrier = disc with pin holes

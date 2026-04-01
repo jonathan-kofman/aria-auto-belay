@@ -3,7 +3,7 @@
 import adsk.core, adsk.fusion, traceback
 
 OD_MM=100.0; HEIGHT_MM=50.0; BORE_MM=30.0
-PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_gopro_mount_adapter_prong_clip.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_gopro_mount_adapter_prong_clip.step'
+PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/aria_housing.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/aria_housing.step'
 
 def run(context):
     ui = None

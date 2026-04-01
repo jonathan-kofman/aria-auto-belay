@@ -560,7 +560,8 @@ Describe the 3D shape in terms of CadQuery operations."""
                 return {"status": "skipped"}
             try:
                 from ..visual_verifier import verify_visual
-                stl = str(ctx.geometry_path).replace(".step", ".stl").replace("step/", "stl/")
+                _sp = Path(ctx.geometry_path)
+                stl = str(_sp.parent.parent / "stl" / _sp.name.replace(".step", ".stl"))
                 result = await loop.run_in_executor(
                     None, verify_visual, str(ctx.geometry_path), stl, ctx.goal, spec)
                 return result or {"status": "no_result"}

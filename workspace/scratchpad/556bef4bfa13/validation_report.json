@@ -1,0 +1,12 @@
+{
+  "converged": false,
+  "iterations": 4,
+  "failures": [
+    "bbox: minimum axis 10.0mm is 3.3x the specified thickness=3.0mm \u2014 geometry may be fundamentally wrong."
+  ],
+  "bbox": {
+    "x": 50.0,
+    "y": 30.0,
+    "z": 10.0
+  }
+}

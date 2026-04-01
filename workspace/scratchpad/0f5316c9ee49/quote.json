@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 610.63,
+  "breakdown": {
+    "material_usd": 0.61,
+    "machining_usd": 382.5,
+    "setup_usd": 125.0,
+    "finishing_usd": 0.74,
+    "margin_usd": 101.77
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      80.0,
+      80.0,
+      12.0
+    ],
+    "volume_cm3": 24.4917,
+    "stock_volume_cm3": 76.8,
+    "material_removal_pct": 68.1,
+    "surface_area_cm2": 148.3538,
+    "face_count": 36
+  },
+  "optimizations": [
+    "Review part geometry for opportunities to simplify features and reduce machining complexity ($50-$100 savings).",
+    "Consider using a more efficient 4-axis machining strategy, such as using a ball nose endmill instead of a square endmill ($75-$150 savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining costs may be due to complex geometry or inefficient toolpath.",
+    "Material removal percentage is high, which could indicate a need for specialized tooling or machining strategies."
+  ]
+}
