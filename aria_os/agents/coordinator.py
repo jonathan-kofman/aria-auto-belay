@@ -316,6 +316,16 @@ Describe the 3D shape in terms of CadQuery operations."""
 
         domain = detect_domain(ctx.goal)
 
+        # ECAD domain: use dedicated generator instead of CadQuery pipeline
+        if domain == "ecad":
+            await self._phase_3_ecad(ctx)
+            return
+
+        # Civil/AutoCAD domain: use DXF generator
+        if domain == "civil":
+            await self._phase_3_civil(ctx)
+            return
+
         state = DesignState(
             goal=ctx.goal,
             repo_root=ctx.repo_root,
@@ -347,6 +357,94 @@ Describe the 3D shape in terms of CadQuery operations."""
         print(f"  [Phase 3] {tag} — {state.iteration} iterations, {len(state.failures)} failures")
         ctx.phases_completed.append("geometry")
         _emit(ctx, "phase_complete", f"Phase 3: {tag}", {"phase": 3})
+
+    # -- Phase 3 variants: ECAD and Civil domains --------------------------------
+
+    async def _phase_3_ecad(self, ctx: JobContext) -> None:
+        """Generate KiCad PCB layout for ECAD domain."""
+        _emit(ctx, "phase", "Phase 3: ECAD Generation", {"phase": 3})
+        print(f"\n  [Phase 3] Generating ECAD (KiCad PCB)...")
+
+        try:
+            from ..ecad.ecad_generator import generate_ecad
+            loop = asyncio.get_event_loop()
+            out_dir = ctx.repo_root / "outputs" / "ecad"
+            result = await loop.run_in_executor(
+                None, generate_ecad, ctx.goal, str(out_dir))
+
+            if result and result.get("script_path"):
+                ctx.geometry_path = result["script_path"]
+                ctx.validation_passed = not bool(result.get("erc_errors"))
+                ctx.validation_report = {
+                    "converged": ctx.validation_passed,
+                    "erc_errors": result.get("erc_errors", []),
+                    "drc_errors": result.get("drc_errors", []),
+                    "components": result.get("n_components", 0),
+                }
+                ctx.save_artifact("ecad_result.json", ctx.validation_report)
+
+                tag = "PASS" if ctx.validation_passed else "FAIL"
+                n_comp = result.get("n_components", 0)
+                print(f"  [Phase 3] ECAD {tag} — {n_comp} components, script: {result['script_path']}")
+            else:
+                ctx.validation_passed = False
+                print(f"  [Phase 3] ECAD generation failed")
+
+        except Exception as exc:
+            ctx.validation_passed = False
+            print(f"  [Phase 3] ECAD error: {exc}")
+
+        ctx.phases_completed.append("geometry")
+        _emit(ctx, "phase_complete", f"Phase 3: ECAD", {"phase": 3})
+
+    async def _phase_3_civil(self, ctx: JobContext) -> None:
+        """Generate civil engineering DXF for AutoCAD domain."""
+        _emit(ctx, "phase", "Phase 3: Civil DXF Generation", {"phase": 3})
+        print(f"\n  [Phase 3] Generating Civil DXF...")
+
+        try:
+            from ..autocad.dxf_exporter import generate_civil_dxf
+            import re
+
+            # Extract state and discipline from goal
+            goal_lower = ctx.goal.lower()
+            state = "TX"  # default
+            for s in ["tx", "ca", "ny", "fl", "co", "nj", "oh", "pa", "il", "wa"]:
+                if s in goal_lower or s.upper() in ctx.goal:
+                    state = s.upper()
+                    break
+
+            discipline = "transportation"  # default
+            for d, keywords in [
+                ("drainage", ["drainage", "storm", "drain", "sewer", "pipe"]),
+                ("grading", ["grading", "grade", "earthwork", "contour"]),
+                ("utilities", ["utility", "water main", "gas"]),
+                ("site", ["site", "parking", "building"]),
+            ]:
+                if any(kw in goal_lower for kw in keywords):
+                    discipline = d
+                    break
+
+            out_dir = ctx.repo_root / "outputs" / "cad" / "dxf"
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None, generate_civil_dxf, ctx.goal, state, discipline, str(out_dir))
+
+            if result:
+                ctx.geometry_path = str(result) if isinstance(result, (str, Path)) else ""
+                ctx.validation_passed = True
+                ctx.validation_report = {
+                    "converged": True, "state": state, "discipline": discipline}
+                print(f"  [Phase 3] Civil DXF: {ctx.geometry_path}")
+            else:
+                ctx.validation_passed = False
+
+        except Exception as exc:
+            ctx.validation_passed = False
+            print(f"  [Phase 3] Civil error: {exc}")
+
+        ctx.phases_completed.append("geometry")
+        _emit(ctx, "phase_complete", "Phase 3: Civil", {"phase": 3})
 
     # -- Phase 4: Parallel Manufacturing Outputs --------------------------------
     # Run ALL output domains in parallel: CAM + FEA + Drawing + Fusion + DFM
