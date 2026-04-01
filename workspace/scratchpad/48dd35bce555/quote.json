@@ -1,0 +1,35 @@
+{
+  "process": "cnc_4axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 892.27,
+  "breakdown": {
+    "material_usd": 0.96,
+    "machining_usd": 615.85,
+    "setup_usd": 125.0,
+    "finishing_usd": 1.75,
+    "margin_usd": 148.71
+  },
+  "lead_time_days": 7,
+  "geometry": {
+    "bbox_mm": [
+      80.0,
+      30.0,
+      50.0
+    ],
+    "volume_cm3": 35.7815,
+    "stock_volume_cm3": 120.0,
+    "material_removal_pct": 70.2,
+    "surface_area_cm2": 349.7402,
+    "face_count": 36
+  },
+  "optimizations": [
+    "Optimize part geometry to reduce material removal (10% savings).",
+    "Simplify the 4-axis machining process by reorienting the part for easier access (15% savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High machining cost may indicate complex or inefficient toolpath.",
+    "Material removal percentage is high, which could be a sign of inefficient design."
+  ]
+}

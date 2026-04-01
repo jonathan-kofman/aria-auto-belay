@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "score": 98.0,
+  "process_recommendation": "cnc_3axis",
+  "issues": [
+    {
+      "severity": "info",
+      "category": "Material fill",
+      "description": "The material fill percentage is only 60%, which may lead to inefficient use of raw materials.",
+      "suggestion": "Consider optimizing the design for better material utilization."
+    }
+  ],
+  "geometry_summary": {
+    "bbox_mm": [
+      80.0,
+      30.0,
+      50.0
+    ],
+    "volume_mm3": 72000.0,
+    "surface_area_mm2": 15800.0,
+    "face_count": 36,
+    "estimated_wall_mm": 9.114,
+    "aspect_ratio": 2.67,
+    "undercut_count": 0
+  },
+  "cost_drivers": [
+    "material_cost"
+  ],
+  "llm_used": true,
+  "complexity": "complex"
+}
