@@ -468,6 +468,126 @@ class OnshapeBridge:
         result["verified"] = result["parts"] > 0 and len(result["issues"]) == 0
         return result
 
+    def verify_geometry(self, step_path: str, spec: dict, goal: str = "",
+                        did: str = "", wid: str = "", ps_eid: str = "") -> dict[str, Any]:
+        """Deep verification: inspect local STEP geometry and compare against goal spec.
+
+        Checks: bbox, bore, bolt holes, bolt circle, solid count.
+        Optionally fetches Onshape shaded view and saves to screenshots/.
+
+        Returns {verified, checks: [{name, expected, actual, passed}], screenshot, issues}
+        """
+        import math
+        result = {"verified": True, "checks": [], "issues": [], "screenshot": ""}
+
+        def _check(name, expected, actual, passed):
+            result["checks"].append({
+                "name": name, "expected": str(expected),
+                "actual": str(actual), "passed": passed,
+            })
+            if not passed:
+                result["verified"] = False
+                result["issues"].append(f"{name}: expected {expected}, got {actual}")
+
+        # Load STEP
+        try:
+            import cadquery as _cq
+            shape = _cq.importers.importStep(step_path)
+            bb = shape.val().BoundingBox()
+        except Exception as exc:
+            result["verified"] = False
+            result["issues"].append(f"STEP load failed: {exc}")
+            return result
+
+        # Check solid count
+        n_solids = len(shape.val().Solids())
+        _check("solids", ">=1", n_solids, n_solids >= 1)
+
+        # Check bbox against spec
+        bbox = {"x": round(bb.xlen, 1), "y": round(bb.ylen, 1), "z": round(bb.zlen, 1)}
+        od = spec.get("od_mm")
+        if od:
+            closest_axis = min(bbox.values(), key=lambda v: abs(v - float(od)))
+            _check("OD", f"~{od}mm", f"{closest_axis}mm",
+                   abs(closest_axis - float(od)) / float(od) < 0.25)
+
+        thickness = spec.get("thickness_mm") or spec.get("height_mm")
+        if thickness:
+            min_axis = min(bbox.values())
+            _check("thickness", f"~{thickness}mm", f"{min_axis}mm",
+                   min_axis <= float(thickness) * 3)
+
+        # Extract circular features from STEP edges
+        circles = []
+        for edge in shape.val().Edges():
+            try:
+                if hasattr(edge, 'geomType') and edge.geomType() == 'CIRCLE':
+                    center = edge.Center()
+                    r = edge.radius()
+                    circles.append({
+                        "r": round(r, 2),
+                        "cx": round(center.x, 1),
+                        "cy": round(center.y, 1),
+                    })
+            except Exception:
+                pass
+
+        radii = sorted(set(c["r"] for c in circles))
+
+        # Check bore
+        bore_mm = spec.get("bore_mm")
+        if bore_mm:
+            bore_r = float(bore_mm) / 2
+            bore_found = any(abs(r - bore_r) < max(1.0, bore_r * 0.1) for r in radii)
+            _check("bore", f"{bore_mm}mm (r={bore_r}mm)",
+                   f"{'found' if bore_found else 'MISSING'} (radii: {radii})", bore_found)
+
+        # Check bolt holes
+        n_bolts = spec.get("n_bolts")
+        bolt_dia = spec.get("bolt_dia_mm")
+        if n_bolts and bolt_dia:
+            bolt_r = float(bolt_dia) / 2
+            bolt_circles = [c for c in circles if abs(c["r"] - bolt_r) < max(0.5, bolt_r * 0.2)]
+            bolt_positions = set((c["cx"], c["cy"]) for c in bolt_circles)
+            _check("bolt_holes", f"{n_bolts}x M{bolt_dia} (r={bolt_r}mm)",
+                   f"{len(bolt_positions)} holes found", len(bolt_positions) >= int(n_bolts))
+
+            # Check bolt circle radius
+            bcr = spec.get("bolt_circle_r_mm")
+            if bcr and bolt_positions:
+                dists = [math.sqrt(p[0]**2 + p[1]**2) for p in bolt_positions]
+                avg_dist = sum(dists) / len(dists)
+                _check("bolt_circle_r", f"~{bcr}mm", f"{avg_dist:.1f}mm",
+                       abs(avg_dist - float(bcr)) / float(bcr) < 0.25)
+
+        # Fetch Onshape shaded view if we have document IDs
+        if did and wid and ps_eid:
+            try:
+                url = (f"{_BASE_URL}/partstudios/d/{did}/w/{wid}/e/{ps_eid}"
+                       f"/shadedviews")
+                params = "outputHeight=600&outputWidth=800&pixelSize=0.0001"
+                headers = self.client.auth.make_headers(
+                    "GET",
+                    f"/partstudios/d/{did}/w/{wid}/e/{ps_eid}/shadedviews",
+                    params)
+                req = urllib.request.Request(f"{url}?{params}", headers=headers, method="GET")
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read())
+                    images = data.get("images", [])
+                    if images:
+                        import base64 as _b64
+                        img_bytes = _b64.b64decode(images[0])
+                        ss_dir = Path(step_path).parent.parent.parent / "screenshots"
+                        ss_dir.mkdir(parents=True, exist_ok=True)
+                        part_slug = Path(step_path).stem
+                        ss_path = ss_dir / f"onshape_{part_slug}.png"
+                        ss_path.write_bytes(img_bytes)
+                        result["screenshot"] = str(ss_path)
+            except Exception:
+                pass  # screenshot is optional
+
+        return result
+
     def add_feature(self, did: str, wid: str, eid: str, feature: dict) -> dict:
         """Add a feature to a part studio."""
         path = f"/partstudios/d/{did}/w/{wid}/e/{eid}/features"
@@ -540,7 +660,31 @@ class OnshapeBridge:
                     bbox_str = ""
                     if ob:
                         bbox_str = f", bbox {ob.get('x_mm', '?')}x{ob.get('y_mm', '?')}x{ob.get('z_mm', '?')}mm"
-                    print(f"  [Onshape] VERIFIED: {verification['parts']} part(s){bbox_str}")
+                    print(f"  [Onshape] UPLOAD OK: {verification['parts']} part(s){bbox_str}")
+
+                    # Deep geometry verification against spec
+                    v_did = upload["documentId"]
+                    v_wid = upload["workspaceId"]
+                    v_eid = verification.get("part_studio_eid", "")
+                    geo_check = self.verify_geometry(
+                        step_path, spec, goal, v_did, v_wid, v_eid)
+                    result["geometry_verification"] = geo_check
+
+                    if geo_check["verified"]:
+                        print(f"  [Onshape] GEOMETRY VERIFIED: all checks passed")
+                        for c in geo_check["checks"]:
+                            print(f"    {c['name']}: {c['actual']} {'OK' if c['passed'] else 'FAIL'}")
+                    else:
+                        print(f"  [Onshape] GEOMETRY ISSUES:")
+                        for c in geo_check["checks"]:
+                            status = "OK" if c["passed"] else "FAIL"
+                            print(f"    [{status}] {c['name']}: expected {c['expected']}, got {c['actual']}")
+                        result["errors"].extend(geo_check["issues"])
+
+                    if geo_check.get("screenshot"):
+                        print(f"  [Onshape] Screenshot: {geo_check['screenshot']}")
+                        result["screenshot"] = geo_check["screenshot"]
+
                     return result
                 elif verification["parts"] > 0:
                     # Parts exist but with warnings — still usable
