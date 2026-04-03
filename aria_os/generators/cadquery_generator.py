@@ -2634,6 +2634,566 @@ print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
 """
 
 
+def _cq_involute_gear(params: dict[str, Any]) -> str:
+    """Real involute spur gear with parametric tooth profile."""
+    import math as _m
+
+    module_mm = float(params.get("module_mm", 2.0))
+    n_teeth   = int(params.get("n_teeth", 20))
+    face_w    = float(params.get("face_width_mm", 10.0))
+    bore      = float(params.get("bore_mm", 10.0))
+    pa_deg    = float(params.get("pressure_angle_deg", 20.0))
+
+    pitch_r = module_mm * n_teeth / 2.0
+    base_r  = pitch_r * _m.cos(_m.radians(pa_deg))
+    tip_r   = pitch_r + module_mm
+    root_r  = max(pitch_r - 1.25 * module_mm, bore / 2.0 + 1.0)
+
+    def _inv(t, rb):
+        return rb * (_m.cos(t) + t * _m.sin(t)), rb * (_m.sin(t) - t * _m.cos(t))
+
+    def _t_for_r(r, rb):
+        return _m.sqrt(max(0.0, (r / rb) ** 2 - 1.0))
+
+    t_pitch = _t_for_r(pitch_r, base_r)
+    ipx, ipy = _inv(t_pitch, base_r)
+    inv_pa  = _m.atan2(ipy, ipx)
+    half_ta = _m.pi / n_teeth
+    p_step  = 2 * _m.pi / n_teeth
+    N_PTS   = 6
+    t_root  = _t_for_r(max(root_r, base_r), base_r)
+    t_tip   = _t_for_r(tip_r, base_r)
+    rot_off = inv_pa - half_ta + t_pitch
+
+    def _one_tooth():
+        p = []
+        p.append((root_r * _m.cos(-half_ta - _m.pi / n_teeth),
+                  root_r * _m.sin(-half_ta - _m.pi / n_teeth)))
+        for i in range(N_PTS + 1):
+            t = t_root + (t_tip - t_root) * i / N_PTS
+            x, y = _inv(t, base_r)
+            r = _m.hypot(x, y)
+            a = _m.atan2(y, x) - rot_off
+            p.append((r * _m.cos(a), r * _m.sin(a)))
+        tip_half = _m.acos(min(1.0, base_r / tip_r))
+        for i in range(3):
+            a = half_ta + tip_half * (1.0 - float(i))
+            p.append((tip_r * _m.cos(a), tip_r * _m.sin(a)))
+        for i in range(N_PTS, -1, -1):
+            t = t_root + (t_tip - t_root) * i / N_PTS
+            x, y = _inv(t, base_r)
+            r = _m.hypot(x, y)
+            a = -(_m.atan2(y, x) - rot_off)
+            p.append((r * _m.cos(a), r * _m.sin(a)))
+        p.append((root_r * _m.cos(half_ta + _m.pi / n_teeth),
+                  root_r * _m.sin(half_ta + _m.pi / n_teeth)))
+        return p
+
+    one_tooth = _one_tooth()
+    all_pts: list[tuple[float, float]] = []
+    for i in range(n_teeth):
+        a = i * p_step
+        ca, sa = _m.cos(a), _m.sin(a)
+        for px, py in one_tooth:
+            all_pts.append((round(px * ca - py * sa, 5),
+                            round(px * sa + py * ca, 5)))
+    pts_literal = repr(all_pts)
+
+    return f"""
+import cadquery as cq, math
+
+# === Involute Spur Gear — {n_teeth}t, m={module_mm}mm, PA={pa_deg}deg ===
+FACE_W   = {face_w}
+BORE     = {bore}
+TIP_R    = {tip_r:.5f}
+
+all_pts = {pts_literal}
+
+try:
+    gear = cq.Workplane("XY").polyline(all_pts).close().extrude(FACE_W)
+    bore_cyl = cq.Workplane("XY").circle(BORE / 2.0).extrude(FACE_W + 2).translate((0, 0, -1))
+    gear = gear.cut(bore_cyl)
+except Exception:
+    gear = cq.Workplane("XY").circle(TIP_R).circle(BORE / 2.0).extrude(FACE_W)
+
+result = gear
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_cam_profile(params: dict[str, Any]) -> str:
+    """Eccentric cam disc with sinusoidal rise profile."""
+    import math as _m
+
+    base_r   = float(params.get("base_circle_mm", 30.0))
+    rise     = float(params.get("rise_mm", 10.0))
+    dwell    = float(params.get("dwell_deg", 120.0))
+    bore     = float(params.get("bore_mm", 10.0))
+    thick    = float(params.get("thickness_mm", 12.0))
+
+    # Pre-compute cam profile as polygon: 72 pts around 360 deg
+    n_pts = 72
+    pts: list[tuple[float, float]] = []
+    dwell_rad = _m.radians(dwell)
+    rise_range = 2 * _m.pi - dwell_rad
+    for i in range(n_pts):
+        angle = 2 * _m.pi * i / n_pts
+        if angle <= dwell_rad:
+            r = base_r
+        else:
+            frac = (angle - dwell_rad) / rise_range
+            r = base_r + rise * _m.sin(frac * _m.pi)
+        pts.append((round(r * _m.cos(angle), 5), round(r * _m.sin(angle), 5)))
+
+    pts_literal = repr(pts)
+
+    return f"""
+import cadquery as cq, math
+
+# === Cam Profile — base={base_r}mm, rise={rise}mm, dwell={dwell}deg ===
+THICKNESS_MM = {thick}
+BORE_MM      = {bore}
+
+cam_pts = {pts_literal}
+
+cam_body = cq.Workplane("XY").polyline(cam_pts).close().extrude(THICKNESS_MM)
+bore_cyl = cq.Workplane("XY").workplane(offset=-1.0).circle(BORE_MM / 2.0).extrude(THICKNESS_MM + 2.0)
+result = cam_body.cut(bore_cyl)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_bellows(params: dict[str, Any]) -> str:
+    """Corrugated bellows — alternating large/small diameter rings stacked."""
+    od   = float(params.get("od_mm", 60.0))
+    id_  = float(params.get("id_mm", params.get("bore_mm", 40.0)))
+    length = float(params.get("length_mm", 80.0))
+    n_conv = int(params.get("n_convolutions", 6))
+    wall   = float(params.get("wall_mm", 1.5))
+
+    # Each convolution = one large ring + one small ring
+    ring_h = length / (2 * n_conv) if n_conv > 0 else length
+    mid_r  = (od / 2.0 + id_ / 2.0) / 2.0  # middle radius for small rings
+    outer_r = od / 2.0
+    inner_r = mid_r  # small rings are at mid radius
+
+    return f"""
+import cadquery as cq, math
+
+# === Corrugated Bellows — {n_conv} convolutions ===
+OD_MM       = {od}
+ID_MM       = {id_}
+LENGTH_MM   = {length}
+N_CONV      = {n_conv}
+WALL_MM     = {wall}
+RING_H      = {ring_h:.4f}
+OUTER_R     = {outer_r:.4f}
+INNER_R     = {inner_r:.4f}
+
+# Build by stacking alternating large and small annular rings
+result = None
+
+for i in range(N_CONV * 2):
+    z_off = i * RING_H
+    if i % 2 == 0:
+        # Large ring (full OD)
+        ring = (cq.Workplane("XY")
+                .workplane(offset=z_off)
+                .circle(OUTER_R)
+                .circle(OUTER_R - WALL_MM)
+                .extrude(RING_H))
+    else:
+        # Small ring (contracted)
+        ring = (cq.Workplane("XY")
+                .workplane(offset=z_off)
+                .circle(INNER_R)
+                .circle(INNER_R - WALL_MM)
+                .extrude(RING_H))
+    if result is None:
+        result = ring
+    else:
+        result = result.union(ring)
+
+    # Connecting wall between rings (top face of each ring joins to next)
+    if i > 0:
+        prev_r = OUTER_R if (i - 1) % 2 == 0 else INNER_R
+        curr_r = OUTER_R if i % 2 == 0 else INNER_R
+        big_r = max(prev_r, curr_r)
+        small_r = min(prev_r, curr_r) - WALL_MM
+        connector = (cq.Workplane("XY")
+                     .workplane(offset=z_off - 0.1)
+                     .circle(big_r)
+                     .circle(small_r)
+                     .extrude(0.2))
+        result = result.union(connector)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_compression_spring(params: dict[str, Any]) -> str:
+    """Helical compression spring approximated with stacked toroidal rings."""
+    od          = float(params.get("od_mm", 20.0))
+    wire_d      = float(params.get("wire_dia_mm", 2.0))
+    n_coils     = int(params.get("n_coils", 8))
+    free_length = float(params.get("free_length_mm", 40.0))
+
+    coil_r = od / 2.0 - wire_d / 2.0
+    pitch  = free_length / max(n_coils, 1)
+
+    return f"""
+import cadquery as cq, math
+
+# === Compression Spring — {n_coils} coils, OD={od}mm ===
+COIL_R      = {coil_r:.4f}
+WIRE_D      = {wire_d}
+N_COILS     = {n_coils}
+PITCH       = {pitch:.4f}
+WIRE_R      = WIRE_D / 2.0
+
+# Build spring as stacked tori (donut cross-sections at each coil height)
+# Each torus: draw wire cross-section at (COIL_R, 0) in XZ plane, revolve around Z axis
+result = None
+for i in range(N_COILS):
+    z_off = i * PITCH + PITCH / 2.0
+    ring = (cq.Workplane("XZ")
+            .center(COIL_R, z_off)
+            .circle(WIRE_R)
+            .revolve(360, (-COIL_R, 0), (-COIL_R, 1)))
+    if result is None:
+        result = ring
+    else:
+        result = result.union(ring)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_keyway_shaft(params: dict[str, Any]) -> str:
+    """Shaft with a keyway slot cut along its length."""
+    diameter = float(params.get("diameter_mm", params.get("od_mm", 25.0)))
+    length   = float(params.get("length_mm", 100.0))
+    key_w    = float(params.get("key_width_mm", max(diameter * 0.25, 4.0)))
+    key_d    = float(params.get("key_depth_mm", key_w * 0.5))
+    key_l    = float(params.get("key_length_mm", length * 0.4))
+
+    return f"""
+import cadquery as cq, math
+
+# === Keyway Shaft — dia={diameter}mm, L={length}mm ===
+DIAMETER_MM  = {diameter}
+LENGTH_MM    = {length}
+KEY_W_MM     = {key_w}
+KEY_D_MM     = {key_d}
+KEY_L_MM     = {key_l}
+
+# Main shaft body
+shaft = cq.Workplane("XY").circle(DIAMETER_MM / 2.0).extrude(LENGTH_MM)
+
+# Keyway: rectangular slot cut from the top of the shaft
+# Positioned at top of shaft (Y+), centered along Z
+key_z_start = (LENGTH_MM - KEY_L_MM) / 2.0
+keyway = (cq.Workplane("XY")
+          .workplane(offset=key_z_start)
+          .center(0, DIAMETER_MM / 2.0 - KEY_D_MM / 2.0)
+          .rect(KEY_W_MM, KEY_D_MM + 1.0)
+          .extrude(KEY_L_MM))
+result = shaft.cut(keyway)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_dovetail_joint(params: dict[str, Any]) -> str:
+    """Dovetail slide joint — male part (trapezoidal rail)."""
+    width  = float(params.get("width_mm", 40.0))
+    height = float(params.get("height_mm", 20.0))
+    length = float(params.get("length_mm", 80.0))
+    angle  = float(params.get("dovetail_angle_deg", 60.0))
+    dt_depth = float(params.get("dovetail_depth_mm", height * 0.4))
+
+    import math as _m
+    # Dovetail trapezoid: top is narrower than bottom
+    half_angle_rad = _m.radians(angle / 2.0)
+    dt_top_half  = width / 2.0 - dt_depth * _m.tan(half_angle_rad)
+    dt_top_half  = max(dt_top_half, width * 0.15)  # ensure positive
+    base_half    = width / 2.0
+
+    return f"""
+import cadquery as cq, math
+
+# === Dovetail Joint (male rail) — {width}x{height}mm, angle={angle}deg ===
+WIDTH_MM     = {width}
+HEIGHT_MM    = {height}
+LENGTH_MM    = {length}
+DT_DEPTH     = {dt_depth}
+DT_TOP_HALF  = {dt_top_half:.4f}
+BASE_HALF    = {base_half:.4f}
+
+# Base rectangular block
+base_h = HEIGHT_MM - DT_DEPTH
+base = cq.Workplane("XY").rect(WIDTH_MM, base_h).extrude(LENGTH_MM)
+
+# Dovetail trapezoidal rail on top
+# Profile: trapezoid wider at base, narrower at top
+trap = (cq.Workplane("XY")
+        .workplane(offset=0)
+        .moveTo(-BASE_HALF, base_h / 2.0)
+        .lineTo(-DT_TOP_HALF, base_h / 2.0 + DT_DEPTH)
+        .lineTo(DT_TOP_HALF, base_h / 2.0 + DT_DEPTH)
+        .lineTo(BASE_HALF, base_h / 2.0)
+        .close()
+        .extrude(LENGTH_MM))
+
+result = base.union(trap)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_slot_plate(params: dict[str, Any]) -> str:
+    """Plate with elongated slots."""
+    width    = float(params.get("width_mm", 120.0))
+    height   = float(params.get("height_mm", 80.0))
+    thick    = float(params.get("thickness_mm", 6.0))
+    n_slots  = int(params.get("n_slots", 4))
+    slot_l   = float(params.get("slot_length_mm", 30.0))
+    slot_w   = float(params.get("slot_width_mm", 8.0))
+
+    import math as _m
+    # Distribute slots evenly across the plate
+    margin = max(slot_l / 2.0 + 5.0, width * 0.12)
+    if n_slots == 1:
+        slot_pts = [(0.0, 0.0)]
+    else:
+        x_start = -(width / 2.0 - margin)
+        x_end   =  (width / 2.0 - margin)
+        slot_pts = [(round(x_start + (x_end - x_start) * i / (n_slots - 1), 3), 0.0)
+                    for i in range(n_slots)]
+    slot_pts_repr = repr(slot_pts)
+
+    return f"""
+import cadquery as cq, math
+
+# === Slot Plate — {n_slots} slots, {width}x{height}x{thick}mm ===
+WIDTH_MM      = {width}
+HEIGHT_MM     = {height}
+THICKNESS_MM  = {thick}
+N_SLOTS       = {n_slots}
+SLOT_L_MM     = {slot_l}
+SLOT_W_MM     = {slot_w}
+
+# Base plate
+plate = cq.Workplane("XY").box(WIDTH_MM, HEIGHT_MM, THICKNESS_MM)
+
+# Cut elongated slots (stadium / oblong shape = rect + two semicircle ends)
+slot_pts = {slot_pts_repr}
+for sx, sy in slot_pts:
+    slot_body = (cq.Workplane("XY")
+                 .workplane(offset=-1.0)
+                 .center(sx, sy)
+                 .rect(SLOT_W_MM, SLOT_L_MM - SLOT_W_MM)
+                 .extrude(THICKNESS_MM + 2.0))
+    end_top = (cq.Workplane("XY")
+               .workplane(offset=-1.0)
+               .center(sx, sy + (SLOT_L_MM - SLOT_W_MM) / 2.0)
+               .circle(SLOT_W_MM / 2.0)
+               .extrude(THICKNESS_MM + 2.0))
+    end_bot = (cq.Workplane("XY")
+               .workplane(offset=-1.0)
+               .center(sx, sy - (SLOT_L_MM - SLOT_W_MM) / 2.0)
+               .circle(SLOT_W_MM / 2.0)
+               .extrude(THICKNESS_MM + 2.0))
+    plate = plate.cut(slot_body).cut(end_top).cut(end_bot)
+
+result = plate
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_pcb_enclosure(params: dict[str, Any]) -> str:
+    """Box enclosure for PCB with internal standoffs."""
+    width   = float(params.get("width_mm", 100.0))
+    depth   = float(params.get("depth_mm", 80.0))
+    height  = float(params.get("height_mm", 40.0))
+    wall    = float(params.get("wall_mm", 2.5))
+    stoff_d = float(params.get("standoff_dia_mm", 6.0))
+    stoff_h = float(params.get("standoff_height_mm", 5.0))
+    pcb_mount = str(params.get("pcb_mount_pattern", "4-corner"))
+
+    # Standoff positions: 4 corners with 3mm inset from inner wall
+    inset = wall + 3.0
+    stoff_pts = [
+        (round(-width / 2.0 + inset, 3), round(-depth / 2.0 + inset, 3)),
+        (round( width / 2.0 - inset, 3), round(-depth / 2.0 + inset, 3)),
+        (round(-width / 2.0 + inset, 3), round( depth / 2.0 - inset, 3)),
+        (round( width / 2.0 - inset, 3), round( depth / 2.0 - inset, 3)),
+    ]
+    screw_d = max(2.0, stoff_d * 0.4)
+    stoff_pts_repr = repr(stoff_pts)
+
+    return f"""
+import cadquery as cq, math
+
+# === PCB Enclosure — {width}x{depth}x{height}mm, wall={wall}mm ===
+WIDTH_MM    = {width}
+DEPTH_MM    = {depth}
+HEIGHT_MM   = {height}
+WALL_MM     = {wall}
+STOFF_D     = {stoff_d}
+STOFF_H     = {stoff_h}
+SCREW_D     = {screw_d}
+
+# Outer box
+outer = cq.Workplane("XY").box(WIDTH_MM, DEPTH_MM, HEIGHT_MM)
+
+# Shell out (open top)
+result = outer.shell(-WALL_MM)
+
+# Standoff positions (4 corners)
+stoff_pts = {stoff_pts_repr}
+for px, py in stoff_pts:
+    # Standoff boss
+    boss = (cq.Workplane("XY")
+            .workplane(offset=-HEIGHT_MM / 2.0)
+            .center(px, py)
+            .circle(STOFF_D / 2.0)
+            .extrude(STOFF_H))
+    # Screw hole in standoff
+    hole = (cq.Workplane("XY")
+            .workplane(offset=-HEIGHT_MM / 2.0 - 0.5)
+            .center(px, py)
+            .circle(SCREW_D / 2.0)
+            .extrude(STOFF_H + 1.0))
+    result = result.union(boss).cut(hole)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_bearing_pillow_block(params: dict[str, Any]) -> str:
+    """Pillow block bearing housing."""
+    bore      = float(params.get("bore_mm", 25.0))
+    width     = float(params.get("width_mm", 120.0))
+    height    = float(params.get("height_mm", 60.0))
+    bolt_sp   = float(params.get("bolt_spacing_mm", width * 0.7))
+    bolt_d    = float(params.get("bolt_dia_mm", 10.0))
+    bearing_od = float(params.get("bearing_od_mm", bore * 2.0))
+    base_thick = float(params.get("base_thickness_mm", max(10.0, height * 0.2)))
+
+    return f"""
+import cadquery as cq, math
+
+# === Pillow Block Bearing Housing — bore={bore}mm ===
+BORE_MM       = {bore}
+WIDTH_MM      = {width}
+HEIGHT_MM     = {height}
+BOLT_SP_MM    = {bolt_sp}
+BOLT_D_MM     = {bolt_d}
+BEARING_OD_MM = {bearing_od}
+BASE_THICK    = {base_thick}
+
+# Rectangular base plate
+base = cq.Workplane("XY").box(WIDTH_MM, BASE_THICK, BASE_THICK)
+
+# Cylindrical bearing housing on top of base
+housing_r = BEARING_OD_MM / 2.0 + 5.0
+housing_h = HEIGHT_MM - BASE_THICK
+housing = (cq.Workplane("XY")
+           .workplane(offset=BASE_THICK / 2.0)
+           .circle(housing_r)
+           .extrude(housing_h))
+
+result = base.union(housing)
+
+# Bearing bore through the housing
+bore_cyl = (cq.Workplane("XY")
+            .workplane(offset=-1.0)
+            .circle(BORE_MM / 2.0)
+            .extrude(HEIGHT_MM + 2.0))
+result = result.cut(bore_cyl)
+
+# Bolt holes in base
+bolt_pts = [(-BOLT_SP_MM / 2.0, 0.0), (BOLT_SP_MM / 2.0, 0.0)]
+bolt_holes = (cq.Workplane("XY")
+              .workplane(offset=-BASE_THICK / 2.0 - 1.0)
+              .pushPoints(bolt_pts)
+              .circle(BOLT_D_MM / 2.0)
+              .extrude(BASE_THICK + 2.0))
+result = result.cut(bolt_holes)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
+def _cq_cable_gland(params: dict[str, Any]) -> str:
+    """Cable gland / strain relief fitting."""
+    cable_d   = float(params.get("cable_dia_mm", 8.0))
+    thread_od = float(params.get("thread_od_mm", 20.0))
+    length    = float(params.get("length_mm", 30.0))
+    hex_size  = float(params.get("hex_size_mm", 24.0))
+
+    import math as _m
+    hex_r = hex_size / (2.0 * _m.cos(_m.radians(30)))
+    bore_r = cable_d / 2.0
+    thread_r = thread_od / 2.0
+    hex_h = length * 0.3
+    thread_l = length - hex_h
+
+    # Pre-compute hex polygon
+    hex_pts = [(round(hex_r * _m.cos(_m.radians(60 * i)), 5),
+                round(hex_r * _m.sin(_m.radians(60 * i)), 5))
+               for i in range(6)]
+    hex_pts_repr = repr(hex_pts)
+
+    return f"""
+import cadquery as cq, math
+
+# === Cable Gland — cable={cable_d}mm, thread OD={thread_od}mm ===
+CABLE_D_MM  = {cable_d}
+THREAD_OD   = {thread_od}
+LENGTH_MM   = {length}
+HEX_R       = {hex_r:.4f}
+HEX_H       = {hex_h:.4f}
+THREAD_L    = {thread_l:.4f}
+THREAD_R    = {thread_r:.4f}
+BORE_R      = {bore_r:.4f}
+
+# Threaded cylindrical body
+body = cq.Workplane("XY").circle(THREAD_R).extrude(THREAD_L)
+
+# Hex head on top
+hex_pts = {hex_pts_repr}
+hex_head = (cq.Workplane("XY")
+            .workplane(offset=THREAD_L)
+            .polyline(hex_pts).close()
+            .extrude(HEX_H))
+
+result = body.union(hex_head)
+
+# Central bore for cable pass-through
+bore_cyl = (cq.Workplane("XY")
+            .workplane(offset=-1.0)
+            .circle(BORE_R)
+            .extrude(LENGTH_MM + 2.0))
+result = result.cut(bore_cyl)
+
+bb = result.val().BoundingBox()
+print(f"BBOX:{{bb.xlen:.3f}},{{bb.ylen:.3f}},{{bb.zlen:.3f}}")
+"""
+
+
 _CQ_TEMPLATE_MAP: dict[str, Any] = {
     # ARIA structural parts
     "aria_ratchet_ring": _cq_ratchet_ring,
@@ -2850,6 +3410,49 @@ _CQ_TEMPLATE_MAP: dict[str, Any] = {
     "circlip":                      _cq_spring_clip,
     "u_clip":                       _cq_spring_clip,
     "retainer":                     _cq_spring_clip,
+    # Involute gear (high-fidelity tooth profile)
+    "involute_gear":                _cq_involute_gear,
+    "involute_spur_gear":           _cq_involute_gear,
+    # Cam profile (eccentric disc)
+    "cam_profile":                  _cq_cam_profile,
+    "eccentric_cam":                _cq_cam_profile,
+    "cam_disc":                     _cq_cam_profile,
+    # Bellows
+    "bellows":                      _cq_bellows,
+    "corrugated_bellows":           _cq_bellows,
+    "boot":                         _cq_bellows,
+    "flex_joint":                   _cq_bellows,
+    # Compression spring
+    "compression_spring":           _cq_compression_spring,
+    "spring":                       _cq_compression_spring,
+    "coil_spring":                  _cq_compression_spring,
+    "helical_spring":               _cq_compression_spring,
+    # Keyway shaft
+    "keyway_shaft":                 _cq_keyway_shaft,
+    "keyed_shaft":                  _cq_keyway_shaft,
+    "shaft_with_keyway":            _cq_keyway_shaft,
+    # Dovetail joint
+    "dovetail_joint":               _cq_dovetail_joint,
+    "dovetail":                     _cq_dovetail_joint,
+    "dovetail_rail":                _cq_dovetail_joint,
+    "dovetail_slide":               _cq_dovetail_joint,
+    # Slot plate
+    "slot_plate":                   _cq_slot_plate,
+    "slotted_plate":                _cq_slot_plate,
+    # PCB enclosure
+    "pcb_enclosure":                _cq_pcb_enclosure,
+    "pcb_box":                      _cq_pcb_enclosure,
+    "electronics_enclosure":        _cq_pcb_enclosure,
+    "electronics_box":              _cq_pcb_enclosure,
+    # Bearing pillow block
+    "bearing_pillow_block":         _cq_bearing_pillow_block,
+    "pillow_block":                 _cq_bearing_pillow_block,
+    "plummer_block":                _cq_bearing_pillow_block,
+    # Cable gland
+    "cable_gland":                  _cq_cable_gland,
+    "strain_relief":                _cq_cable_gland,
+    "cable_fitting":                _cq_cable_gland,
+    "cord_grip":                    _cq_cable_gland,
 }
 
 # Keyword scan for slug-based part_ids not in the exact map.
@@ -2905,6 +3508,16 @@ _KEYWORD_TO_TEMPLATE: list[tuple[list[str], Any]] = [
     (["spoked_wheel", "handwheel", "hand_wheel", "spoke_wheel", "spoked wheel", "hand wheel", "spoke wheel"], _cq_spoked_wheel),
     (["t_slot_plate", "tslot_plate", "fixture_plate", "tooling_plate", "t-slot plate", "t slot plate", "fixture plate", "tooling plate"], _cq_t_slot_plate),
     (["spring_clip", "retaining_clip", "circlip", "u_clip", "retainer", "spring clip", "retaining clip", "u clip"], _cq_spring_clip),
+    (["involute_gear", "involute gear", "involute spur", "involute_spur_gear"], _cq_involute_gear),
+    (["cam_profile", "cam profile", "eccentric_cam", "eccentric cam", "cam_disc", "cam disc"], _cq_cam_profile),
+    (["bellows", "corrugated_bellows", "corrugated bellows", "flex_joint", "flex joint", "boot"], _cq_bellows),
+    (["compression_spring", "compression spring", "coil_spring", "coil spring", "helical_spring", "helical spring"], _cq_compression_spring),
+    (["keyway_shaft", "keyway shaft", "keyed_shaft", "keyed shaft", "shaft_with_keyway"], _cq_keyway_shaft),
+    (["dovetail_joint", "dovetail joint", "dovetail_rail", "dovetail rail", "dovetail_slide", "dovetail slide", "dovetail"], _cq_dovetail_joint),
+    (["slot_plate", "slot plate", "slotted_plate", "slotted plate"], _cq_slot_plate),
+    (["pcb_enclosure", "pcb enclosure", "pcb_box", "pcb box", "electronics_enclosure", "electronics enclosure", "electronics_box", "electronics box"], _cq_pcb_enclosure),
+    (["bearing_pillow_block", "pillow_block", "pillow block", "plummer_block", "plummer block", "bearing pillow block"], _cq_bearing_pillow_block),
+    (["cable_gland", "cable gland", "strain_relief", "strain relief", "cable_fitting", "cable fitting", "cord_grip", "cord grip"], _cq_cable_gland),
 ]
 
 

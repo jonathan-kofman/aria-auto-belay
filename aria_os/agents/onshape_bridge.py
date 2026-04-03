@@ -511,11 +511,50 @@ class OnshapeBridge:
             _check("OD", f"~{od}mm", f"{closest_axis}mm",
                    abs(closest_axis - float(od)) / float(od) < 0.25)
 
-        thickness = spec.get("thickness_mm") or spec.get("height_mm")
-        if thickness:
-            min_axis = min(bbox.values())
-            _check("thickness", f"~{thickness}mm", f"{min_axis}mm",
-                   min_axis <= float(thickness) * 3)
+        # Check width, depth, length against bbox (match to closest axis)
+        for key, label in [("width_mm", "width"), ("depth_mm", "depth"),
+                           ("length_mm", "length")]:
+            val = spec.get(key)
+            if val:
+                val = float(val)
+                closest = min(bbox.values(), key=lambda v: abs(v - val))
+                err = abs(closest - val) / val * 100 if val > 0 else 0
+                _check(label, f"{val}mm", f"{closest}mm ({err:.0f}% error)",
+                       err < 30)
+
+        # Check wall thickness via volume ratio (shell parts)
+        wall = spec.get("wall_mm")
+        if wall and od:
+            # For a cylindrical shell: volume ~ pi * OD * wall * height
+            # Fill ratio should be proportional to wall/OD
+            full_vol = bb.xlen * bb.ylen * bb.zlen
+            actual_vol = shape.val().Volume()
+            fill = actual_vol / full_vol if full_vol > 0 else 1
+            expected_fill = 1.0 - ((float(od) - 2*float(wall)) / float(od))**2
+            _check("wall_thickness_proxy", f"~{wall}mm (fill ~{expected_fill:.0%})",
+                   f"fill={fill:.0%}", abs(fill - expected_fill) < 0.3)
+
+        # Check fin height (heat sinks)
+        fin_h = spec.get("fin_height_mm")
+        if fin_h:
+            fin_h = float(fin_h)
+            max_axis = max(bbox.values())
+            _check("fin_height", f"~{fin_h}mm",
+                   f"max bbox axis={max_axis}mm",
+                   max_axis >= fin_h * 0.7)
+
+        # Check n_fins (count parallel features)
+        n_fins = spec.get("n_fins")
+        if n_fins:
+            n_faces = len(shape.val().Faces())
+            # Each fin adds ~4 faces (top, 2 sides, front)
+            min_faces_for_fins = int(n_fins) * 2 + 4
+            _check("n_fins_proxy", f"{n_fins} fins (~{min_faces_for_fins}+ faces)",
+                   f"{n_faces} faces", n_faces >= min_faces_for_fins)
+
+        # Volume sanity: must be > 0 and not absurdly large
+        vol = shape.val().Volume()
+        _check("volume", ">0", f"{vol:.0f}mm³", vol > 1.0)
 
         # Extract circular features from STEP edges
         circles = []
