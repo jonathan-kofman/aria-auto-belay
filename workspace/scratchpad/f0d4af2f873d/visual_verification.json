@@ -1,0 +1,48 @@
+{
+  "verified": false,
+  "confidence": 0.72,
+  "checks": [
+    {
+      "feature": "large center hole / bore opening visible (check top view)",
+      "found": true,
+      "notes": "A clear central circular opening is visible in the top view, consistent with a bore hole"
+    },
+    {
+      "feature": "circular hole(s) visible (check top view)",
+      "found": true,
+      "notes": "Multiple circular holes are visible in the top view - the center bore plus what appear to be planet pin holes arranged around it"
+    },
+    {
+      "feature": "gear teeth visible around circumference (check top view)",
+      "found": false,
+      "notes": "No gear teeth are visible around the outer circumference. The outer edge appears smooth/cylindrical with radial lines that are likely rendering artifacts, not gear teeth"
+    },
+    {
+      "feature": "3 bolt holes visible in a circular pattern (top view)",
+      "found": true,
+      "notes": "Three circular holes are visible arranged in a roughly triangular/circular pattern in the top view, consistent with 3x planet pin holes at 18mm radius"
+    },
+    {
+      "feature": "center bore (~10.0mm) visible as a large circular opening (top view)",
+      "found": true,
+      "notes": "Central bore is visible. Based on scale, the bore appears approximately 10mm diameter which matches the 10mm bore specification"
+    },
+    {
+      "feature": "part appears as a ring/annular shape (top view)",
+      "found": false,
+      "notes": "The part appears as a solid disk with holes rather than a ring/annular shape. There is no visible annular cutout between inner and outer diameters"
+    }
+  ],
+  "issues": [
+    "No gear teeth visible on outer circumference - part appears to be a plain cylindrical carrier without gear teeth",
+    "Part is a solid disk carrier rather than annular/ring shape, but this may be correct for a planet carrier",
+    "The title mentions '3x planet pin holes' which are present, but the part does not appear to have gear teeth as might be expected",
+    "6 circular features visible in top view rather than clearly 3, possibly due to rendering showing additional geometry like lightening holes or pockets"
+  ],
+  "screenshots": [
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_top.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_front.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_iso.png"
+  ],
+  "reason": null
+}

@@ -3,7 +3,7 @@
 import adsk.core, adsk.fusion, traceback
 
 OD_MM=100.0; HEIGHT_MM=50.0; BORE_MM=30.0
-PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/aria_housing.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/aria_housing.step'
+PART_NAME='aria_part'; STL_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/stl/llm_planetary_gear_carrier_od_3x.stl'; STEP_PATH=r'C:/Users/jonko/Downloads/aria-auto-belay/outputs/cad/step/llm_planetary_gear_carrier_od_3x.step'
 
 def run(context):
     ui = None

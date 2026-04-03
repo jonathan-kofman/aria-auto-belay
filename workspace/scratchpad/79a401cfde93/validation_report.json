@@ -1,0 +1,13 @@
+{
+  "converged": false,
+  "iterations": 4,
+  "failures": [
+    "solid_count: part has 17 disconnected solids (50x50x12mm, 7x7x12mm, 7x2x12mm, 7x7x12mm). All features must be unioned into a single body. Use result = base.union(feature) to join them.",
+    "quality: STL is not watertight after repair attempt \u2014 geometry may have open edges or degenerate faces"
+  ],
+  "bbox": {
+    "x": 55.0,
+    "y": 55.0,
+    "z": 18.017
+  }
+}

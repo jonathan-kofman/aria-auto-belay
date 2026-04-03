@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "score": 100.0,
+  "process_recommendation": "cnc_3axis",
+  "issues": [],
+  "geometry_summary": {
+    "bbox_mm": [
+      58.0,
+      58.0,
+      12.0
+    ],
+    "volume_mm3": 24220.8,
+    "surface_area_mm2": 9512.0,
+    "face_count": 7,
+    "estimated_wall_mm": 5.093,
+    "aspect_ratio": 4.83,
+    "undercut_count": 0
+  },
+  "cost_drivers": [],
+  "llm_used": false,
+  "complexity": "simple"
+}

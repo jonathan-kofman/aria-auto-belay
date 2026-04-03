@@ -7,13 +7,13 @@
     "thickness_mm": 25.0
   },
   "mass_properties": {
-    "volume_mm3": 36579.91694196341,
-    "surface_area_mm2": 9778.942203757837,
+    "volume_mm3": 32247.619970335552,
+    "surface_area_mm2": 10080.38273953015,
     "mass_kg": 0.0,
     "centroid_mm": [
       0.0,
       0.0,
-      12.750000000000002
+      0.0
     ]
   }
 }

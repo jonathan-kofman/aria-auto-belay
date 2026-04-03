@@ -1,0 +1,12 @@
+{
+  "converged": false,
+  "iterations": 4,
+  "failures": [
+    "feature_complexity: goal describes a toothed part but geometry has only 13 faces \u2014 likely missing tooth features. Need 20+ faces."
+  ],
+  "bbox": {
+    "x": 50.016,
+    "y": 50.0,
+    "z": 12.016
+  }
+}

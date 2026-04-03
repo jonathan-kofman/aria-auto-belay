@@ -1,9 +1,9 @@
 {
-  "goal": "bearing housing, 62mm OD, 30mm bore, 25mm tall, 6x M5 bolt circle at 52mm",
+  "goal": "planetary gear carrier, 50mm OD, 3x planet pin holes at 18mm radius, 10mm bore, 12mm thick",
   "part_id": "",
   "fusion_mode": "parametric",
-  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\aria_housing.step",
-  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\aria_housing.stl",
+  "step_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\step\\llm_planetary_gear_carrier_od_3x.step",
+  "stl_path": "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\cad\\stl\\llm_planetary_gear_carrier_od_3x.stl",
   "features": [],
   "base_shape": {},
   "params": {}

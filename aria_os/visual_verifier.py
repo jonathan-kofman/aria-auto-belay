@@ -1,11 +1,13 @@
 """
 aria_os/visual_verifier.py
 
-Visual verification of generated CAD parts using Claude vision.
+Visual verification of generated CAD parts using vision AI.
 
 Renders 3 views of the STL (top, front, isometric) via matplotlib (headless),
-then sends them to Claude vision with a feature checklist derived from the
+then sends them to a vision LLM with a feature checklist derived from the
 goal string and spec dict.  Returns a structured verification result.
+
+Priority: Gemini 2.5 Flash (fast/cheap) -> Anthropic Claude (fallback) -> skip.
 
 Dependencies: trimesh, matplotlib (both already in requirements_aria_os.txt).
 """
@@ -236,32 +238,12 @@ def _encode_image(path: str) -> str:
         return base64.standard_b64encode(f.read()).decode("ascii")
 
 
-def _call_vision(
-    image_paths: list[str],
-    goal: str,
-    checks: list[str],
-    repo_root: Path | None = None,
-) -> dict | None:
-    """Send rendered views to Claude vision and parse the verification result.
-
-    Returns parsed dict or None if the API is unavailable.
-    """
-    from .llm_client import get_anthropic_key
-
-    api_key = get_anthropic_key(repo_root)
-    if not api_key:
-        return None
-
-    try:
-        import anthropic  # type: ignore
-    except ImportError:
-        return None
-
-    # Build the checklist text
+def _build_vision_prompt(goal: str, checks: list[str]) -> str:
+    """Build the vision verification prompt (shared across backends)."""
     checklist_text = "\n".join(f"  {i+1}. {c}" for i, c in enumerate(checks))
     view_labels = ["Top view (XY projection)", "Front view (XZ projection)", "Isometric (3D)"]
 
-    prompt = (
+    return (
         f"You are verifying a CAD model. The user asked for: \"{goal}\"\n\n"
         f"Here are 3 rendered views of the generated part.\n"
         f"Image 1: {view_labels[0]}\n"
@@ -276,9 +258,113 @@ def _call_vision(
         f'"overall_match": true/false, "confidence": 0.0-1.0, "issues": ["..."]}}'
     )
 
+
+def _parse_vision_json(text: str) -> dict | None:
+    """Parse a vision model response into a dict, stripping code fences."""
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        json_match = re.search(r"\{.*\}", text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError:
+                pass
+        print("[VISUAL] could not parse JSON from vision response")
+        return None
+
+
+def _call_vision_gemini(
+    image_paths: list[str],
+    prompt: str,
+    repo_root: Path | None = None,
+) -> dict | None:
+    """Try Gemini vision API for verification. Returns parsed dict or None."""
+    from .llm_client import get_google_key, _gemini_model
+
+    api_key = get_google_key(repo_root)
+    if not api_key:
+        return None
+
+    # Try new google-genai SDK
+    try:
+        from google import genai  # type: ignore
+        from google.genai import types  # type: ignore
+    except ImportError:
+        return None
+
+    client = genai.Client(api_key=api_key)
+
+    # Read image bytes
+    parts: list = []
+    for img_path in image_paths:
+        with open(img_path, "rb") as f:
+            img_bytes = f.read()
+        parts.append(types.Part.from_bytes(data=img_bytes, mime_type="image/png"))
+    parts.append(types.Part.from_text(text=prompt))
+
+    cfg = types.GenerateContentConfig(
+        temperature=0.0,
+        max_output_tokens=1024,
+    )
+
+    # Model preference: gemini-2.5-flash first, then configured model, then 2.0-flash
+    configured = _gemini_model(repo_root)
+    model_candidates = ["gemini-2.5-flash"]
+    if configured not in model_candidates:
+        model_candidates.append(configured)
+    if "gemini-2.0-flash" not in model_candidates:
+        model_candidates.append("gemini-2.0-flash")
+
+    for try_model in model_candidates:
+        try:
+            response = client.models.generate_content(
+                model=try_model,
+                contents=parts,
+                config=cfg,
+            )
+            text = (response.text or "").strip()
+            if not text:
+                continue
+            print(f"[VISUAL] vision response from gemini/{try_model} ({len(text)} chars)")
+            return _parse_vision_json(text)
+        except Exception as exc:
+            err_str = str(exc)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                if try_model != model_candidates[-1]:
+                    continue
+                print("[VISUAL] gemini quota exhausted")
+                return None
+            if "model" in err_str.lower():
+                continue
+            print(f"[VISUAL] gemini vision error ({try_model}): {exc}")
+            return None
+
+    return None
+
+
+def _call_vision_anthropic(
+    image_paths: list[str],
+    prompt: str,
+    repo_root: Path | None = None,
+) -> dict | None:
+    """Try Anthropic Claude vision API for verification. Returns parsed dict or None."""
+    from .llm_client import get_anthropic_key
+
+    api_key = get_anthropic_key(repo_root)
+    if not api_key:
+        return None
+
+    try:
+        import anthropic  # type: ignore
+    except ImportError:
+        return None
+
     # Build content blocks: images + text
     content: list[dict[str, Any]] = []
-    for i, img_path in enumerate(image_paths):
+    for img_path in image_paths:
         b64 = _encode_image(img_path)
         content.append({
             "type": "image",
@@ -303,29 +389,46 @@ def _call_vision(
             text = "".join(b.text for b in msg.content if hasattr(b, "text")).strip()
             if not text:
                 continue
-
-            print(f"[VISUAL] vision response from {model} ({len(text)} chars)")
-
-            # Strip markdown code fences if present
-            text = re.sub(r"^```(?:json)?\s*", "", text)
-            text = re.sub(r"\s*```$", "", text)
-
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                # Try to extract JSON from the response
-                json_match = re.search(r"\{.*\}", text, re.DOTALL)
-                if json_match:
-                    return json.loads(json_match.group())
-                print(f"[VISUAL] could not parse JSON from vision response")
-                return None
-
+            print(f"[VISUAL] vision response from anthropic/{model} ({len(text)} chars)")
+            return _parse_vision_json(text)
         except Exception as exc:
             err = str(exc).lower()
             if "model" in err or "not_found" in err:
                 continue
-            print(f"[VISUAL] vision API error ({model}): {exc}")
+            print(f"[VISUAL] anthropic vision error ({model}): {exc}")
             return None
+
+    return None
+
+
+def _call_vision(
+    image_paths: list[str],
+    goal: str,
+    checks: list[str],
+    repo_root: Path | None = None,
+) -> dict | None:
+    """Send rendered views to vision AI and parse the verification result.
+
+    Priority: Gemini 2.5 Flash (fast/cheap) -> Anthropic Claude (fallback) -> None.
+    Returns parsed dict or None if no API is available.
+    """
+    prompt = _build_vision_prompt(goal, checks)
+
+    # 1. Try Gemini (primary — fast and cheap)
+    try:
+        result = _call_vision_gemini(image_paths, prompt, repo_root)
+        if result is not None:
+            return result
+    except Exception as exc:
+        print(f"[VISUAL] gemini unexpected error: {exc}")
+
+    # 2. Try Anthropic (fallback)
+    try:
+        result = _call_vision_anthropic(image_paths, prompt, repo_root)
+        if result is not None:
+            return result
+    except Exception as exc:
+        print(f"[VISUAL] anthropic unexpected error: {exc}")
 
     return None
 
@@ -342,7 +445,7 @@ def verify_visual(
     *,
     repo_root: Path | None = None,
 ) -> dict:
-    """Render the part from 3 angles, send to Claude vision, get verification.
+    """Render the part from 3 angles, send to vision AI, get verification.
 
     Parameters
     ----------

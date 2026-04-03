@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "steel_mild",
+  "quantity": 1,
+  "unit_cost_usd": 201.45,
+  "breakdown": {
+    "material_usd": 0.6,
+    "machining_usd": 92.13,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.14,
+    "margin_usd": 33.57
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      40.0,
+      20.0,
+      30.0
+    ],
+    "volume_cm3": 4.8363,
+    "stock_volume_cm3": 24.0,
+    "material_removal_pct": 79.8,
+    "surface_area_cm2": 27.7115,
+    "face_count": 19
+  },
+  "optimizations": [
+    "Optimize machining parameters: Adjust feed rates, speeds, and depths of cut to reduce machining time while maintaining surface finish requirements. ($10-$20 savings)",
+    "Simplify part geometry: Review the design for opportunities to simplify features or reduce complexity without compromising functionality. This could lead to reduced machining time and tool wear. ($15-$30 savings)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Material removal of 80% may be too aggressive, potentially leading to excessive machining time or tool wear.",
+    "The part's complexity (medium) suggests a moderate level of difficulty for the CNC machine, but without further details on features and tolerances, there may be hidden risks."
+  ]
+}

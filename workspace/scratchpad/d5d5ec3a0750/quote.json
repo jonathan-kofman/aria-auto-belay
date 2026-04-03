@@ -1,0 +1,35 @@
+{
+  "process": "cnc_3axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 123.07,
+  "breakdown": {
+    "material_usd": 0.26,
+    "machining_usd": 26.95,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.34,
+    "margin_usd": 20.51
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      20.0,
+      33.0
+    ],
+    "volume_cm3": 25.8126,
+    "stock_volume_cm3": 33.0,
+    "material_removal_pct": 21.8,
+    "surface_area_cm2": 67.9597,
+    "face_count": 24
+  },
+  "optimizations": [
+    "Optimize part design for easier machining by reducing the number of features and simplifying the geometry (estimated $5 savings).",
+    "Consider using a more efficient machining strategy, such as 4-axis or 5-axis machining, to reduce material removal time and increase accuracy (estimated $10 savings)."
+  ],
+  "confidence": "medium",
+  "risks": [
+    "High material removal percentage may indicate a complex part geometry, potentially leading to longer machining times or tool wear.",
+    "Medium complexity level suggests that the part may require specialized tooling or fixtures, increasing setup costs."
+  ]
+}

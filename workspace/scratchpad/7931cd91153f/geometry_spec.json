@@ -1,0 +1,16 @@
+{
+  "spec": {
+    "part_type": "housing",
+    "od_mm": 62.0,
+    "bore_mm": 30.0,
+    "id_mm": 30.0,
+    "thickness_mm": 25.0,
+    "height_mm": 25.0,
+    "n_bolts": 6,
+    "bolt_dia_mm": 5.0
+  },
+  "cem_params": {},
+  "material": "",
+  "research_context": "",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(62, 62, 25)\n\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(15).cutThruAll()\n\nSTEP 3: Add raised feature for bolt circle \u2014 .workplane(offset=25).rect(52, 52).extrude(5)"
+}

@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "title": "Airfoil plotter (naca4412-il)",
+      "snippet": "Airfoil plotter (naca4412-il) NACA 4412 - NACA 4412 airfoil Plot and print the shape of an airfoil (aerofoil) for your specific chord width and transformation. The dat file data can either be loaded from the airfoil database or your own airfoils which can be entered here and they will appear in the ",
+      "url": "airfoiltools.com/plotter/index?airfoil=naca4412-il"
+    },
+    {
+      "title": "naca 4412 3d models - Page 1 | STLFinder",
+      "snippet": "Find 763 naca 4412 3D models for 3D printing, CNC and design. Performing NACA 4412 flow simulation seeks to analyze the fluid dynamics and airfoil performance of this particular airfoil shape under varying conditions.",
+      "url": "www.stlfinder.com/3dmodels/naca-4412/"
+    },
+    {
+      "title": "Aerodynamic performance and stall characteristics of the NACA4412 ...",
+      "snippet": "The aerodynamic performance of airfoil blades in various design and off-design situations plays a significant role in developing their designs. The current study aims to obtain and critically examine the performance of the NACA4412 airfoil at discrete Reynolds number (Re) and Angle of Attack (AOA) c",
+      "url": "link.springer.com/article/10.1007/s12046-023-02349-z"
+    },
+    {
+      "title": "NACA Airfoil Plotter and Equations - Engineers Edge",
+      "snippet": "The parameters in the numerical code can be entered into equations to precisely generate the cross-section of the airfoil and calculate its properties. The NACA four-digit wing sections define the profile by: First digit describing maximum camber as percentage of the chord.",
+      "url": "www.engineersedge.com/calculators/naca_airfoil_plotter_and_equations__16203.htm"
+    },
+    {
+      "title": "Comparative Study of the Blade Number and Airfoil Profile Impacts on ...",
+      "snippet": "The blade number and airfoil profile effects on the blade shape of a small horizontal-axis wind turbine (SHWT) were investigated. For this purpose, the NACA4412, SG6042, and SG6043 airfoils, as wel...",
+      "url": "onlinelibrary.wiley.com/doi/10.1155/2023/8164273"
+    },
+    {
+      "title": "CFD analysis and experimental investigation to determine the flow ...",
+      "snippet": "Less attention, however, has been devoted to wind turbines in terms of simultaneous optimization of blade and airfoil angles. The present study is important for the aerodynamic design and manufacturing of wind turbine blades. In this regard, various blade angles have been numerically simulated to de",
+      "url": "journals.sagepub.com/doi/10.1177/09544089221128421"
+    },
+    {
+      "title": "(PDF) 2D ANALYSIS OF NACA 4412 AIRFOIL - ResearchGate",
+      "snippet": "This involves the selection of a suitable airfoil section for the proposed wind turbine blade. In this paper NACA 4412 airfoil profile is considered for analysis of wind turbine blade.",
+      "url": "www.researchgate.net/publication/280641554_2D_ANALYSIS_OF_NACA_4412_AIRFOIL"
+    },
+    {
+      "title": "Naca4CAD",
+      "snippet": "Wind turbine blade Circle root, NACA 8420 as division between structural and aerodynamical section, NACA 4415 for middle section and 23112 tip with rounded tailing edge.",
+      "url": "www.naca4cad.com"
+    },
+    {
+      "title": "(PDF) 2D ANALYSIS OF NACA 4412 AIRFOIL - Academia.edu",
+      "snippet": "In this paper NACA 4412 airfoil profile is considered for analysis of wind turbine blade. Geometry of the airfoil is created using GAMBIT 2.4.6. And CFD analysis is carried out using FLUENT 6.3.26 at various angles of attack from 0\u00b0 to 12. The coefficient of lift and drag values are calculated for 1",
+      "url": "www.academia.edu/20615798/2D_ANALYSIS_OF_NACA_4412_AIRFOIL"
+    },
+    {
+      "title": "Aerodynamic Analysis of NACA 4412 Airfoil with CFD for Small Scale Wind ...",
+      "snippet": "The wind turbine obtains electricity from wind energy, which is a renewable energy source. One of the elements affecting the yield of wind turbines is aerodynamic properties of airfoils. In this study, CFD analysis of NACA 4412 Airfoil which can be used in small scale wind turbine design was perform",
+      "url": "journalgreentech.com/index.php/pub/article/view/9"
+    }
+  ]
+}

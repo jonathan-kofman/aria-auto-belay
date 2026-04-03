@@ -1,0 +1,47 @@
+{
+  "verified": false,
+  "confidence": 0.78,
+  "checks": [
+    {
+      "feature": "large center hole / bore opening visible (check top view)",
+      "found": true,
+      "notes": "A clear circular center hole is visible in the top view, appears to be approximately 10mm diameter bore"
+    },
+    {
+      "feature": "circular hole(s) visible (check top view)",
+      "found": true,
+      "notes": "Three circular planet pin holes are visible in the top view arranged in a triangular pattern at what appears to be ~18mm radius from center"
+    },
+    {
+      "feature": "gear teeth visible around circumference (check top view)",
+      "found": true,
+      "notes": "Rectangular tooth-like features are visible around the outer circumference in the top view, consistent with gear teeth"
+    },
+    {
+      "feature": "3 bolt holes visible in a circular pattern (top view)",
+      "found": true,
+      "notes": "Three circular holes are visible arranged symmetrically at 120 degrees apart, consistent with 3x planet pin holes"
+    },
+    {
+      "feature": "center bore (~10.0mm) visible as a large circular opening (top view)",
+      "found": true,
+      "notes": "Center bore is visible and appears proportionally correct for ~10mm diameter relative to the 50mm OD"
+    },
+    {
+      "feature": "part appears as a ring/annular shape (top view)",
+      "found": false,
+      "notes": "The part does not appear as a simple ring/annular shape - it has a solid disk carrier plate with features, which is actually correct for a planetary gear carrier rather than a ring gear"
+    }
+  ],
+  "issues": [
+    "The front view shows the part height appears to extend beyond 12mm (shows range from about -6 to +12, suggesting ~18mm total height rather than 12mm)",
+    "The isometric view shows raised platform features on top which may indicate extra geometry not specified",
+    "Gear teeth on outer circumference were not explicitly requested - user asked for a carrier not a ring gear with teeth"
+  ],
+  "screenshots": [
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_top.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_front.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_planetary_gear_carrier_50mm_od_3x_planet_pin_holes_at_18mm_r_iso.png"
+  ],
+  "reason": null
+}

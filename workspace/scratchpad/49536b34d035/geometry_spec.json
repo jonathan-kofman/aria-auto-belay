@@ -1,0 +1,14 @@
+{
+  "spec": {
+    "part_type": "turbine_blade",
+    "span_mm": 60,
+    "chord_mm": 15,
+    "twist_deg": 30,
+    "airfoil_profile": "NACA 4412",
+    "material": "steel_mild"
+  },
+  "cem_params": {},
+  "material": "steel_mild",
+  "research_context": "\n## Shape & Geometry\n- Airfoil plotter (naca4412-il): Airfoil plotter (naca4412-il) NACA 4412 - NACA 4412 airfoil Plot and print the shape of an airfoil (aerofoil) for your specific chord width and transformation. The dat file data can either be loaded from the airfoil database or your own airfoils which can be entered here and they will appear in the \n- NACA Airfoil Plotter and Equations - Engineers Edge: The parameters in the numerical code can be entered into equations to precisely generate the cross-section of the airfoil and calculate its properties. The NACA four-digit wing sections define the profile by: First digit describing maximum camber as percentage of the chord.\n- naca 4412 3d models - Page 1 | STLFinder: Find 763 naca 4412 3D models for 3D printing, CNC and design. Performing NACA 4412 flow simulation seeks to analyze the fluid dynamics and airfoil performance of this particular airfoil shape under varying conditions.\n- Comparative Study of the Blade Number and Airfoil Profile Impacts on ...: The blade number and airfoil profile effects on the blade shape of a small horizontal-axis wind turbine (SHWT) were investigated. For this purpose, the NACA4412, SG6042, and SG6043 airfoils, as wel...\n- Experimental investigations of flow over NACA airfoils 0021 and 4412 of ...: Experimental investigations of wind turbine blades having NACA airfoils 0021 and 4412 with and without tubercles on the leading edge have been performed in a wind tunnel. It was found that the lift coefficient of the airfoil 0021 with tubercles was higher at Re = 1.2\u00d710 5 and 1.69\u00d710 5 in post criti\n\n## Dimensions\n- Airfoil plotter (naca4412-il): Airfoil (aerofoil) plot of NACA 4412 with ajustable chord width, camber and thickness and full size print out\n- Blade Parameters for NACA 4412 profile | Download Table: In this paper, an analysis of basic airfoils profile for micro and small-scale horizontal axis wind turbine (HAWT) has been studied for different angle-of-attack \u03b1 and fixed Reyno",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(60, 15, 2)\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(2).cutThruAll()\nSTEP 3: Add raised feature \u2014 .workplane(offset=2).rect(4, 10).extrude(1)\nSTEP 4: Create airfoil shape \u2014 Use a custom NACA 4412 profile generator to create the airfoil shape with a chord length of 15mm. Import this as a 3D model and use cq.importShape() to add it to your design.\nSTEP 5: Rotate airfoil \u2014 .rotate((0, 0, 0), (0, 0, 1), 30)\nSTEP 6: Add twist \u2014 Use cq.Workplane().rect(15, 2).extrude(2) and then use cq.rotate() to apply a 30-degree twist along the Z-axis."
+}

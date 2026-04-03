@@ -1,0 +1,43 @@
+{
+  "process": "cnc_5axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 732.73,
+  "breakdown": {
+    "material_usd": 0.44,
+    "machining_usd": 409.64,
+    "setup_usd": 200.0,
+    "finishing_usd": 0.53,
+    "margin_usd": 122.12
+  },
+  "lead_time_days": 13,
+  "geometry": {
+    "bbox_mm": [
+      55.0,
+      55.0,
+      18.0
+    ],
+    "volume_cm3": 25.1901,
+    "stock_volume_cm3": 54.45,
+    "material_removal_pct": 53.7,
+    "surface_area_cm2": 106.078,
+    "face_count": 103
+  },
+  "optimizations": [
+    "Clarify and correctly input material before proceeding; if this is aluminum the material cost should be roughly $8-15, if titanium or steel significantly more ($20-80 savings in error prevention)",
+    "Audit face count to identify if any of the 103 faces can be merged, simplified, or relaxed to looser tolerances to reduce CAM complexity and cycle time ($40-80 savings)",
+    "Redesign deep pockets or undercut features for 3+2 axis accessibility rather than full simultaneous 5-axis motion where possible, reducing cycle time and tool wear ($30-60 savings)",
+    "If quantity can be increased to 3-5 units, setup and CAM programming costs amortize significantly, reducing per-unit cost by an estimated $150-200 per additional unit",
+    "Specify only critical surfaces for tight tolerance and finish; leave non-functional faces at as-machined condition to reduce finishing and inspection time ($20-50 savings)"
+  ],
+  "confidence": "low",
+  "risks": [
+    "Material field is blank; the $0.44 material cost is implausibly low for any metal stock at 54.45 cm3 and suggests a data entry error or system fault that could invalidate the entire quote",
+    "103 faces on a 55x55x18 mm envelope is extremely high face count, indicating complex compound surfaces or fine feature detail that 5-axis parametric models frequently underprice due to unplanned tool changes and extended CAM programming time",
+    "Setup cost of $200 for a single unit of a high-complexity 5-axis part is likely underestimated; fixturing, datum establishment, and multi-orientation probing on complex geometry routinely runs $400-800 for one-offs",
+    "54% material removal with 103 faces suggests deep pockets or undercuts that may require extended reach tooling or custom tooling not captured in the parametric model",
+    "Finishing cost of $0.53 is essentially zero for 106 cm2 of surface area on a high-complexity part; any deburring, blending, or specified surface finish requirement will add significant unaccounted labor",
+    "No tolerance or surface finish specification is visible in the summary; if tight tolerances exist on any of the 103 faces, machining time could increase 30-50% beyond the parametric estimate",
+    "Single unit quantity means no amortization of setup or CAM programming costs, making this quote highly sensitive to any scope creep"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "spec": {
+    "part_type": "flange",
+    "material": "pla",
+    "od_mm": 50.0,
+    "bore_mm": 10.0,
+    "id_mm": 10.0,
+    "thickness_mm": 12.0,
+    "height_mm": 12.0,
+    "n_bolts": 3,
+    "bolt_circle_r_mm": 18.0
+  },
+  "cem_params": {},
+  "material": "",
+  "research_context": "",
+  "build_recipe": "STEP 1: Create base plate \u2014 cq.Workplane(\"XY\").box(50, 50, 12)\n\nSTEP 2: Cut center bore \u2014 .faces(\">Z\").workplane().circle(10).cutThruAll()\n\nSTEP 3: Add raised feature \u2014 .workplane(offset=12).rect(40, 40).extrude(2)\n\nSTEP 4: Create bolt circle \u2014 .workplane(\"XY\").centered(25, 25).circle(18).extrude(1.5)\n\nSTEP 5: Add bolt holes \u2014 .faces(\">Z\").workplane().points([(15, 15), (35, 15), (25, 35)]).circle(4).cutThruAll()"
+}

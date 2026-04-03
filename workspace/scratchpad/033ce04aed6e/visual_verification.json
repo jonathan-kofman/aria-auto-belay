@@ -1,0 +1,25 @@
+{
+  "verified": false,
+  "confidence": 0.35,
+  "checks": [
+    {
+      "feature": "chamfered edge(s) visible (check isometric view)",
+      "found": false,
+      "notes": "No clear chamfered edges are visible in the isometric view. The latch body appears to have sharp rectangular edges. The pivot pin cylinder shows rounded/filleted top but no distinct chamfers on the main body edges."
+    }
+  ],
+  "issues": [
+    "Chamfered edges are not clearly visible on the main latch body",
+    "The catch hook geometry is ambiguous - the right side rectangular protrusion may represent it but lacks a clear hook profile",
+    "The latch body in the front view shows a tapered/wedge profile which may partially represent the latch mechanism but is not clearly a proper catch hook",
+    "The isometric view shows a flat plate-like body with a pivot pin cylinder, but the overall shape does not strongly resemble a typical spring-loaded latch with catch hook",
+    "Spring mechanism is not visible in any view - no coil spring or spring geometry detected",
+    "The part appears to be a simplified flat body rather than a fully detailed spring-loaded latch assembly"
+  ],
+  "screenshots": [
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_spring_loaded_latch_30mm_long_pivot_pin_4mm_catch_hook_chamf_top.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_spring_loaded_latch_30mm_long_pivot_pin_4mm_catch_hook_chamf_front.png",
+    "C:\\Users\\jonko\\Downloads\\aria-auto-belay\\outputs\\screenshots\\verify_spring_loaded_latch_30mm_long_pivot_pin_4mm_catch_hook_chamf_iso.png"
+  ],
+  "reason": null
+}

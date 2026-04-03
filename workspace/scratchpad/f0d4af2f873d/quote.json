@@ -1,0 +1,37 @@
+{
+  "process": "cnc_3axis",
+  "material": "",
+  "quantity": 1,
+  "unit_cost_usd": 131.2,
+  "breakdown": {
+    "material_usd": 0.24,
+    "machining_usd": 33.75,
+    "setup_usd": 75.0,
+    "finishing_usd": 0.34,
+    "margin_usd": 21.87
+  },
+  "lead_time_days": 5,
+  "geometry": {
+    "bbox_mm": [
+      50.0,
+      50.0,
+      12.0
+    ],
+    "volume_cm3": 20.9984,
+    "stock_volume_cm3": 30.0,
+    "material_removal_pct": 30.0,
+    "surface_area_cm2": 68.4239,
+    "face_count": 13
+  },
+  "optimizations": [
+    "Simplify the design to reduce material removal and machining time (-10% savings)",
+    "Optimize fixture design to reduce setup time and cost (-5% savings, $6.56)",
+    "Consider using a more efficient machining process (e.g., 4-axis or 5-axis) for complex parts (-15% savings)",
+    "Review material selection to ensure it is the most cost-effective option (-2% savings, $2.62)"
+  ],
+  "confidence": "medium",
+  "risks": [
+    "Material removal percentage is high (30%), which may indicate a complex or inefficient design.",
+    "High setup cost ($75.00) suggests that the part may require specialized fixtures or tooling, adding to overall costs."
+  ]
+}
