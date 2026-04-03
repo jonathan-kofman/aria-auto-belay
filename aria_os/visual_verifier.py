@@ -297,17 +297,17 @@ def _call_vision_gemini(
 
     client = genai.Client(api_key=api_key)
 
-    # Read image bytes
+    # Read image bytes + prompt as plain string (not Part.from_text which varies by SDK version)
     parts: list = []
     for img_path in image_paths:
         with open(img_path, "rb") as f:
             img_bytes = f.read()
         parts.append(types.Part.from_bytes(data=img_bytes, mime_type="image/png"))
-    parts.append(types.Part.from_text(text=prompt))
+    parts.append(prompt)  # plain string — google-genai accepts str in contents list
 
     cfg = types.GenerateContentConfig(
         temperature=0.0,
-        max_output_tokens=1024,
+        max_output_tokens=4096,
     )
 
     # Model preference: gemini-2.5-flash first, then configured model, then 2.0-flash
