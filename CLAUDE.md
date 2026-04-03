@@ -58,6 +58,11 @@ python run_aria_os.py --assemble assembly_configs/aria_clutch_assembly.json
 # Generate Fusion 360 constrained assembly script (auto-joints from proximity + part names)
 python run_aria_os.py --constrain assembly_configs/clock_gear_train.json [--proximity 50]
 
+# Multi-part assembly from description (decompose → generate each part → assemble)
+python run_aria_os.py --assembly "motor mount assembly: baseplate with 4 M4 holes, vertical support bracket"
+# Also auto-detected when goal contains assembly keywords (no --assembly flag needed):
+python run_aria_os.py "pump housing assembly consisting of a body, lid, and gasket"
+
 # Print-fit scaling check
 python run_aria_os.py --print-scale aria_ratchet_ring --scale 0.75
 

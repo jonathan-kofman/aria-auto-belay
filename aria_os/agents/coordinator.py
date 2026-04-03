@@ -94,8 +94,17 @@ class CoordinatorAgent:
     def __init__(self, repo_root: Path | None = None):
         self.repo_root = repo_root or Path(__file__).resolve().parent.parent.parent
 
-    async def run(self, goal: str) -> JobContext:
-        """Execute the full 5-phase pipeline."""
+    async def run(self, goal: str, *, force_assembly: bool = False) -> JobContext:
+        """Execute the full 5-phase pipeline.
+
+        Parameters
+        ----------
+        goal : str
+            Natural-language description of the part or assembly.
+        force_assembly : bool
+            If True, always treat the goal as a multi-part assembly
+            (equivalent to the ``--assembly`` CLI flag).
+        """
         ctx = JobContext(goal=goal, repo_root=self.repo_root)
         t0 = time.time()
 
@@ -104,6 +113,15 @@ class CoordinatorAgent:
         print(f"  COORDINATOR — Job {ctx.job_id}")
         print(f"  Goal: {goal}")
         print(f"{'=' * 64}")
+
+        # ── Assembly detection ──────────────────────────────────────────
+        # Check if the goal describes a multi-part assembly. If so, hand
+        # off to the AssemblyAgent which decomposes, generates each part
+        # via *this* coordinator, and creates the assembly config JSON.
+        from .assembly_agent import is_assembly_goal
+        if force_assembly or is_assembly_goal(goal):
+            print(f"  [COORDINATOR] Assembly detected — delegating to AssemblyAgent")
+            return await self._run_assembly(ctx)
 
         try:
             # Phase 1: Parallel research
@@ -130,6 +148,59 @@ class CoordinatorAgent:
             print(f"  [COORDINATOR] ERROR: {exc}")
 
         ctx.total_time_s = time.time() - t0
+        self._print_summary(ctx)
+        return ctx
+
+    # -- Assembly delegation ---------------------------------------------------
+
+    async def _run_assembly(self, ctx: JobContext) -> JobContext:
+        """Delegate to AssemblyAgent for multi-part assembly generation."""
+        from .assembly_agent import AssemblyAgent
+
+        _emit(ctx, "phase", "Assembly: decompose + generate all parts", {"phase": "assembly"})
+
+        try:
+            agent = AssemblyAgent(self.repo_root)
+            result = await agent.run(ctx.goal)
+
+            # Map assembly result back into JobContext
+            ctx.phases_completed.append("assembly")
+
+            if result.get("config_path"):
+                ctx.save_artifact("assembly_config.json",
+                                  json.loads(Path(result["config_path"]).read_text(encoding="utf-8")))
+
+            if result.get("assembly_step") and Path(result["assembly_step"]).exists():
+                ctx.geometry_path = result["assembly_step"]
+                ctx.validation_passed = True
+            else:
+                # At least some parts may have generated
+                generated = [p for p in result.get("parts", []) if p.get("step_path")]
+                ctx.validation_passed = len(generated) > 0
+                if generated:
+                    ctx.geometry_path = generated[0]["step_path"]
+
+            ctx.validation_report = {
+                "assembly_name": result.get("name", ""),
+                "config_path": result.get("config_path", ""),
+                "parts_total": len(result.get("parts", [])),
+                "parts_passed": sum(1 for p in result.get("parts", []) if p.get("passed")),
+                "assembly_step": result.get("assembly_step", ""),
+                "errors": result.get("errors", []),
+            }
+            ctx.save_artifact("assembly_result.json", ctx.validation_report)
+
+            if result.get("errors"):
+                for e in result["errors"]:
+                    ctx.errors.append(e)
+
+        except Exception as exc:
+            ctx.errors.append(f"Assembly agent error: {exc}")
+            _emit(ctx, "error", f"Assembly failed: {exc}")
+            print(f"  [COORDINATOR] Assembly ERROR: {exc}")
+
+        import time as _time
+        ctx.total_time_s = _time.time() - ctx.created_at.timestamp()
         self._print_summary(ctx)
         return ctx
 
