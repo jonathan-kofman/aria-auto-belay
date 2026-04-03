@@ -1,4 +1,11 @@
-"""Per-agent Ollama model configuration."""
+"""Per-agent Ollama model configuration.
+
+Local GPU: RTX 1000 Ada (4GB VRAM) — can only run 7B or smaller models.
+For bigger models (Gemma 4 31B, DeepSeek-R1-32B), use:
+  - Lightning AI free tier (22 GPU-hours/month, A10G/L4/L40S)
+  - Kaggle (30 hours/week, T4 16GB)
+  - Remote Ollama: set OLLAMA_HOST=http://<cloud-ip>:11434
+"""
 from __future__ import annotations
 
 import os
@@ -6,12 +13,10 @@ import os
 # Models per agent role. Override via env vars:
 #   ARIA_AGENT_DESIGNER_MODEL=qwen2.5-coder:32b
 #   ARIA_AGENT_SPEC_MODEL=llama3.1:8b
-#   ARIA_AGENT_MODEL=gemma4:31b  (use Gemma 4 for all agents)
+#   ARIA_AGENT_MODEL=gemma4:31b  (use Gemma 4 for all agents — needs cloud GPU)
 
-# Single model for all agents to avoid VRAM context-switching crashes.
-# On 12-16GB VRAM, loading multiple models causes HTTP 500 errors.
-# qwen2.5-coder:14b is the best single model for both code gen AND reasoning.
-# Override per-agent via env vars if you have 24GB+ VRAM.
+# Local GPU (4GB VRAM): only qwen2.5-coder:7b fits.
+# For Gemma 4: set OLLAMA_HOST to a remote server with >=16GB VRAM.
 _DEFAULT_MODEL = os.environ.get("ARIA_AGENT_MODEL", "qwen2.5-coder:7b")
 
 # Gemma 4 31B (Apache 2.0) — strong local model for code gen + reasoning.
