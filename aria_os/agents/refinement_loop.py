@@ -47,14 +47,18 @@ def run_agent_loop(state: DesignState) -> DesignState:
     evaluator  = EvalAgent(state.domain, state.repo_root)
     refiner    = RefinerAgent(state.repo_root)
 
-    # Phase 0: Web research — gather real-world specs and design references
-    print(f"\n  [research] Gathering reference information from the web...")
-    try:
-        researcher.research(state)
-        event_bus.emit("agent", "ResearchAgent done", {
-            "has_context": bool(state.plan.get("research_context"))})
-    except Exception as _re:
-        print(f"  [research] Skipped: {_re}")
+    # Phase 0: Web research — skip if user already specified enough dimensions
+    _n_spec_dims = sum(1 for k, v in state.spec.items() if k.endswith("_mm") and v is not None)
+    if _n_spec_dims < 4:
+        print(f"\n  [research] Gathering reference information from the web...")
+        try:
+            researcher.research(state)
+            event_bus.emit("agent", "ResearchAgent done", {
+                "has_context": bool(state.plan.get("research_context"))})
+        except Exception as _re:
+            print(f"  [research] Skipped: {_re}")
+    else:
+        print(f"\n  [research] Skipped — {_n_spec_dims} dimensions already in spec")
 
     # Phase 1: Spec extraction (runs once)
     print(f"\n  [iter 0] SpecAgent extracting constraints...")

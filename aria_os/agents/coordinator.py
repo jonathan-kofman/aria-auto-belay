@@ -137,6 +137,22 @@ class CoordinatorAgent:
 
     async def _phase_1_research(self, ctx: JobContext) -> None:
         _emit(ctx, "phase", "Phase 1: Research (parallel)", {"phase": 1})
+
+        # Skip research when the user already provided enough dimensions.
+        # If spec extraction gets >=4 params, research adds latency but not value.
+        try:
+            from ..spec_extractor import extract_spec
+            _quick_spec = extract_spec(ctx.goal)
+            _n_dims = sum(1 for k, v in _quick_spec.items()
+                         if k.endswith("_mm") and v is not None)
+            if _n_dims >= 4:
+                print(f"\n  [Phase 1] Skipping research — {_n_dims} dimensions already specified")
+                ctx.phases_completed.append("research")
+                _emit(ctx, "phase_complete", "Phase 1 skipped (dims sufficient)", {"phase": 1})
+                return
+        except Exception:
+            pass
+
         print(f"\n  [Phase 1] Research (parallel)...")
 
         from .search_chain import get_search_chain
