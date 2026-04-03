@@ -163,6 +163,19 @@ class DesignerAgent(BaseAgent):
             # which tries to "fix" a non-code string as if it were Python
             return
 
+        # Post-process: Gemini/Gemma sometimes define functions but never call them,
+        # or build geometry without assigning to `result`. Fix common patterns.
+        if "result" not in code and self.domain == "cad":
+            # Try to find the last CadQuery variable assignment and alias it
+            import re as _re
+            # Match patterns like: solid = cq.Workplane... or base = base.union(...)
+            _assignments = _re.findall(r'^(\w+)\s*=\s*(?:cq\.|.*\.union|.*\.cut|.*\.shell|.*\.fillet)', code, _re.MULTILINE)
+            if _assignments:
+                last_var = _assignments[-1]
+                code += f"\nresult = {last_var}\n"
+                code += 'bb = result.val().BoundingBox()\n'
+                code += 'print(f"BBOX:{bb.xlen:.3f},{bb.ylen:.3f},{bb.zlen:.3f}")\n'
+
         state.code = code
         state.generation_error = ""
 

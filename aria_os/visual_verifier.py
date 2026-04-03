@@ -194,15 +194,27 @@ def _build_checklist(goal: str, spec: dict) -> list[str]:
     nx_pattern = re.findall(r"(?<![mM])(\d+)\s*[xX×]\s*(hole|fin|bolt|prong|tab|slot|groove|rib|blade|vane|teeth|tooth|spoke|arm|leg|pin|screw)s?", goal_lower)
     # Also match "N features" without x separator: "8 fins", "24 teeth"
     # Allow optional adjectives between count and feature: "8 parallel fins"
-    nx_pattern += re.findall(r"(\d+)\s+(?:\w+\s+)?(hole|fin|bolt|prong|tab|slot|groove|rib|blade|vane|teeth|tooth|spoke|arm|leg|pin|screw)s?", goal_lower)
+    # Exclude metric sizes: "M5" → skip (the (?<![mM]) prevents "M5 bolt" matching)
+    nx_pattern += re.findall(r"(?<![mM])(\d+)\s+(?:\w+\s+)?(hole|fin|bolt|prong|tab|slot|groove|rib|blade|vane|teeth|tooth|spoke|arm|leg|pin|screw)s?", goal_lower)
     seen_nx: set[str] = set()
+    # Skip regex bolt/teeth counts when spec has exact values (spec is authoritative)
+    _spec_overrides = set()
+    if spec.get("n_bolts"):
+        _spec_overrides.add("bolt")
+        _spec_overrides.add("hole")
+    if spec.get("n_teeth"):
+        _spec_overrides.add("teeth")
+        _spec_overrides.add("tooth")
+
     for count, feature in nx_pattern:
+        if feature in _spec_overrides:
+            continue  # spec has the correct count, skip regex guess
         key = f"{count}_{feature}"
         if key not in seen_nx:
             seen_nx.add(key)
             checks.append(f"{count} distinct {feature} features visible")
 
-    # Spec-driven checks
+    # Spec-driven checks (authoritative counts)
     if spec.get("n_teeth"):
         checks.append(f"approximately {spec['n_teeth']} teeth visible around circumference (top view)")
     if spec.get("n_bolts"):
@@ -319,27 +331,39 @@ def _call_vision_gemini(
         model_candidates.append("gemini-2.0-flash")
 
     for try_model in model_candidates:
-        try:
-            response = client.models.generate_content(
-                model=try_model,
-                contents=parts,
-                config=cfg,
-            )
-            text = (response.text or "").strip()
-            if not text:
-                continue
-            print(f"[VISUAL] vision response from gemini/{try_model} ({len(text)} chars)")
-            return _parse_vision_json(text)
-        except Exception as exc:
-            err_str = str(exc)
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                if try_model != model_candidates[-1]:
+        # Retry up to 2 times per model (Gemini sometimes returns short/malformed JSON)
+        for attempt in range(2):
+            try:
+                # Use higher temperature on retry to get different output
+                retry_cfg = cfg if attempt == 0 else types.GenerateContentConfig(
+                    temperature=0.3, max_output_tokens=4096)
+                response = client.models.generate_content(
+                    model=try_model,
+                    contents=parts,
+                    config=retry_cfg,
+                )
+                text = (response.text or "").strip()
+                if not text:
                     continue
-                print("[VISUAL] gemini quota exhausted")
-                return None
-            if "model" in err_str.lower():
-                continue
-            print(f"[VISUAL] gemini vision error ({try_model}): {exc}")
+                print(f"[VISUAL] vision response from gemini/{try_model} ({len(text)} chars)")
+                parsed = _parse_vision_json(text)
+                if parsed and parsed.get("checks"):
+                    return parsed
+                if attempt == 0:
+                    print(f"[VISUAL] malformed response, retrying...")
+                    continue
+                return parsed  # return whatever we got on 2nd attempt
+            except Exception as exc:
+                err_str = str(exc)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    if try_model != model_candidates[-1]:
+                        break  # try next model
+                    print("[VISUAL] gemini quota exhausted")
+                    return None
+                if "model" in err_str.lower():
+                    break  # try next model
+                print(f"[VISUAL] gemini vision error ({try_model}): {exc}")
+                break  # don't retry on unknown errors
             return None
 
     return None

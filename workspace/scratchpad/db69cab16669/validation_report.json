@@ -1,8 +1,0 @@
-{
-  "converged": false,
-  "iterations": 4,
-  "failures": [
-    "generation_error: name 'result' is not defined"
-  ],
-  "bbox": {}
-}

@@ -57,3 +57,4 @@ outputs/logs/
 # MillForge private (proprietary scheduling/sourcing/vision)
 .millforge/
 millforge_private/
+workspace/scratchpad/

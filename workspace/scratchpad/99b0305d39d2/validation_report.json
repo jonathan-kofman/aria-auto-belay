@@ -1,8 +1,0 @@
-{
-  "converged": false,
-  "iterations": 4,
-  "failures": [
-    "generation_error: No code block found in DesignerAgent response"
-  ],
-  "bbox": {}
-}

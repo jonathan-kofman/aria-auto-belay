@@ -325,7 +325,8 @@ class EvalAgent:
         part_type = user_spec.get("part_type", "")
         _thickness_parts = ("bracket", "l_bracket", "phone_stand",
                             "flat_plate", "base_plate", "catch_pawl",
-                            "flange", "spacer", "gusset")
+                            "flange", "spacer", "gusset", "enclosure_lid",
+                            "clamp", "snap_hook", "spring_clip", "hinge")
 
         # Heat sinks: thickness_mm is fin thickness, NOT part thickness.
         # The part is base_t + fin_height tall. Skip thickness bbox check entirely.
