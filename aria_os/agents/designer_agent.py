@@ -171,10 +171,11 @@ class DesignerAgent(BaseAgent):
             self._execute_cad(state, code)
 
     def _call_llm(self, prompt: str) -> str | None:
-        """Override: for CAD code generation, try cloud LLMs first.
-        Local 7b models can't write complex CadQuery geometry reliably.
-        Priority: Anthropic → Gemini → Ollama.
-        Ollama handles non-code tasks (spec, refinement, routing) fine."""
+        """Override: for CAD code generation, try cloud LLMs first, then Gemma 4.
+        Local 7b models can't write complex CadQuery geometry reliably, but
+        Gemma 4 31B is large enough to produce working CadQuery.
+        Priority: Anthropic → Gemini → Gemma 4 31B → None.
+        Ollama default (7b) is still skipped for CAD — too unreliable."""
         if self._prefer_cloud and self.domain == "cad":
             # Try Anthropic first (best code quality)
             try:
@@ -192,10 +193,18 @@ class DesignerAgent(BaseAgent):
                     return response
             except Exception:
                 pass
-            # Do NOT use Ollama 7b for CadQuery — produces broken geometry
+            # Try Gemma 4 31B via Ollama (strong enough for CadQuery at 31B params)
+            try:
+                from ..llm_client import _try_gemma
+                response = _try_gemma(prompt, self.system_prompt)
+                if response:
+                    return response
+            except Exception:
+                pass
+            # Do NOT use Ollama default (7b) for CadQuery — produces broken geometry
             # (.cylinder() calls, missing features, syntax errors).
             # Return None so caller falls back to deterministic template generation.
-            print(f"  [{self.name}] Cloud LLMs unavailable — falling back to template")
+            print(f"  [{self.name}] Cloud LLMs + Gemma 4 unavailable — falling back to template")
             return None
         # Non-CAD domains: use Ollama (standard path)
         return super()._call_llm(prompt)

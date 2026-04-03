@@ -222,14 +222,18 @@ eas build --profile development --platform android
 **Firebase:** add `google-services.json` to `aria-climb/android/app/` before first build.
 
 ### LLM backend
-All keys are **optional**. Priority chain: **Anthropic → Gemini → Ollama → heuristic fallback**. The pipeline never crashes due to a missing key.
+All keys are **optional**. The pipeline never crashes due to a missing key.
+
+**Code generation** priority: **Anthropic Claude → Gemini 2.5 Flash → Gemma 4 31B (Ollama) → Ollama default → heuristic fallback**
+**Non-code tasks** (spec extraction, routing): **Gemma 4 31B (Ollama) → Gemini Flash → Anthropic → Ollama default → heuristic fallback**
 
 - **Anthropic** — set `ANTHROPIC_API_KEY` in `.env`; enables full LLM generation + vision image analysis.
 - **Google Gemini** — set `GOOGLE_API_KEY` in `.env`; enables LLM generation + vision image analysis. Set `GEMINI_MODEL` to override (default: `gemini-2.0-flash`).
-- **Ollama (local)** — install [Ollama](https://ollama.com), run `ollama pull deepseek-coder`. Set `OLLAMA_HOST` / `OLLAMA_MODEL` in `.env` if non-default.
+- **Gemma 4 31B (local)** — install [Ollama](https://ollama.com), run `ollama pull gemma4:31b`. Apache 2.0, competitive with much larger models on coding benchmarks. Set `GEMMA_MODEL` in `.env` to override (default: `gemma4:31b`). Preferred over default Ollama model for all tasks due to 31B parameter count. `is_gemma_available()` checks if pulled.
+- **Ollama (local)** — install [Ollama](https://ollama.com), run `ollama pull deepseek-coder`. Set `OLLAMA_HOST` / `OLLAMA_MODEL` in `.env` if non-default. Used as final local fallback when Gemma 4 is not pulled.
 - **Heuristic templates** — 16 known parts work with zero network calls (see `cadquery_generator._CQ_TEMPLATE_MAP`).
 
-See `aria_os/llm_client.py` — `call_llm(prompt, system, *, repo_root)` is the single entry point used by all generators. `analyze_image_for_cad(image_path, hint, *, repo_root)` uses the same priority chain for vision (Anthropic → Gemini → None).
+See `aria_os/llm_client.py` — `call_llm(prompt, system, *, repo_root)` for code generation tasks, `call_llm_local_first(prompt, system, *, repo_root)` for non-code tasks (prefers local Gemma 4). `analyze_image_for_cad(image_path, hint, *, repo_root)` uses vision priority chain (Gemini → Anthropic → Ollama llava).
 
 ---
 
