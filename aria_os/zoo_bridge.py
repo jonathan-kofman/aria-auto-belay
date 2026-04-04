@@ -98,9 +98,8 @@ def generate_step_from_zoo(
     """
     # ── Check SDK availability ──────────────────────────────────────────
     try:
-        from kittycad.client import ClientFromEnv
-        from kittycad.api.ai import create_text_to_cad, get_text_to_cad_model_for_user
-        from kittycad.models import TextToCadCreateBody, FileExportFormat
+        from kittycad import Client as ZooClient, MlAPI
+        from kittycad import TextToCadCreateBody, FileExportFormat
     except ImportError:
         print("[Zoo] kittycad SDK not installed. Run: pip install kittycad")
         return {"status": "unavailable", "error": "kittycad SDK not installed"}
@@ -111,7 +110,8 @@ def generate_step_from_zoo(
         print("[Zoo] ZOO_API_TOKEN not set. Set it in .env or environment.")
         return {"status": "unavailable", "error": "ZOO_API_TOKEN not set"}
 
-    # Ensure the token is in the env so ClientFromEnv picks it up
+    # Ensure the token is available
+    os.environ["ZOO_API_TOKEN"] = token
     os.environ["KITTYCAD_API_TOKEN"] = token
 
     # ── Prepare output paths ────────────────────────────────────────────
@@ -132,13 +132,12 @@ def generate_step_from_zoo(
     t0 = time.time()
 
     try:
-        client = ClientFromEnv()
+        client = ZooClient(token=token)
+        ml = MlAPI(client)
 
-        response = create_text_to_cad.sync(
-            client=client,
+        response = ml.create_text_to_cad(
             output_format=FileExportFormat.STEP,
             body=TextToCadCreateBody(prompt=goal),
-            kcl=True,
         )
 
         if response is None:
@@ -158,10 +157,8 @@ def generate_step_from_zoo(
                     "duration_s": elapsed,
                 }
             time.sleep(poll_interval)
-            response = get_text_to_cad_model_for_user.sync(
-                client=client,
-                id=response.id,
-            )
+            raw = ml.get_text_to_cad_part_for_user(id=response.id)
+            response = raw.root if hasattr(raw, "root") else raw
             if response is None:
                 elapsed = time.time() - t0
                 print("[Zoo] Lost response during polling.")
