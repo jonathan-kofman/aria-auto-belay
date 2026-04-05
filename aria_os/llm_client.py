@@ -147,6 +147,70 @@ def _gemma_model() -> str:
     return _read_env_var("GEMMA_MODEL", _DEFAULT_GEMMA_MODEL)
 
 
+def _ensure_lightning_tunnel() -> None:
+    """Auto-reconnect the Lightning AI SSH tunnel if it's down.
+
+    Reads the session ID from .lightning_session file and re-establishes
+    the SSH tunnel to the remote GPU. No-op if tunnel is already alive
+    or if no session file exists.
+    """
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    session_file = repo_root / ".lightning_session"
+    key_file = Path.home() / ".ssh" / "lightning_rsa"
+
+    if not session_file.exists() or not key_file.exists():
+        return
+
+    # Check if tunnel is already alive
+    host = _ollama_host()
+    try:
+        req = urllib.request.Request(f"{host}/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            json.loads(resp.read())
+        return  # tunnel is fine
+    except Exception:
+        pass
+
+    # Read session and reconnect
+    session = session_file.read_text().strip()
+    if not session:
+        return
+
+    print(f"[LLM] Reconnecting Lightning AI tunnel (session: {session[:16]}...)")
+    try:
+        # Parse port from OLLAMA_HOST
+        port = 11435
+        if ":" in host.rsplit(":", 1)[-1]:
+            try:
+                port = int(host.rsplit(":", 1)[-1])
+            except ValueError:
+                pass
+
+        subprocess.run([
+            "ssh", "-i", str(key_file),
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "ConnectTimeout=10",
+            "-N", "-f",
+            "-L", f"{port}:localhost:11434",
+            f"s_{session}@ssh.lightning.ai",
+        ], capture_output=True, timeout=15)
+
+        import time
+        time.sleep(2)
+        # Verify
+        try:
+            req = urllib.request.Request(f"{host}/api/tags", method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                json.loads(resp.read())
+            print("[LLM] Lightning AI tunnel reconnected")
+        except Exception:
+            print("[LLM] Lightning AI tunnel failed to reconnect")
+    except Exception as exc:
+        print(f"[LLM] Lightning AI reconnect error: {exc}")
+
+
 def is_gemma_available() -> bool:
     """Check if Gemma 4 is pulled in Ollama.
 
@@ -373,7 +437,10 @@ def _try_gemma(prompt: str, system: str) -> str | None:
     Falls through gracefully if Gemma 4 is not pulled or Ollama is down.
     """
     if not is_gemma_available():
-        return None
+        # Try auto-reconnecting the Lightning AI tunnel
+        _ensure_lightning_tunnel()
+        if not is_gemma_available():
+            return None
 
     host = _ollama_host()
     model = _gemma_model()

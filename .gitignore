@@ -58,3 +58,4 @@ outputs/logs/
 .millforge/
 millforge_private/
 workspace/scratchpad/
+.lightning_session
