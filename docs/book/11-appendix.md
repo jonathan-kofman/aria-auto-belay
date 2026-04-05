@@ -1,211 +1,173 @@
+[&larr; Back to Table of Contents](./README.md) &middot; [Previous: Operations](./10-operations.md)
+
 # Appendix
 
-## Quick Reference
+## Pinout Tables
 
-### All CLI Commands
+### STM32 Pin Assignments
 
-#### Part Generation
+| Pin | Function | Direction | Notes |
+|---|---|---|---|
+| {e.g. PA0} | HX711 Data | Input | Load cell ADC |
+| {e.g. PA1} | HX711 Clock | Output | Load cell ADC clock |
+| {e.g. PA2} | UART TX to ESP32 | Output | 115200 baud |
+| {e.g. PA3} | UART RX from ESP32 | Input | 115200 baud |
+| {e.g. PA4} | UART TX to VESC | Output | Motor commands |
+| {e.g. PA5} | UART RX from VESC | Input | Motor telemetry |
+| {e.g. PB0} | Brake Solenoid GPIO | Output | HIGH = release, LOW = engage |
+| {e.g. PB1} | E-Stop Input | Input | External E-stop button (pull-up) |
+| {e.g. PB2} | Status LED | Output | Board status indicator |
 
-```bash
-# Generate a single part
-python run_aria_os.py "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
+> **Tip:** Actual pin assignments depend on the specific STM32 board variant used. The table above is a template. Update with real pins after hardware arrives and firmware is finalized.
 
-# Full pipeline: generate + FEA + drawing + render + CAM + setup sheet
-python run_aria_os.py --full "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
-python run_aria_os.py --full "ARIA ratchet ring" --machine "HAAS VF2"
+### ESP32 Pin Assignments
 
-# Generate from a photo
-python run_aria_os.py --image photo.jpg
-python run_aria_os.py --image photo.jpg "it's a bracket"
+| Pin | Function | Direction | Notes |
+|---|---|---|---|
+| {e.g. GPIO16} | UART TX to STM32 | Output | 115200 baud |
+| {e.g. GPIO17} | UART RX from STM32 | Input | 115200 baud |
+| {e.g. GPIO21} | Camera SDA / I2C | Bidirectional | OV2640 or similar |
+| {e.g. GPIO22} | Camera SCL / I2C | Output | OV2640 or similar |
+| {e.g. GPIO25} | I2S Data (Microphone) | Input | INMP441 or similar |
+| {e.g. GPIO26} | I2S Clock | Output | Microphone clock |
+| {e.g. GPIO27} | I2S WS | Output | Microphone word select |
+| {e.g. GPIO13} | LED Strip Data | Output | WS2812B |
+| BLE | Built-in radio | Bidirectional | Service UUID in bleCharacteristics.ts |
 
-# 3D preview before export
-python run_aria_os.py --preview "ARIA ratchet ring, 213mm OD"
+### VESC Connections
 
-# Modify an existing part
-python run_aria_os.py --modify outputs/cad/generated_code/aria_spool.py "add 6x M6 bolt circle at 90mm radius"
+| Wire | Color (typical) | Function |
+|---|---|---|
+| Phase A | {e.g. Yellow} | Motor phase A |
+| Phase B | {e.g. Green} | Motor phase B |
+| Phase C | {e.g. Blue} | Motor phase C |
+| UART TX | {e.g. White} | To STM32 RX |
+| UART RX | {e.g. Green} | From STM32 TX |
+| 12V+ | Red | Power input |
+| GND | Black | Power ground |
 
-# Render PNG preview
-python run_aria_os.py "part goal" --render
-```
+## Schematics
 
-#### Listing and Validation
-
-```bash
-python run_aria_os.py --list                   # list all parts with status
-python run_aria_os.py --validate               # re-validate all STEP files
-```
-
-#### CEM Physics
-
-```bash
-python run_aria_os.py --cem-full                                    # physics check all parts
-python run_aria_os.py --material-study aria_ratchet_ring            # material study
-python run_aria_os.py --material-study-all                          # all parts
-python run_aria_os.py --optimize aria_spool --goal minimize_weight --constraint "SF>=2.0"
-python run_aria_os.py --optimize-and-regenerate aria_spool --goal minimize_weight --material 6061_al
-```
-
-#### FEA and CFD
-
-```bash
-python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step --fea
-python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step --cfd
-python run_aria_os.py --analyze-part outputs/cad/step/aria_spool.step --auto
-```
-
-#### Drawings and CAM
-
-```bash
-python run_aria_os.py --draw outputs/cad/step/aria_spool.step
-python run_aria_os.py --cam outputs/cad/step/aria_housing.step --material aluminium_6061
-python run_aria_os.py --cam-validate outputs/cad/step/aria_housing.step
-python run_aria_os.py --setup outputs/cad/step/aria_housing.step outputs/cam/aria_housing/aria_housing_cam.py
-```
-
-#### Batch and Assembly
-
-```bash
-python batch.py parts/clock_parts.json
-python batch.py parts/clock_parts.json --skip-existing --render --workers 4
-python batch.py parts/clock_parts.json --verify-mesh
-
-python assemble.py assembly_configs/aria_clutch_assembly.json
-python assemble.py assembly_configs/aria_clutch_assembly.json --no-clearance
-python assemble_constrain.py assembly_configs/clock_gear_train.json --proximity 80
-```
-
-#### Civil Engineering DXF
-
-```bash
-python run_aria_os.py --autocad "drainage plan" --state TX --discipline drainage
-python run_aria_os.py --autocad "road plan for subdivision" --state CO
-python run_aria_os.py --autocad "storm sewer layout" --state FL --out outputs/cad/dxf/project1/
-```
-
-#### ECAD PCB Generation
+Schematics are generated by the ARIA-OS ECAD pipeline:
 
 ```bash
 python run_aria_os.py --ecad "ARIA ESP32 board, 80x60mm, 12V, UART, BLE, HX711"
-python run_aria_os.py --ecad-variants "ARIA ESP32 board" --variants variants/aria_board_variants.json
 ```
 
-#### Lattice Generation
+Output: `outputs/ecad/<board_name>/` contains KiCad pcbnew script and BOM.
+
+Full schematic PDF: {e.g. link to outputs/ecad/ or hosted PDF when available}
+
+## Datasheets
+
+| Component | Datasheet |
+|---|---|
+| STM32F4xx | {e.g. https://www.st.com/resource/en/datasheet/stm32f446re.pdf} |
+| ESP32-WROOM-32 | {e.g. https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32_datasheet_en.pdf} |
+| HX711 | {e.g. https://cdn.sparkfun.com/datasheets/Sensors/ForceFlex/hx711_english.pdf} |
+| VESC 6.x | {e.g. vendor documentation link} |
+| INMP441 | {e.g. https://invensense.tdk.com/products/digital/inmp441/} |
+
+## 3D Models
+
+All mechanical parts are generated by the ARIA-OS CAD pipeline and stored in:
+
+| Format | Location | Notes |
+|---|---|---|
+| STEP | `outputs/cad/step/` | Import into any CAD software |
+| STL | `outputs/cad/stl/` | Mesh for 3D printing or FEA |
+| Grasshopper artifacts | `outputs/cad/grasshopper/<part>/` | Parametric scripts |
+| Engineering drawings | `outputs/drawings/` | GD&T SVG drawings |
+| CNC setup sheets | `outputs/cam/<part>/` | Fusion 360 CAM + operator setup |
+
+To regenerate all parts:
 
 ```bash
-python run_aria_os.py --lattice --pattern honeycomb --form volumetric --width 100 --height 100 --depth 10
-python run_aria_os.py --lattice-test
+python run_aria_os.py --full "ARIA ratchet ring, 213mm OD, 24 teeth, 21mm thick"
+python run_aria_os.py --full "ARIA housing"
+python run_aria_os.py --full "ARIA spool, 600mm diameter"
+python run_aria_os.py --full "ARIA brake drum, 200mm diameter"
+python run_aria_os.py --full "ARIA cam collar"
+python run_aria_os.py --full "ARIA rope guide"
+python run_aria_os.py --full "ARIA catch pawl"
 ```
 
-#### System-Level Generation
+## Communication Protocol Reference
 
-```bash
-python run_aria_os.py --scenario "a climber takes a lead fall on a 15m route"
-python run_aria_os.py --scenario-dry-run "..."
-python run_aria_os.py --system "design a desktop CNC router 300x300x100mm"
-python run_aria_os.py --system-dry-run "design a 6-DOF robot arm, 1kg payload"
+### UART Message Format (STM32 <-> ESP32)
+
+All messages are ASCII text terminated by newline (`\n`).
+
+| Message Pattern | Direction | Example | Description |
+|---|---|---|---|
+| `VOICE:<cmd>:<conf>` | ESP32 -> STM32 | `VOICE:TAKE:0.92` | Voice command with confidence |
+| `CV:<type>:<conf>` | ESP32 -> STM32 | `CV:CLIP:0.80` | CV detection with confidence |
+| `STATE:<state>` | STM32 -> ESP32 | `STATE:CLIMBING` | Current state machine state |
+| `TELEM:<key>=<val>,...` | STM32 -> ESP32 | `TELEM:T=42.3,S=0.5,I=1.2` | Telemetry: Tension, Speed, Current |
+| `CMD:<command>` | ESP32 -> STM32 | `CMD:ESTOP` | Direct command |
+| `ACK:<command>` | STM32 -> ESP32 | `ACK:ESTOP` | Command acknowledged |
+| `ERR:<code>` | Either | `ERR:SENSOR_DISCONNECT` | Error report |
+| `cal` | PC -> STM32 | `cal` | Enter HX711 calibration mode |
+
+### BLE Packet Format (20 bytes)
+
+```
+Byte  0:    Packet type (0x01=telemetry, 0x02=status, 0x03=command)
+Bytes 1-2:  State (uint16, little-endian)
+Bytes 3-6:  Tension (float32, little-endian, Newtons)
+Bytes 7-10: Rope speed (float32, little-endian, m/s)
+Bytes 11-14: Motor current (float32, little-endian, Amps)
+Bytes 15-16: Battery voltage (uint16, little-endian, mV)
+Bytes 17-18: Flags (uint16, bitfield: bit0=fault, bit1=estop, ...)
+Byte  19:   XOR checksum (bytes 0-18 XORed)
 ```
 
-#### Print Scaling
+Parsed by `aria-climb/src/utils/blePacketParser.ts`.
 
-```bash
-python run_aria_os.py --print-scale aria_ratchet_ring --scale 0.75
-```
+## Error Codes
 
-### Template Function List (39 unique templates)
+| Code | Name | Severity | Description | Action |
+|---|---|---|---|---|
+| `E001` | `SENSOR_DISCONNECT` | Critical | HX711 not responding | Check wiring; system enters ESTOP |
+| `E002` | `MOTOR_OVERCURRENT` | Critical | VESC reports overcurrent | Check motor; system enters ESTOP |
+| `E003` | `WATCHDOG_RESET` | Warning | STM32 watchdog fired | Investigate main loop hang; brake engaged on reset |
+| `E004` | `UART_TIMEOUT` | Warning | No message from ESP32 in {e.g. 5s} | Check ESP32; STM32 continues independently |
+| `E005` | `BRAKE_VERIFY_FAIL` | Critical | Brake did not engage on command | Replace solenoid; do not operate |
+| `E006` | `TENSION_RANGE` | Warning | Tension reading outside expected range | Re-calibrate HX711; check load cell |
+| `E007` | `VESC_COMM_FAIL` | Critical | No response from VESC | Check VESC UART; system enters ESTOP |
+| `E008` | `ZONE_INTRUSION` | Info | Camera detected unexpected body | System pauses; auto-resumes after 10s if clear |
 
-| Function | Part Type | Key Params |
-|----------|-----------|------------|
-| `_cq_ratchet_ring` | Ratchet ring | od_mm, bore_mm, thickness_mm, n_teeth |
-| `_cq_housing` | Housing / enclosure | width_mm, height_mm, depth_mm, wall_mm |
-| `_cq_hollow_rect` | Hollow rectangular section | width_mm, height_mm, length_mm, wall_mm |
-| `_cq_spool` | Rope/cable spool | od_mm, bore_mm, height_mm |
-| `_cq_cam_collar` | Tapered cam collar | od_mm, bore_mm, height_mm |
-| `_cq_brake_drum` | Brake drum | od_mm, height_mm, wall_mm, bore_mm |
-| `_cq_catch_pawl` | Catch pawl / flat bar | length_mm, width_mm, thickness_mm, bore_mm |
-| `_cq_rope_guide` | Roller guide bracket | width_mm, height_mm, thickness_mm, diameter_mm |
-| `_cq_phone_case` | Phone / device case | width_mm, height_mm, depth_mm, wall_mm |
-| `_cq_flat_plate` | Flat plate / panel | width_mm, height_mm, thickness_mm, n_bolts |
-| `_cq_bracket` | Mounting bracket | width_mm, height_mm, thickness_mm, n_bolts, bolt_dia_mm |
-| `_cq_l_bracket` | L-shaped bracket | width_mm, height_mm, thickness_mm, leg_height_mm |
-| `_cq_heat_sink` | Finned heat sink | width_mm, height_mm, n_fins, fin_height_mm |
-| `_cq_phone_stand` | Phone / tablet stand | width_mm, height_mm, angle_deg |
-| `_cq_flange` | Bolt-circle flange | od_mm, bore_mm, thickness_mm, n_bolts |
-| `_cq_shaft` | Solid shaft / rod | diameter_mm, length_mm |
-| `_cq_pulley` | V-groove pulley | od_mm, bore_mm, width_mm |
-| `_cq_cam` | Eccentric cam | od_mm, bore_mm, thickness_mm |
-| `_cq_pin` | Dowel pin | diameter_mm, length_mm |
-| `_cq_spacer` | Disc / washer / spacer | od_mm, bore_mm, thickness_mm |
-| `_cq_tube` | Round tube / pipe | od_mm, bore_mm, length_mm |
-| `_cq_gear` | Spur gear | module_mm, n_teeth, thickness_mm, bore_mm |
-| `_cq_nozzle` | Convergent-divergent nozzle | entry_r_mm, throat_r_mm, exit_r_mm, length_mm, wall_mm |
-| `_cq_escape_wheel` | Escapement wheel | od_mm, n_teeth, thickness_mm |
-| `_cq_nema_motor` | NEMA stepper motor model | nema_size (17/23/34) |
-| `_cq_mgn_rail` | MGN linear rail | mgn_size (12/15/25), length_mm |
-| `_cq_ball_bearing` | Ball bearing model | od_mm, bore_mm, width_mm |
-| `_cq_shaft_coupling` | Rigid shaft coupling | bore_1_mm, bore_2_mm, od_mm, length_mm |
-| `_cq_profile_extrusion` | Aluminum extrusion (2020/4040) | profile_size, length_mm |
-| `_cq_snap_hook` | Snap-fit hook / clip | length_mm, width_mm, thickness_mm |
-| `_cq_thread_insert` | Heat-set threaded insert | od_mm, bore_mm, length_mm |
-| `_cq_hinge` | Door / butt hinge | width_mm, height_mm, thickness_mm |
-| `_cq_clamp` | Pipe / cable clamp | bore_mm, width_mm, thickness_mm |
-| `_cq_handle` | Handle / grip / knob | length_mm, diameter_mm |
-| `_cq_enclosure_lid` | Snap-fit enclosure lid | width_mm, height_mm, thickness_mm |
-| `_cq_gusset` | Corner brace / gusset | width_mm, height_mm, thickness_mm |
-| `_cq_spoked_wheel` | Spoked wheel / handwheel | od_mm, bore_mm, n_spokes |
-| `_cq_t_slot_plate` | T-slot fixture plate | width_mm, height_mm, thickness_mm |
-| `_cq_spring_clip` | Retaining clip / circlip | od_mm, bore_mm, thickness_mm |
+## Glossary
 
-### Output Paths
+| Term | Definition |
+|---|---|
+| **Auto-belay** | A device that automatically manages rope for a climber, replacing a human belayer |
+| **BLE** | Bluetooth Low Energy; wireless protocol used between ESP32 and companion app |
+| **BLDC** | Brushless DC motor; the motor type used in ARIA |
+| **CEM** | Computational Engineering Model; physics validation pipeline in ARIA-OS |
+| **CV** | Computer vision; used for clip detection via camera on ESP32 |
+| **DFM** | Design for manufacturability; analysis of whether a part can be machined |
+| **Edge Impulse** | ML platform for on-device inference; used for voice command classification |
+| **ESTOP** | Emergency stop; immediate brake engagement and motor shutdown |
+| **Fall factor** | Ratio of fall distance to rope length out; higher = more severe |
+| **FOC** | Field-Oriented Control; motor control algorithm used by SimpleFOC/VESC |
+| **GD&T** | Geometric Dimensioning and Tolerancing; engineering drawing standard |
+| **HX711** | 24-bit ADC for load cell / strain gauge applications |
+| **Lead climbing** | Climbing where the climber clips rope into protection as they ascend |
+| **PID** | Proportional-Integral-Derivative; control loop algorithm for tension regulation |
+| **Ratchet ring** | Toothed ring that allows rotation in one direction only (anti-reverse) |
+| **SF** | Safety Factor; ratio of material strength to applied stress (SF >= 2.0 required) |
+| **SimpleFOC** | Open-source FOC library for Arduino / STM32 |
+| **STEP** | Standard for the Exchange of Product Data; CAD file format |
+| **STL** | Stereolithography; mesh file format for 3D printing |
+| **Top-rope** | Climbing with rope anchored above; auto-belays exist for this style |
+| **UART** | Universal Asynchronous Receiver-Transmitter; serial communication |
+| **VESC** | Open-source motor controller; drives the BLDC motor |
 
-| Path | Contents |
-|------|----------|
-| `outputs/cad/step/` | STEP files |
-| `outputs/cad/stl/` | STL mesh files |
-| `outputs/cad/meta/` | Version metadata JSON (git SHA, CEM SF, params) |
-| `outputs/cad/generated_code/` | Raw CadQuery scripts |
-| `outputs/cad/grasshopper/<part>/` | Grasshopper artifacts |
-| `outputs/cad/dxf/` | Civil DXF + JSON sidecar |
-| `outputs/cam/<part>/` | CAM scripts + setup sheets + machinability JSON |
-| `outputs/drawings/` | GD&T SVG drawings |
-| `outputs/ecad/<board>/` | KiCad scripts + BOM + validation |
-| `outputs/screenshots/` | PNG renders |
-| `outputs/aria_generation_log.json` | GH pipeline run log |
-| `cem_design_history.json` | CEM parameter snapshots |
-| `contracts/` | JSON Schema files for output validation |
-| `sessions/` | Agent session logs |
+## Revision History
 
-### Environment Variables
+| Revision | Date | Author | Changes |
+|---|---|---|---|
+| 1.0 | 2026-03-31 | Jonathan Kofman | Initial project book (hardware-book format) |
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `ANTHROPIC_API_KEY` | No | -- | Primary LLM backend |
-| `GOOGLE_API_KEY` | No | -- | Gemini fallback LLM + vision |
-| `GEMINI_MODEL` | No | `gemini-2.0-flash` | Gemini model override |
-| `OLLAMA_HOST` | No | `http://localhost:11434` | Local Ollama endpoint |
-| `OLLAMA_MODEL` | No | `deepseek-coder` | Local model name |
-| `ONSHAPE_ACCESS_KEY` | No | -- | Onshape API key |
-| `ONSHAPE_SECRET_KEY` | No | -- | Onshape API secret |
-| `ARIA_PROFILE` | No | `dev` | Feature flag profile (dev/demo/production) |
-
-### CAM Materials Database
-
-| Material Key | SFM | Typical Use |
-|-------------|-----|-------------|
-| `aluminium_6061` | 300 | General purpose aluminum |
-| `aluminium_7075` | 260 | High-strength aluminum |
-| `steel_4140` | 90 | Alloy steel |
-| `x1_420i` | 85 | Stainless steel |
-| `inconel_718` | 40 | High-temp superalloy |
-| `pla` | -- | 3D printing (no CAM) |
-| `abs` | -- | 3D printing (no CAM) |
-
-### CEM Safety Factor Thresholds
-
-| Part | Check | Required SF |
-|------|-------|-------------|
-| aria_ratchet_ring | tooth_shear | 8.0 (safety-critical) |
-| aria_spool | radial_load | 2.0 |
-| aria_cam_collar | taper_engagement | 2.0 |
-| aria_housing | wall_bending | 2.0 |
-| aria_brake_drum | hoop_stress | 2.0 |
-| All others (general) | primary check | 2.0 (warn at 1.5) |
+[&larr; Back to Table of Contents](./README.md)
