@@ -1,6 +1,9 @@
 # aria_dashboard.py
 # ARIA virtual test dashboard — runs Setup 1/2/3 using aria_models where available.
+# Hardware-specific tabs are in dashboard/. OS-generic tabs (cad, api, outputs) are
+# optional and degrade gracefully when aria-os-export is not installed.
 
+import aria_os_bridge  # noqa: F401 — sets up sys.path for aria-os-export
 import streamlit as st
 import numpy as np
 import pandas as pd
